@@ -14,4 +14,7 @@
     <Project Path="tests/NinjaLauncher.PlatformTests/NinjaLauncher.PlatformTests.csproj" />
     <Project Path="tests/NinjaLauncher.UnitTests/NinjaLauncher.UnitTests.csproj" />
   </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/NinjaLauncher.FeedSigner/NinjaLauncher.FeedSigner.csproj" />
+  </Folder>
 </Solution>

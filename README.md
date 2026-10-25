@@ -23,7 +23,7 @@ Pre-release (v0.1.0 development). See [docs/ROADMAP.md](docs/ROADMAP.md) for eac
 | Modrinth search and install with dependencies | Complete (verified live) |
 | Modpacks (.mrpack install from Modrinth or file) | Complete (validation verified on a live pack); export not started |
 | Bedrock (Windows detect and launch, mcpelauncher detection elsewhere) | Partially complete |
-| Installers, signing, auto-update | Not started |
+| Installers (Velopack) and a signed update feed | Implemented; Windows packaging verified locally. Self-update needs the owner key (B-05) and a public repository |
 
 ## Microsoft sign-in requires an approved app ID
 

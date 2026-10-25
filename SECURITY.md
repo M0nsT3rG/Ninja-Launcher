@@ -18,6 +18,6 @@ Please report vulnerabilities privately through GitHub Security Advisories on th
 
 - **Mods are code.** Anything installed from Modrinth or elsewhere runs with your user's permissions. Being listed in a catalog does not make a mod safe.
 - **Forge and NeoForge installers** are Java programs from those projects' official Maven repositories. Ninja Launcher checks them against their published `.sha1` before running them.
-- **No automatic updates exist yet.** When they ship, they will require a signed release feed (see docs/DECISIONS.md D-13).
+- **Updates** are only accepted when the feed signature verifies against the embedded release public key, and each package is checked against the signed hashes. Updates never install without your click (docs/releases/RELEASING.md).
 
 See [docs/security/THREAT_MODEL.md](docs/security/THREAT_MODEL.md) for the threat model.

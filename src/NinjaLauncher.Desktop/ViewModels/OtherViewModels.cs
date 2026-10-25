@@ -165,7 +165,7 @@ public sealed partial class AccountsViewModel(UiContext ui, AccountService accou
     });
 }
 
-public sealed partial class SettingsViewModel(UiContext ui, SettingsHolder settings, IJavaDiscovery java, IAppPaths paths, IUrlLauncher shell) : ViewModelBase
+public sealed partial class SettingsViewModel(UiContext ui, SettingsHolder settings, IJavaDiscovery java, IAppPaths paths, IUrlLauncher shell, UpdateService updates) : ViewModelBase
 {
     public ObservableCollection<JavaInstallation> JavaInstallations { get; } = [];
     public IReadOnlyList<ThemeMode> Themes { get; } = Enum.GetValues<ThemeMode>();
@@ -181,6 +181,29 @@ public sealed partial class SettingsViewModel(UiContext ui, SettingsHolder setti
     [ObservableProperty] public partial string InstancesDirectory { get; set; } = settings.Current.CustomInstancesDirectory ?? paths.InstancesDirectory;
     [ObservableProperty] public partial bool Verbose { get; set; } = settings.Current.VerboseLogging;
     [ObservableProperty] public partial string ClientId { get; set; } = settings.Current.MicrosoftClientId;
+    [ObservableProperty] public partial bool CheckForUpdates { get; set; } = settings.Current.CheckForUpdates;
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(HasPendingUpdate))] public partial string? PendingVersion { get; set; } = updates.PendingVersion;
+    [ObservableProperty] public partial string UpdateStatus { get; set; } = updates.UnavailableReason ?? "Updates are signed by the Ninja Launcher release key and only install when you click Install.";
+    [ObservableProperty] public partial bool IsUpdating { get; set; }
+    public bool UpdatesAvailable => updates.IsAvailable;
+    public bool HasPendingUpdate => PendingVersion is not null;
+
+    [RelayCommand]
+    private Task CheckUpdates() => ui.RunAsync(async () =>
+    {
+        UpdateStatus = "Checking for updates…";
+        PendingVersion = await updates.CheckAsync();
+        UpdateStatus = PendingVersion is null ? $"Ninja Launcher {Version} is up to date." : $"Version {PendingVersion} is available.";
+    });
+
+    [RelayCommand]
+    private Task InstallUpdate() => ui.RunAsync(async () =>
+    {
+        if (!await ui.ConfirmAsync($"Download Ninja Launcher {PendingVersion} and restart now? Running games are not affected, but the launcher will close.")) return;
+        IsUpdating = true;
+        try { await updates.DownloadAndRestartAsync(p => Avalonia.Threading.Dispatcher.UIThread.Post(() => UpdateStatus = $"Downloading update… {p}%")); }
+        finally { IsUpdating = false; }
+    });
 
     public override async Task OnShownAsync()
     {
@@ -206,7 +229,7 @@ public sealed partial class SettingsViewModel(UiContext ui, SettingsHolder setti
         await settings.UpdateAsync(current => current with
         {
             Theme = Theme, AccentColor = AccentColor, DefaultMaxMemoryMb = DefaultMemory, DownloadConcurrency = Math.Clamp(Concurrency, 1, 32),
-            CustomInstancesDirectory = customDir, VerboseLogging = Verbose, MicrosoftClientId = ClientId.Trim(),
+            CustomInstancesDirectory = customDir, VerboseLogging = Verbose, MicrosoftClientId = ClientId.Trim(), CheckForUpdates = CheckForUpdates,
         });
         ui.Info(restart ? "Settings saved. Restart Ninja Launcher to apply the folder and logging changes." : "Settings saved.");
     });

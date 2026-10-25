@@ -1,10 +1,11 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
     <ProjectReference Include="..\NinjaLauncher.Application\NinjaLauncher.Application.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.Data.Sqlite" />
     <PackageReference Include="Serilog" />
+    <PackageReference Include="Velopack" />
     <PackageReference Include="Serilog.Sinks.File" />
     <PackageReference Include="Serilog.Extensions.Logging" />
   </ItemGroup>

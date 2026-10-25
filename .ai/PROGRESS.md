@@ -15,7 +15,7 @@ Last updated: 2026-10-25. See `docs/ROADMAP.md` for the status of each feature.
 3. Dependency and compatibility warnings (mod updates are done).
 4. Instance import/export (config JSON) and custom icons.
 5. Crash-report viewer (read `crash-reports/` in the instance directory).
-6. Velopack packaging and a signed release feed (Phase 8).
+6. Run the release workflow once B-05 is done; then add a Linux .deb (nfpm) and Flatpak.
 7. Fetch `.sha1` sidecars for hashless Fabric/Quilt libraries.
 
 ## How to verify quickly

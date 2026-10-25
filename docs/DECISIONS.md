@@ -16,4 +16,4 @@ Each decision lists the evidence it rests on. Research notes are in `docs/resear
 | D-10 | 2026-10-25 | Microsoft Testing Platform with xUnit v3; tests split into unit, platform and integration (live APIs) | The .NET 10 SDK drops VSTest for MTP projects | build output |
 | D-11 | 2026-10-25 | Logo is the owner-supplied "Ninja Launcher Logo no BG.png" (in `branding/`) | Provided by the owner | — |
 | D-12 | 2026-10-25 | Use the product name "Ninja Launcher"; never put "Minecraft" in the product name | Minecraft usage guidelines | LICENSING.md |
-| D-13 | 2026-10-25 | Planned updater: Velopack plus our own Ed25519 check of the release feed | Velopack only checks SHA-256 hashes from the feed | CROSS_PLATFORM.md |
+| D-13 | 2026-10-25 | Updater: Velopack 1.2.161 with a channel-bound ECDSA P-256 signature on each feed (`SignedFeedSource`); packages are checked by Velopack against the verified feed hashes. Never installs silently | ECDSA P-256 is built into .NET, so no BouncyCastle dependency is needed for Ed25519; it is equally strong for this purpose. Velopack on its own only checks hashes from an unauthenticated feed | CROSS_PLATFORM.md, docs/releases/RELEASING.md |

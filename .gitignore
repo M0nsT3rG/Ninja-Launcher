@@ -19,3 +19,8 @@ publish/
 *.snk
 secrets.json
 .env
+
+# signing keys: only the update public key may be committed
+*.pem
+*.key
+!branding/update-signing-key.pub.pem

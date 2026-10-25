@@ -67,6 +67,7 @@ public static class AppServices
                 sp.GetRequiredService<ILogger<InstallerLoaderProvider>>()));
         s.AddSingleton<JobQueue>();
         s.AddSingleton<GameSessionService>();
+        s.AddSingleton<UpdateService>();
         return s.BuildServiceProvider();
     }
 }

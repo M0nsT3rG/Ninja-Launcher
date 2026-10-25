@@ -32,3 +32,5 @@ No test fixture contains real credentials or game files. The mocks are a fake `I
 | 2026-10-25 | Independent code review (Codex was at its usage limit, so a separate reviewer agent ran) | 16 findings; all fixed with regression tests, see `docs/testing/REVIEW-2026-10-25.md` |
 | 2026-10-25 | Unit / platform / integration after the review fixes | 93 / 5 / 13 passed (4 opt-in skipped) |
 | 2026-10-25 | Launch smoke 1.8.9 (legacy, Java 8), NeoForge 21.1.265, 1.21.1 | all passed |
+| 2026-10-25 | Mod updates (live: outdated Sodium detected and replaced, disabled state kept) | passed |
+| 2026-10-25 | Update feed signing (unit: valid, tampered, wrong channel, wrong key, missing .sig, http) + local vpk pack, portable build boots | 105 unit passed; Windows packaging verified |

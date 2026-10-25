@@ -45,6 +45,14 @@ jobs:
         run: |
           ls publish/${{ matrix.rid }} | head -50
           test -f publish/${{ matrix.rid }}/NinjaLauncher || test -f publish/${{ matrix.rid }}/NinjaLauncher.exe
+      - name: Packaging validation (Velopack, unsigned feed)
+        if: matrix.rid == 'win-x64'
+        shell: bash
+        run: |
+          dotnet tool install -g vpk --version 1.2.161
+          vpk pack --packId NinjaLauncher --packVersion 0.0.0-ci --packDir publish/win-x64 --mainExe NinjaLauncher.exe \
+            --channel win-x64 --icon src/NinjaLauncher.Desktop/Assets/ninja-launcher.ico --delta None -o vpk-out
+          test -f vpk-out/releases.win-x64.json && test -f vpk-out/NinjaLauncher-win-x64-Setup.exe
       - uses: actions/upload-artifact@v4
         with:
           name: NinjaLauncher-${{ matrix.rid }}-unsigned
