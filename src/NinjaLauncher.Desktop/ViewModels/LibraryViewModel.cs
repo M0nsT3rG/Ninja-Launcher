@@ -12,11 +12,14 @@ using NinjaLauncher.Mods.Modrinth;
 
 namespace NinjaLauncher.Desktop.ViewModels;
 
-public sealed partial class ModEntry(string fileName, bool enabled) : ObservableObject
+public sealed partial class ModEntry(string fileName, bool enabled, ModUpdate? update) : ObservableObject
 {
     public string FileName { get; } = fileName;
     [ObservableProperty] public partial bool Enabled { get; set; } = enabled;
     public string DisplayName => FileName.Replace(".disabled", "");
+    public ModUpdate? Update { get; } = update;
+    public bool HasUpdate => Update is not null;
+    public string UpdateText => Update is null ? "" : $"Update: {Update.CurrentVersion ?? "?"} → {Update.Latest.VersionNumber}";
 }
 
 public sealed partial class LibraryViewModel : ViewModelBase
@@ -30,13 +33,14 @@ public sealed partial class LibraryViewModel : ViewModelBase
     private readonly IUrlLauncher _shell;
     private readonly SettingsHolder _settings;
     private readonly ModpackInstaller _modpacks;
+    private readonly ModrinthClient _modrinth;
     private readonly List<GameInstance> _all = [];
     private IReadOnlyList<ManifestVersion> _manifestVersions = [];
 
     public LibraryViewModel(UiContext ui, InstanceService instances, VersionCatalog catalog, IEnumerable<ILoaderProvider> loaders,
-        GameSessionService game, JobQueue jobs, IUrlLauncher shell, SettingsHolder settings, ModpackInstaller modpacks)
+        GameSessionService game, JobQueue jobs, IUrlLauncher shell, SettingsHolder settings, ModpackInstaller modpacks, ModrinthClient modrinth)
     {
-        (_ui, _instances, _catalog, _game, _jobs, _shell, _settings, _modpacks) = (ui, instances, catalog, game, jobs, shell, settings, modpacks);
+        (_ui, _instances, _catalog, _game, _jobs, _shell, _settings, _modpacks, _modrinth) = (ui, instances, catalog, game, jobs, shell, settings, modpacks, modrinth);
         _loaders = loaders.ToDictionary(l => l.Kind);
         NewMemoryMb = settings.Current.DefaultMaxMemoryMb;
     }
@@ -72,6 +76,10 @@ public sealed partial class LibraryViewModel : ViewModelBase
     [ObservableProperty] public partial string DiskUsage { get; set; } = "";
     [ObservableProperty] public partial string? SelectedWorld { get; set; }
     [ObservableProperty] public partial string? SelectedBackup { get; set; }
+    [ObservableProperty] public partial bool CheckingUpdates { get; set; }
+
+    private IReadOnlyList<ModUpdate> _updates = [];
+    public int UpdateCount => _updates.Count;
 
     public override async Task OnShownAsync()
     {
@@ -140,6 +148,7 @@ public sealed partial class LibraryViewModel : ViewModelBase
 
     partial void OnSelectedChanged(GameInstance? value)
     {
+        _updates = [];
         Mods.Clear(); Worlds.Clear(); Backups.Clear();
         DiskUsage = "";
         if (value is null) return;
@@ -159,7 +168,9 @@ public sealed partial class LibraryViewModel : ViewModelBase
     private void RefreshContent(GameInstance instance)
     {
         Mods.Clear(); Worlds.Clear(); Backups.Clear();
-        foreach (var (file, enabled) in ModrinthClient.ListMods(_instances.GetGameDirectory(instance))) Mods.Add(new ModEntry(file, enabled));
+        foreach (var (file, enabled) in ModrinthClient.ListMods(_instances.GetGameDirectory(instance)))
+            Mods.Add(new ModEntry(file, enabled, _updates.FirstOrDefault(u => u.FileName == file)));
+        OnPropertyChanged(nameof(UpdateCount));
         foreach (var w in _instances.ListWorlds(instance)) Worlds.Add(w);
         foreach (var b in _instances.ListBackups(instance)) Backups.Add(b);
     }
@@ -321,6 +332,41 @@ public sealed partial class LibraryViewModel : ViewModelBase
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException) { _ui.Error(e.Message); }
     }
+
+    [RelayCommand]
+    private Task CheckModUpdates() => _ui.RunAsync(async () =>
+    {
+        if (Selected is not { } instance) return;
+        CheckingUpdates = true;
+        try
+        {
+            _updates = await _modrinth.CheckUpdatesAsync(instance, _instances.GetGameDirectory(instance), CancellationToken.None);
+            if (Selected?.Id != instance.Id) return;
+            RefreshContent(instance);
+            _ui.Info(_updates.Count == 0 ? "All Modrinth mods are up to date." : $"{_updates.Count} mod update(s) available.");
+        }
+        finally { CheckingUpdates = false; }
+    });
+
+    [RelayCommand]
+    private Task UpdateMods() => _ui.RunAsync(async () =>
+    {
+        if (Selected is not { } instance || _updates.Count == 0) return;
+        _game.EnsureNotRunning(instance, "update its mods");
+        var updates = _updates;
+        var gameDir = _instances.GetGameDirectory(instance);
+        await _jobs.Run($"Update {updates.Count} mod(s) in {instance.Name}", async (progress, ct) =>
+        {
+            for (var i = 0; i < updates.Count; i++)
+            {
+                progress.Report(new($"Updating {updates[i].FileName}", 100.0 * i / updates.Count, 0));
+                await _modrinth.ApplyUpdateAsync(updates[i], gameDir, ct);
+            }
+        });
+        _updates = [];
+        if (Selected?.Id == instance.Id) RefreshContent(instance);
+        _ui.Info("Mods updated.");
+    });
 
     [RelayCommand]
     private Task BackupWorld() => _ui.RunAsync(async () =>

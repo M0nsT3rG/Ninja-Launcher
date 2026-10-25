@@ -105,7 +105,14 @@
               <Button Grid.Row="4" Grid.Column="1" Content="Save settings" Command="{Binding SaveCommand}" />
             </Grid>
 
-            <TextBlock Text="Mods" FontWeight="SemiBold" />
+            <DockPanel>
+              <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8">
+                <ProgressBar IsIndeterminate="True" Width="60" IsVisible="{Binding CheckingUpdates}" />
+                <Button Content="Check for updates" Command="{Binding CheckModUpdatesCommand}" IsVisible="{Binding Mods.Count}" />
+                <Button Classes="accent" Content="{Binding UpdateCount, StringFormat='Update {0}'}" Command="{Binding UpdateModsCommand}" IsVisible="{Binding UpdateCount}" />
+              </StackPanel>
+              <TextBlock Text="Mods" FontWeight="SemiBold" VerticalAlignment="Center" />
+            </DockPanel>
             <TextBlock Classes="muted" Text="No mods installed. Find some on the Discover page." IsVisible="{Binding !Mods.Count}" />
             <ItemsControl ItemsSource="{Binding Mods}">
               <ItemsControl.ItemTemplate>
@@ -113,6 +120,8 @@
                   <DockPanel Margin="0,2">
                     <ToggleSwitch DockPanel.Dock="Right" IsChecked="{Binding Enabled, Mode=OneWay}" OnContent="On" OffContent="Off"
                                   Command="{Binding $parent[UserControl].((vm:LibraryViewModel)DataContext).ToggleModCommand}" CommandParameter="{Binding}" />
+                    <TextBlock DockPanel.Dock="Right" Text="{Binding UpdateText}" IsVisible="{Binding HasUpdate}" Foreground="{DynamicResource NinjaAccentBrush}"
+                               FontSize="12" VerticalAlignment="Center" Margin="0,0,12,0" />
                     <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
                   </DockPanel>
                 </DataTemplate>

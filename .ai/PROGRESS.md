@@ -12,7 +12,7 @@ Last updated: 2026-10-25. See `docs/ROADMAP.md` for the status of each feature.
 
 ## Next unblocked tasks
 1. `.mrpack` export (import is done).
-3. Mod update checks via `/version_files` hashes, and dependency warnings.
+3. Dependency and compatibility warnings (mod updates are done).
 4. Instance import/export (config JSON) and custom icons.
 5. Crash-report viewer (read `crash-reports/` in the instance directory).
 6. Velopack packaging and a signed release feed (Phase 8).

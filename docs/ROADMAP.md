@@ -31,7 +31,8 @@ All seven research documents are written in `docs/research/`, each with sources,
 - Forge 1.12.2+, NeoForge 1.20.2+: COMPLETE (official installers run headless; NeoForge 21.1.265 and Forge 47.4.28 installed and booted)
 - Modrinth search (mods, shaders, resource packs), compatibility filters, install with required dependencies, enable and disable: COMPLETE (verified live)
 - Modpacks: browse on Discover, install from Modrinth, import a local .mrpack (host allow-list, sha1 + sha512, path containment, overrides): COMPLETE
-- Mod updates, dependency and compatibility warnings UI, .mrpack export: NOT STARTED
+- Mod updates (hash lookup via `/version_files/update`, works for hand-added jars, keeps the disabled state, release-only unless already on a pre-release): COMPLETE (verified live)
+- Dependency and compatibility warnings UI, .mrpack export: NOT STARTED
 
 ## Phase 6: Bedrock (v0.7.0). PARTIALLY COMPLETE
 - Windows detection and launch, data folder: implemented. **Not verified on a machine with Bedrock installed**

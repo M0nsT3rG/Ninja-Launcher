@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using Microsoft.Extensions.Logging.Abstractions;
 using NinjaLauncher.Application.Abstractions;
 using NinjaLauncher.Domain;
@@ -98,6 +98,27 @@ public sealed class NetworkTests : IDisposable
         var before = Directory.GetFiles(Path.Combine(game, "mods")).Length;
         await client.InstallAsync(hit, ProjectKind.Mod, instance, game, TestContext.Current.CancellationToken); // reinstall must not duplicate
         Assert.Equal(before, Directory.GetFiles(Path.Combine(game, "mods")).Length);
+    }
+
+    [Fact]
+    public async Task Outdated_mod_is_detected_and_updated_in_place()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var client = new ModrinthClient(_downloads);
+        var versions = await client.GetVersionsAsync("AANobbMI", "1.21.1", ModLoaderKind.Fabric, ct); // Sodium
+        var oldest = versions.OrderBy(v => v.DatePublished).First(v => v.VersionType == "release");
+        var file = oldest.Files.First(f => f.Primary);
+        var game = Path.Combine(_home, "upd");
+        var oldPath = Path.Combine(game, "mods", file.Filename + ".disabled"); // disabled state must survive the update
+        await _downloads.DownloadAsync([new DownloadItem(new Uri(file.Url), oldPath, file.Hashes["sha1"], file.Size)], null, ct);
+
+        var instance = new GameInstance { Id = Guid.NewGuid(), Name = "u", MinecraftVersion = "1.21.1", Loader = ModLoaderKind.Fabric, LoaderVersion = "x" };
+        var update = Assert.Single(await client.CheckUpdatesAsync(instance, game, ct));
+        Assert.Equal(oldest.VersionNumber, update.CurrentVersion);
+        var newName = await client.ApplyUpdateAsync(update, game, ct);
+        Assert.EndsWith(".disabled", newName);
+        Assert.False(File.Exists(oldPath));
+        Assert.Empty(await client.CheckUpdatesAsync(instance, game, ct));
     }
 
     [Fact]

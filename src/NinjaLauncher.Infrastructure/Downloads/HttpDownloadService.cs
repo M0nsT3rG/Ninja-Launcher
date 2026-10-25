@@ -45,6 +45,20 @@ public sealed class HttpDownloadService(HttpClient http, Func<int> concurrency, 
         }, url, ct);
     }
 
+    public async Task<string> PostJsonAsync(Uri url, string json, CancellationToken ct)
+    {
+        EnsureHttps(url);
+        return await WithRetry(async token =>
+        {
+            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(token);
+            timeout.CancelAfter(TimeSpan.FromSeconds(60));
+            using var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
+            using var response = await http.PostAsync(url, content, timeout.Token);
+            ThrowForStatus(response);
+            return await response.Content.ReadAsStringAsync(timeout.Token);
+        }, url, ct);
+    }
+
     public async Task DownloadAsync(IReadOnlyList<DownloadItem> items, IProgress<DownloadProgress>? progress, CancellationToken ct)
     {
         var unique = items.GroupBy(i => Path.GetFullPath(i.DestinationPath), StringComparer.OrdinalIgnoreCase).Select(g => g.First()).ToList();

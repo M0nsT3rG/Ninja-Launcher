@@ -70,4 +70,6 @@ public interface IDownloadService
     /// <summary>Downloads files that are missing or fail hash verification. Throws if any file ultimately fails.</summary>
     Task DownloadAsync(IReadOnlyList<DownloadItem> items, IProgress<DownloadProgress>? progress, CancellationToken ct);
     Task<string> GetStringAsync(Uri url, CancellationToken ct);
+    /// <summary>POSTs a JSON body to an idempotent API endpoint and returns the response text.</summary>
+    Task<string> PostJsonAsync(Uri url, string json, CancellationToken ct);
 }

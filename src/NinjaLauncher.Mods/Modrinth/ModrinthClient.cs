@@ -41,6 +41,9 @@ internal sealed record LedgerEntry(string FileName, string Folder, string Versio
 
 public sealed record InstalledContent(string FileName, string ProjectTitle, string VersionNumber);
 
+/// <param name="FileName">Installed file name in <c>mods/</c> (may end in <c>.disabled</c>).</param>
+public sealed record ModUpdate(string FileName, string ProjectId, string? CurrentVersion, ModrinthVersion Latest);
+
 /// <summary>Modrinth API v2 client (https://docs.modrinth.com). Downloads only from Modrinth's CDN, hash-verified.</summary>
 public sealed class ModrinthClient(IDownloadService downloads)
 {
@@ -178,6 +181,66 @@ public sealed class ModrinthClient(IDownloadService downloads)
         if (!enabled && fileName.EndsWith(".disabled", StringComparison.OrdinalIgnoreCase)) return;
         File.Move(source, target);
     }
+
+    /// <summary>
+    /// Identifies installed mods by SHA-1 (works for hand-added jars too) and asks Modrinth for the newest version
+    /// compatible with the instance. Pre-release updates are only offered when the installed file is itself a pre-release.
+    /// </summary>
+    public async Task<IReadOnlyList<ModUpdate>> CheckUpdatesAsync(GameInstance instance, string gameDirectory, CancellationToken ct)
+    {
+        if (LoaderName(instance.Loader) is not { } loader) return [];
+        var dir = Path.Combine(gameDirectory, "mods");
+        var hashes = await Task.Run(() => ListMods(gameDirectory)
+            .GroupBy(m => Sha1Of(Path.Combine(dir, m.FileName)), StringComparer.OrdinalIgnoreCase) // identical copies count once
+            .ToDictionary(g => g.Key, g => g.First().FileName, StringComparer.OrdinalIgnoreCase), ct);
+        if (hashes.Count == 0) return [];
+
+        var current = await PostAsync<Dictionary<string, ModrinthVersion>>("/version_files", new { hashes = hashes.Keys, algorithm = "sha1" }, ct);
+        var latest = await PostAsync<Dictionary<string, ModrinthVersion>>("/version_files/update",
+            new { hashes = hashes.Keys, algorithm = "sha1", loaders = new[] { loader }, game_versions = new[] { instance.MinecraftVersion } }, ct);
+
+        var updates = new List<ModUpdate>();
+        foreach (var (hash, newest) in latest)
+        {
+            if (!hashes.TryGetValue(hash, out var fileName)) continue;
+            var file = newest.Files.FirstOrDefault(f => f.Primary) ?? newest.Files.FirstOrDefault();
+            if (file is null || file.Hashes.GetValueOrDefault("sha1")?.Equals(hash, StringComparison.OrdinalIgnoreCase) == true) continue;
+            var installed = current.GetValueOrDefault(hash);
+            var installedIsRelease = installed?.VersionType is null or "release";
+            if (installedIsRelease && newest.VersionType is not (null or "release")) continue;
+            updates.Add(new ModUpdate(fileName, newest.ProjectId, installed?.VersionNumber, newest));
+        }
+        return updates.OrderBy(u => u.FileName, StringComparer.OrdinalIgnoreCase).ToList();
+    }
+
+    /// <summary>Downloads the new file, keeps the enabled/disabled state, then removes the old file.</summary>
+    public async Task<string> ApplyUpdateAsync(ModUpdate update, string gameDirectory, CancellationToken ct)
+    {
+        var file = update.Latest.Files.FirstOrDefault(f => f.Primary) ?? update.Latest.Files.First();
+        var url = new Uri(file.Url);
+        if (!AllowedHosts.Contains(url.Host)) throw new InvalidOperationException($"Refusing download from unexpected host {url.Host}.");
+        var dir = Path.Combine(gameDirectory, "mods");
+        var oldPath = SafePath.Combine(dir, update.FileName);
+        var disabled = update.FileName.EndsWith(".disabled", StringComparison.OrdinalIgnoreCase);
+        var newName = SafePath.SanitizeName(file.Filename) + (disabled ? ".disabled" : "");
+        var newPath = SafePath.Combine(dir, newName);
+        await downloads.DownloadAsync([new DownloadItem(url, newPath, file.Hashes.GetValueOrDefault("sha1"), file.Size)], null, ct);
+        if (!string.Equals(oldPath, newPath, StringComparison.OrdinalIgnoreCase) && File.Exists(oldPath)) File.Delete(oldPath);
+
+        var ledger = await LoadLedgerAsync(gameDirectory, ct);
+        ledger[update.ProjectId] = new LedgerEntry(SafePath.SanitizeName(file.Filename), "mods", update.Latest.Id);
+        await SaveLedgerAsync(gameDirectory, ledger, ct);
+        return newName;
+    }
+
+    private static string Sha1Of(string path)
+    {
+        using var s = File.OpenRead(path);
+        return Convert.ToHexString(System.Security.Cryptography.SHA1.HashData(s)).ToLowerInvariant();
+    }
+
+    private async Task<T> PostAsync<T>(string path, object body, CancellationToken ct) =>
+        JsonSerializer.Deserialize<T>(await downloads.PostJsonAsync(new Uri(ApiBase + path), JsonSerializer.Serialize(body, Json), ct), Json)!;
 
     // shortcut: in-memory 5-minute cache per URL; move to SQLite if metadata reuse across sessions matters.
     private async Task<string> GetCachedAsync(string url, CancellationToken ct)
