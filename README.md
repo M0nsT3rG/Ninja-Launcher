@@ -19,7 +19,7 @@ Pre-release (v0.1.0 development). See [docs/ROADMAP.md](docs/ROADMAP.md) for eac
 | Microsoft sign-in (OAuth PKCE → Xbox → Minecraft) | Implemented; **blocked** until Mojang approves an Azure app ID |
 | Instances (create, edit, clone, delete, repair, backups, disk usage) | Complete |
 | Fabric, Quilt | Complete (install verified live) |
-| Forge, NeoForge (official installers run headless) | Partially complete: version lists verified live, installer run not yet verified end to end |
+| Forge, NeoForge (official installers run headless) | Complete (installed and booted: NeoForge 21.1.265, Forge 47.4.28) |
 | Modrinth search and install with dependencies | Complete (verified live) |
 | Modpacks (.mrpack install from Modrinth or file) | Complete (validation verified on a live pack); export not started |
 | Bedrock (Windows detect and launch, mcpelauncher detection elsewhere) | Partially complete |

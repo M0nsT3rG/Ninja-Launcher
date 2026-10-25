@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using NinjaLauncher.Application.Abstractions;
+using NinjaLauncher.Application.Security;
 using NinjaLauncher.Application.Services;
 using NinjaLauncher.Desktop.Services;
 using NinjaLauncher.Domain;
@@ -164,6 +165,33 @@ public sealed partial class LibraryViewModel : ViewModelBase
 
     [RelayCommand]
     private void CancelCreate() => IsCreating = false;
+
+    [RelayCommand]
+    private Task ExportConfig() => _ui.RunAsync(async () =>
+    {
+        if (Selected is null) return;
+        var file = await _ui.SaveFileAsync("Instance configuration", $"{SafePath.SanitizeName(Selected.Name)}.ninja.json");
+        if (file is null) return;
+        await _instances.ExportConfigAsync(Selected, file);
+        _ui.Info($"Exported to {Path.GetFileName(file)}.");
+    });
+
+    [RelayCommand]
+    private Task ImportConfig() => _ui.RunAsync(async () =>
+    {
+        var file = await _ui.PickFileAsync("Instance configuration", "*.json");
+        if (file is null) return;
+        var instance = await _instances.ImportConfigAsync(file);
+        if (instance.Loader != ModLoaderKind.None && instance.LoaderVersion is { } lv)
+            await _jobs.Run($"Install {instance.Loader} {lv} for {instance.Name}", async (progress, ct) =>
+            {
+                var id = await _loaders[instance.Loader].InstallAsync(instance.MinecraftVersion, lv, progress, ct);
+                await _instances.UpdateAsync(instance with { LaunchVersionId = id }, ct);
+            });
+        await OnShownAsync();
+        Selected = Instances.FirstOrDefault(i => i.Id == instance.Id);
+        _ui.Info($"Imported '{instance.Name}'.");
+    });
 
     [RelayCommand]
     private Task ImportModpack() => _ui.RunAsync(async () =>

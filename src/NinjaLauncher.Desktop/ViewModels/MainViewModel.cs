@@ -107,6 +107,12 @@ public sealed class UiContext(MainViewModel shell)
     public Task<string?> PickFileAsync(string title, string pattern) =>
         FilePicker?.Invoke(title, pattern) ?? Task.FromResult<string?>(null);
 
+    /// <summary>Set by the main window: (title, suggested name) → chosen save path, or null if cancelled.</summary>
+    public Func<string, string, Task<string?>>? SavePicker { get; set; }
+
+    public Task<string?> SaveFileAsync(string title, string suggestedName) =>
+        SavePicker?.Invoke(title, suggestedName) ?? Task.FromResult<string?>(null);
+
     /// <summary>Runs an action and turns any exception into an error toast.</summary>
     public async Task RunAsync(Func<Task> action)
     {

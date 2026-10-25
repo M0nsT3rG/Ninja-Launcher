@@ -95,7 +95,8 @@ public sealed class MetadataTests
         var merged = VersionMerger.Merge(child, parent);
         Assert.Equal("fabric-loader-0.16.0-1.21.1", merged.Id);
         Assert.Equal("net.fabricmc.loader.impl.launch.knot.KnotClient", merged.MainClass);
-        Assert.Equal("1.21.1", merged.Jar);
+        Assert.Null(merged.Jar); // resolved to the child id: versions/<child>/<child>.jar
+        Assert.Equal("https://piston-data.mojang.com/c.jar", merged.Downloads!.Client!.Url);
         Assert.Equal(21, merged.JavaVersion!.MajorVersion);
         Assert.Equal(["org.ow2.asm:asm:9.7", "net.fabricmc:fabric-loader:0.16.0", "com.google.guava:guava:32.1.2-jre"], merged.Libraries.Select(l => l.Name));
         Assert.Equal(3, merged.Arguments!.Jvm.Count);

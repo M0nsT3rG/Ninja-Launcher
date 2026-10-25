@@ -124,6 +124,30 @@ public sealed class InstanceService(IInstanceRepository repository, IAppPaths pa
         await activity.AddAsync($"Restored backup {Path.GetFileName(backupZip)} into '{instance.Name}'", ct);
     }
 
+    /// <summary>Portable instance configuration (no worlds, no machine-specific Java path).</summary>
+    public sealed record InstanceConfig(int Format, string Name, string MinecraftVersion, ModLoaderKind Loader, string? LoaderVersion,
+        int MinMemoryMb, int MaxMemoryMb, string ExtraJvmArguments);
+
+    private static readonly System.Text.Json.JsonSerializerOptions ConfigJson = new(System.Text.Json.JsonSerializerDefaults.Web)
+    {
+        WriteIndented = true, Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() },
+    };
+
+    public async Task ExportConfigAsync(GameInstance i, string path, CancellationToken ct = default) =>
+        await File.WriteAllTextAsync(path, System.Text.Json.JsonSerializer.Serialize(
+            new InstanceConfig(1, i.Name, i.MinecraftVersion, i.Loader, i.LoaderVersion, i.MinMemoryMb, i.MaxMemoryMb, i.ExtraJvmArguments), ConfigJson), ct);
+
+    /// <summary>Creates a new instance from an exported config. The caller installs the loader afterwards.</summary>
+    public async Task<GameInstance> ImportConfigAsync(string path, CancellationToken ct = default)
+    {
+        if (new FileInfo(path).Length > 64 * 1024) throw new InvalidDataException("Not an instance configuration file.");
+        var c = System.Text.Json.JsonSerializer.Deserialize<InstanceConfig>(await File.ReadAllTextAsync(path, ct), ConfigJson)
+            ?? throw new InvalidDataException("Empty instance configuration.");
+        if (c.Format != 1) throw new InvalidDataException($"Unsupported instance configuration format {c.Format}.");
+        var created = await CreateAsync(c.Name, c.MinecraftVersion, c.Loader, c.LoaderVersion, c.MaxMemoryMb, ct);
+        return await UpdateAsync(created with { MinMemoryMb = c.MinMemoryMb, ExtraJvmArguments = c.ExtraJvmArguments }, ct);
+    }
+
     public async Task MarkPlayedAsync(Guid id, CancellationToken ct = default)
     {
         var instance = await GetRequiredAsync(id, ct);

@@ -12,7 +12,6 @@ Last updated: 2026-10-25. See `docs/ROADMAP.md` for the status of each feature.
 
 ## Next unblocked tasks
 1. `.mrpack` export (import is done).
-2. Run the NeoForge/Forge installers end to end in an integration test (opt-in, they are heavy).
 3. Mod update checks via `/version_files` hashes, and dependency warnings.
 4. Instance import/export (config JSON) and custom icons.
 5. Crash-report viewer (read `crash-reports/` in the instance directory).

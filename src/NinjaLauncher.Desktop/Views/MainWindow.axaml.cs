@@ -15,7 +15,15 @@ public partial class MainWindow : Window
     protected override void OnDataContextChanged(EventArgs e)
     {
         base.OnDataContextChanged(e);
-        if (DataContext is MainViewModel vm) vm.Ui.FilePicker = PickFileAsync;
+        if (DataContext is not MainViewModel vm) return;
+        vm.Ui.FilePicker = PickFileAsync;
+        vm.Ui.SavePicker = SaveFileAsync;
+    }
+
+    private async Task<string?> SaveFileAsync(string title, string suggestedName)
+    {
+        var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions { Title = title, SuggestedFileName = suggestedName });
+        return file?.TryGetLocalPath();
     }
 
     private async Task<string?> PickFileAsync(string title, string pattern)

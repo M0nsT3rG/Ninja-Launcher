@@ -17,7 +17,9 @@ public static class VersionMerger
             Downloads = child.Downloads ?? parent.Downloads,
             JavaVersion = child.JavaVersion ?? parent.JavaVersion,
             Logging = child.Logging ?? parent.Logging,
-            Jar = child.Jar ?? parent.Jar ?? (child.Downloads?.Client is null ? parent.Id : child.Id),
+            // Only an explicit "jar" is inherited. Otherwise the client jar lives at versions/<child>/<child>.jar like the
+            // official launcher does; NeoForge/Forge rely on that name (ignoreList=${version_name}.jar).
+            Jar = child.Jar ?? parent.Jar,
             Libraries = DedupeLibraries(child.Libraries.Concat(parent.Libraries)),
         };
         if (child.Arguments is not null || parent.Arguments is not null)

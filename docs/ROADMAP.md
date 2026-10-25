@@ -8,7 +8,7 @@ All seven research documents are written in `docs/research/`, each with sources,
 ## Phase 1: Foundation (v0.1.0). COMPLETE
 - Solution structure, DI, Serilog with redaction, SQLite with migrations, settings: COMPLETE
 - Avalonia shell with 6 pages, dark and light themes, custom accent colour, owner-supplied logo: COMPLETE
-- CI on Windows x64, Linux x64, macOS arm64 and macOS x64: written, **not yet run** (no remote repository pushed yet)
+- CI on Windows x64, Linux x64, macOS arm64 and macOS x64: COMPLETE (green on 2026-10-25)
 
 ## Phase 2: Authentication (v0.2.0). BLOCKED (external)
 - PKCE loopback flow, state validation, Xbox, XSTS with error mapping, Minecraft profile, refresh with rotation, multiple accounts, switching and removal: implemented and unit-tested
@@ -23,11 +23,12 @@ All seven research documents are written in `docs/research/`, each with sources,
 
 ## Phase 4: Instance management (v0.4.0). PARTIALLY COMPLETE
 - Create, rename, clone, delete (with confirmation), memory, JVM arguments, Java path, repair, world backup and restore, disk usage, open folder: COMPLETE
-- Import and export of instance configurations, custom icons: NOT STARTED
+- Import and export of instance configurations (`.ninja.json`, no machine paths): COMPLETE
+- Custom icons: NOT STARTED
 
 ## Phase 5: Modded (v0.5.0 / v0.6.0). PARTIALLY COMPLETE
 - Fabric, Quilt: COMPLETE (verified live)
-- Forge 1.12.2+, NeoForge 1.20.2+: PARTIALLY COMPLETE (version lists verified live; installer run not yet verified end to end)
+- Forge 1.12.2+, NeoForge 1.20.2+: COMPLETE (official installers run headless; NeoForge 21.1.265 and Forge 47.4.28 installed and booted)
 - Modrinth search (mods, shaders, resource packs), compatibility filters, install with required dependencies, enable and disable: COMPLETE (verified live)
 - Modpacks: browse on Discover, install from Modrinth, import a local .mrpack (host allow-list, sha1 + sha512, path containment, overrides): COMPLETE
 - Mod updates, dependency and compatibility warnings UI, .mrpack export: NOT STARTED

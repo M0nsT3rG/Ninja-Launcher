@@ -114,6 +114,21 @@ public sealed class InstanceServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task Config_export_and_import_round_trip_without_machine_paths()
+    {
+        var a = await _service.UpdateAsync((await _service.CreateAsync("Modded", "1.21.1", ModLoaderKind.Fabric, "0.16.5", 6144)) with
+            { ExtraJvmArguments = "-XX:+UseG1GC", MinMemoryMb = 1024 });
+        var file = Path.Combine(_home, "modded.ninja.json");
+        await _service.ExportConfigAsync(a with { JavaPath = "C:/secret/java.exe" }, file);
+        Assert.DoesNotContain("secret", await File.ReadAllTextAsync(file));
+        var b = await _service.ImportConfigAsync(file);
+        Assert.NotEqual(a.Id, b.Id);
+        Assert.Equal((a.Name, a.Loader, a.LoaderVersion, a.MaxMemoryMb, a.MinMemoryMb, a.ExtraJvmArguments),
+            (b.Name, b.Loader, b.LoaderVersion, b.MaxMemoryMb, b.MinMemoryMb, b.ExtraJvmArguments));
+        Assert.Null(b.LaunchVersionId);
+    }
+
+    [Fact]
     public async Task Restore_refuses_files_outside_backups_directory()
     {
         var a = await _service.CreateAsync("A", "1.21.1");

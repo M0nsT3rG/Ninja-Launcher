@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using Microsoft.Extensions.Logging.Abstractions;
 using NinjaLauncher.Application.Abstractions;
 using NinjaLauncher.Domain;
@@ -57,7 +57,7 @@ public sealed class NetworkTests : IDisposable
             var id = await provider.InstallAsync("1.21.1", versions[0].Version, null, TestContext.Current.CancellationToken);
             var resolved = await _catalog.ResolveAsync(id, TestContext.Current.CancellationToken);
             Assert.Equal(id, resolved.Id);
-            Assert.Equal("1.21.1", resolved.Jar);
+            Assert.Equal(id, resolved.Jar);
             Assert.NotEqual("net.minecraft.client.main.Main", resolved.MainClass);
             Assert.Equal(21, resolved.JavaVersion!.MajorVersion);
         }
@@ -203,6 +203,33 @@ public sealed class LaunchSmokeTests
     }
 }
 
+/// <summary>Runs the official NeoForge/Forge installers headless. Opt-in (NINJA_LOADER_INSTALL=1, NINJA_IT_HOME): slow and heavy.</summary>
+public sealed class InstallerLoaderTests
+{
+    [Theory]
+    [InlineData(ModLoaderKind.NeoForge, "1.21.1")]
+    [InlineData(ModLoaderKind.Forge, "1.20.1")]
+    public async Task Official_installer_produces_a_resolvable_profile(ModLoaderKind kind, string mc)
+    {
+        if (Environment.GetEnvironmentVariable("NINJA_LOADER_INSTALL") != "1") Assert.Skip("Set NINJA_LOADER_INSTALL=1 and NINJA_IT_HOME to run loader installers.");
+        var ct = TestContext.Current.CancellationToken;
+        var paths = new AppPaths(Environment.GetEnvironmentVariable("NINJA_IT_HOME"));
+        var downloads = new HttpDownloadService(HttpDownloadService.CreateClient(), () => 16, NullLogger<HttpDownloadService>.Instance);
+        var catalog = new VersionCatalog(downloads, paths, NullLogger<VersionCatalog>.Instance);
+        var installer = new GameInstaller(downloads, paths, NullLogger<GameInstaller>.Instance);
+        var runtimes = new JavaRuntimeManager(downloads, paths, new JavaDiscovery(paths), NullLogger<JavaRuntimeManager>.Instance);
+        var provider = new InstallerLoaderProvider(kind, downloads, paths, catalog, installer, runtimes, NullLogger<InstallerLoaderProvider>.Instance);
+
+        var version = (await provider.GetVersionsAsync(mc, ct)).First(v => v.Stable).Version;
+        var id = await provider.InstallAsync(mc, version, null, ct);
+        var resolved = await catalog.ResolveAsync(id, ct);
+        Assert.Equal(id, resolved.Jar);
+        var installed = await installer.InstallAsync(resolved, Path.Combine(paths.InstancesDirectory, $"loader-{kind}"), null, ct);
+        Assert.All(installed.Classpath, p => Assert.True(File.Exists(p), p));
+        Assert.False(File.Exists(Path.Combine(paths.GameDirectory, "launcher_profiles.json")), "stub profile must be cleaned up");
+    }
+}
+
 public sealed class SqliteTests : IDisposable
 {
     private readonly string _dir = Directory.CreateTempSubdirectory("ninja-db-").FullName;
@@ -218,14 +245,14 @@ public sealed class SqliteTests : IDisposable
         var path = Path.Combine(_dir, "ninja.db");
         var db = new NinjaDatabase(path);
         var instances = new SqliteInstanceRepository(db);
-        var instance = new GameInstance { Id = Guid.NewGuid(), Name = "Ünïcode 世界", MinecraftVersion = "1.21.1", Loader = ModLoaderKind.Fabric, LoaderVersion = "0.16" };
+        var instance = new GameInstance { Id = Guid.NewGuid(), Name = "ÃœnÃ¯code ä¸–ç•Œ", MinecraftVersion = "1.21.1", Loader = ModLoaderKind.Fabric, LoaderVersion = "0.16" };
         await instances.UpsertAsync(instance, TestContext.Current.CancellationToken);
         await instances.UpsertAsync(instance with { MaxMemoryMb = 8192 }, TestContext.Current.CancellationToken);
 
         db = new NinjaDatabase(path); // reopen: migration must not fail or wipe data
         var loaded = await new SqliteInstanceRepository(db).GetAsync(instance.Id, TestContext.Current.CancellationToken);
         Assert.Equal(8192, loaded!.MaxMemoryMb);
-        Assert.Equal("Ünïcode 世界", loaded.Name);
+        Assert.Equal("ÃœnÃ¯code ä¸–ç•Œ", loaded.Name);
 
         var accounts = new SqliteAccountRepository(db);
         await accounts.UpsertAsync(new MinecraftAccount { ProfileId = "a", Username = "A" }, TestContext.Current.CancellationToken);

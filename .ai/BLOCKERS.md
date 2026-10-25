@@ -16,5 +16,5 @@ Someone needs to run `Get-AppxPackage Microsoft.MinecraftUWP` and `Get-StartApps
 ## B-03: Code signing and notarisation (optional, owner-controlled, paid)
 Apple Developer ID costs US$99 a year. Windows Authenticode certificates also cost money. Builds stay unsigned until the owner decides. See docs/research/CROSS_PLATFORM.md.
 
-## B-04: The GitHub repository has not been created yet
-Creating a private repository `Ninja-Launcher` under the authenticated account M0nsT3rG is allowed by the brief, but it has not been done yet. CI has not run on any OS until then.
+## B-04: Going public (owner decision)
+The private repository https://github.com/M0nsT3rG/Ninja-Launcher was created on 2026-10-25. Making it public, or publishing releases, needs the owner's explicit approval. Before that, audit it for secrets, licences and proprietary assets.

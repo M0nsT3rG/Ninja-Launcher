@@ -26,3 +26,6 @@ No test fixture contains real credentials or game files. The mocks are a fake `I
 | 2026-10-25 | Integration (live) | 8 passed, 1 skipped (full install, opt-in) |
 | 2026-10-25 | Full install 1.21.1 + java-runtime-delta (Windows x64) | passed, 72 s on a cold cache, ~970 MB |
 | 2026-10-25 | Launch smoke 1.21.1 (Windows x64) | passed, client reached LWJGL init in ~16 s |
+| 2026-10-25 | Loader installers (opt-in `NINJA_LOADER_INSTALL=1`) | NeoForge 21.1.265 and Forge 47.4.28 installed and resolved |
+| 2026-10-25 | Launch smoke NeoForge 21.1.265, Forge 1.20.1-47.4.28 | first failed: the vanilla jar on the classpath clashed with NeoForge's patched module. Fixed by placing the client jar at `versions/<profile>/<profile>.jar`, as the official launcher does. Both now pass |
+| 2026-10-25 | CI (Windows, Linux, macOS arm64, macOS x64) | green |
