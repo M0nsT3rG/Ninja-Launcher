@@ -1,5 +1,4 @@
 using System.Reflection;
-using System.Runtime.InteropServices;
 using Microsoft.Extensions.Logging;
 using NinjaLauncher.Infrastructure.Updates;
 using Velopack;
@@ -28,7 +27,9 @@ public sealed class UpdateService
             UnavailableReason = "This build has no update signing key, so automatic updates are disabled. Download new versions from the project's releases page.";
             return;
         }
-        var manager = new UpdateManager(new SignedFeedSource(FeedBaseUrl, key, http), new UpdateOptions { ExplicitChannel = Channel });
+        // No explicit channel: Velopack uses the one baked into the installed package by `vpk pack --channel`,
+        // which stays correct under emulation (x64 on ARM) where the OS architecture would not.
+        var manager = new UpdateManager(new SignedFeedSource(FeedBaseUrl, key, http));
         if (!manager.IsInstalled)
         {
             UnavailableReason = "Updates only work in an installed copy of Ninja Launcher (not in development or portable runs).";
@@ -41,11 +42,6 @@ public sealed class UpdateService
     public string? UnavailableReason { get; }
     public string? PendingVersion => _pending?.TargetFullRelease.Version.ToString();
 
-    /// <summary>Velopack channel for this OS/architecture; must match <c>vpk pack --channel</c> in the release workflow.</summary>
-    public static string Channel =>
-        (OperatingSystem.IsWindows() ? "win" : OperatingSystem.IsMacOS() ? "osx" : "linux") + "-" +
-        (RuntimeInformation.OSArchitecture == Architecture.Arm64 ? "arm64" : "x64");
-
     public async Task<string?> CheckAsync()
     {
         if (_manager is null) return null;
@@ -54,9 +50,22 @@ public sealed class UpdateService
         return PendingVersion;
     }
 
+    /// <summary>Background startup check: failures (offline, private repo) are logged, never shown as errors.</summary>
+    public async Task<string?> CheckQuietlyAsync()
+    {
+        try { return await CheckAsync(); }
+        catch (Exception e)
+        {
+            _logger.LogWarning("Startup update check failed: {Message}", e.Message);
+            return null;
+        }
+    }
+
     public async Task DownloadAndRestartAsync(Action<int> progress)
     {
-        if (_manager is null || _pending is null) throw new InvalidOperationException("No update is pending.");
+        if (_manager is null) throw new InvalidOperationException("Updates are not available.");
+        // Re-check right before downloading: "latest" may have moved since the earlier check.
+        _pending = await _manager.CheckForUpdatesAsync() ?? throw new InvalidOperationException("No update is available any more.");
         await _manager.DownloadUpdatesAsync(_pending, progress);
         _manager.ApplyUpdatesAndRestart(_pending);
     }

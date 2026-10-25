@@ -41,7 +41,7 @@ public sealed partial class MainViewModel : ObservableObject
         if (updates.IsAvailable && services.GetRequiredService<NinjaLauncher.Desktop.Services.SettingsHolder>().Current.CheckForUpdates)
             _ = Ui.RunAsync(async () =>
             {
-                if (await updates.CheckAsync() is { } version) Ui.Info($"Ninja Launcher {version} is available. Install it from Settings → Updates.");
+                if (await updates.CheckQuietlyAsync() is { } version) Ui.Info($"Ninja Launcher {version} is available. Install it from Settings → Updates.");
             });
     }
 

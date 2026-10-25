@@ -9,11 +9,13 @@ try
     switch (args.FirstOrDefault())
     {
         case "keygen" when args.Length == 3:
-            if (File.Exists(args[1])) throw new IOException($"{args[1]} already exists; refusing to overwrite a private key.");
             var (priv, pub) = FeedSignature.GenerateKeyPair();
-            File.WriteAllText(args[1], priv);
-            if (!OperatingSystem.IsWindows()) File.SetUnixFileMode(args[1], UnixFileMode.UserRead | UnixFileMode.UserWrite);
+            // CreateNew refuses to overwrite an existing key; on Unix the file is created owner-only (no chmod race).
+            var options = new FileStreamOptions { Mode = FileMode.CreateNew, Access = FileAccess.Write };
+            if (!OperatingSystem.IsWindows()) options.UnixCreateMode = UnixFileMode.UserRead | UnixFileMode.UserWrite;
+            using (var writer = new StreamWriter(args[1], System.Text.Encoding.ASCII, options)) writer.Write(priv);
             File.WriteAllText(args[2], pub);
+            if (OperatingSystem.IsWindows()) Console.WriteLine("Note: on Windows the key file inherits the folder's permissions; keep it in your user profile or a password manager.");
             Console.WriteLine($"Wrote private key {args[1]} and public key {args[2]}.");
             return 0;
 

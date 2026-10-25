@@ -115,7 +115,9 @@ public sealed class NetworkTests : IDisposable
         var instance = new GameInstance { Id = Guid.NewGuid(), Name = "u", MinecraftVersion = "1.21.1", Loader = ModLoaderKind.Fabric, LoaderVersion = "x" };
         var update = Assert.Single(await client.CheckUpdatesAsync(instance, game, ct));
         Assert.Equal(oldest.VersionNumber, update.CurrentVersion);
-        var newName = await client.ApplyUpdateAsync(update, game, ct);
+        Assert.Null(await client.ApplyUpdateAsync(update with { Sha1 = "0000" }, instance, game, ct)); // file changed since check → skipped
+        Assert.True(File.Exists(oldPath));
+        var newName = await client.ApplyUpdateAsync(update, instance, game, ct);
         Assert.EndsWith(".disabled", newName);
         Assert.False(File.Exists(oldPath));
         Assert.Empty(await client.CheckUpdatesAsync(instance, game, ct));

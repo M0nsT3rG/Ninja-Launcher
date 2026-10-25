@@ -30,8 +30,11 @@ dotnet run --project tools/NinjaLauncher.FeedSigner -- keygen ninja-feed.key.pem
 ```
 
 1. Store `ninja-feed.key.pem` somewhere safe and offline, such as a password manager. **Never commit it**: `.gitignore` excludes `*.pem` except the public key.
-2. Add its full PEM text as the repository secret `NINJA_FEED_SIGNING_KEY` (Settings → Secrets and variables → Actions).
-3. Commit `branding/update-signing-key.pub.pem`. From then on, every build embeds it.
+2. Create a GitHub **Environment** named `release` (Settings → Environments). Add yourself as a **required reviewer**, and set deployment branches and tags to the tag pattern `v*`. Add the key's full PEM text there as the environment secret `NINJA_FEED_SIGNING_KEY`, **not** as a repository secret.
+3. Add a tag ruleset (Settings → Rules → Rulesets) for `v*` so only you can create or move release tags.
+4. Commit `branding/update-signing-key.pub.pem`. From then on, every build embeds it.
+
+Why steps 2 and 3 matter: without them, anyone with write access to the repository (or a stolen token) could get a malicious build signed. With them, the private key is only exposed to the small `sign` job, and only after you approve that specific tagged run. The signer is compiled before the secret is set, and the release workflow can't be started by hand.
 4. Self-update downloads from `https://github.com/M0nsT3rG/Ninja-Launcher/releases/latest/download/`. A private repository needs authentication to download, so updates only work once the repository is public.
 
 If you lose the private key, users can't receive updates until they reinstall a build that has the new public key. Keep a backup.
@@ -39,8 +42,9 @@ If you lose the private key, users can't receive updates until they reinstall a 
 ## Cutting a release
 
 1. Update `CHANGELOG.md` and the `<Version>` in `Directory.Build.props`.
-2. `git tag v0.2.0 && git push origin v0.2.0`, or run the workflow manually with a version.
-3. Review the draft release and the `SHA256SUMS.txt`, then publish it. Publishing is the owner's decision.
+2. `git tag v0.2.0 && git push origin v0.2.0`. Only tag pushes trigger the workflow; tags must look like `vMAJOR.MINOR.PATCH[-pre]`.
+3. Approve the `sign` job when GitHub asks. Check that the run belongs to your tag.
+4. Review the draft release and the `SHA256SUMS.txt`, then publish it. Publishing is the owner's decision.
 
 ## Local packaging (Windows example)
 

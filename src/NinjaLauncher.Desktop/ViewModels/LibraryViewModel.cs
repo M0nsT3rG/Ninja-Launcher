@@ -253,6 +253,7 @@ public sealed partial class LibraryViewModel : ViewModelBase
     private Task Save() => _ui.RunAsync(async () =>
     {
         if (Selected is null) return;
+        _updates = []; // version or loader may change what is compatible
         var updated = await _instances.UpdateAsync(Selected with
         {
             Name = EditName, MinMemoryMb = EditMinMemory, MaxMemoryMb = EditMaxMemory,
@@ -328,6 +329,7 @@ public sealed partial class LibraryViewModel : ViewModelBase
         try
         {
             ModrinthClient.SetModEnabled(_instances.GetGameDirectory(Selected), mod.FileName, !mod.Enabled);
+            _updates = []; // file names changed; re-check before updating
             RefreshContent(Selected);
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException) { _ui.Error(e.Message); }
@@ -355,17 +357,18 @@ public sealed partial class LibraryViewModel : ViewModelBase
         _game.EnsureNotRunning(instance, "update its mods");
         var updates = _updates;
         var gameDir = _instances.GetGameDirectory(instance);
+        var skipped = 0;
         await _jobs.Run($"Update {updates.Count} mod(s) in {instance.Name}", async (progress, ct) =>
         {
             for (var i = 0; i < updates.Count; i++)
             {
                 progress.Report(new($"Updating {updates[i].FileName}", 100.0 * i / updates.Count, 0));
-                await _modrinth.ApplyUpdateAsync(updates[i], gameDir, ct);
+                if (await _modrinth.ApplyUpdateAsync(updates[i], instance, gameDir, ct) is null) skipped++;
             }
         });
         _updates = [];
         if (Selected?.Id == instance.Id) RefreshContent(instance);
-        _ui.Info("Mods updated.");
+        _ui.Info(skipped == 0 ? "Mods updated." : $"Mods updated; {skipped} skipped because they changed since the check.");
     });
 
     [RelayCommand]

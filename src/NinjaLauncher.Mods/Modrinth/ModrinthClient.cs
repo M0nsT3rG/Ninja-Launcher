@@ -42,7 +42,8 @@ internal sealed record LedgerEntry(string FileName, string Folder, string Versio
 public sealed record InstalledContent(string FileName, string ProjectTitle, string VersionNumber);
 
 /// <param name="FileName">Installed file name in <c>mods/</c> (may end in <c>.disabled</c>).</param>
-public sealed record ModUpdate(string FileName, string ProjectId, string? CurrentVersion, ModrinthVersion Latest);
+/// <param name="Sha1">Hash of the installed file at check time; the update is skipped if the file changed since.</param>
+public sealed record ModUpdate(string FileName, string Sha1, string ProjectId, string? CurrentVersion, ModrinthVersion Latest);
 
 /// <summary>Modrinth API v2 client (https://docs.modrinth.com). Downloads only from Modrinth's CDN, hash-verified.</summary>
 public sealed class ModrinthClient(IDownloadService downloads)
@@ -200,36 +201,63 @@ public sealed class ModrinthClient(IDownloadService downloads)
             new { hashes = hashes.Keys, algorithm = "sha1", loaders = new[] { loader }, game_versions = new[] { instance.MinecraftVersion } }, ct);
 
         var updates = new List<ModUpdate>();
-        foreach (var (hash, newest) in latest)
+        foreach (var (hash, latestAny) in latest)
         {
             if (!hashes.TryGetValue(hash, out var fileName)) continue;
+            // Without the installed version we cannot tell newer from older, so never guess (no downgrades).
+            if (current.GetValueOrDefault(hash) is not { } installed) continue;
+            var newest = latestAny;
+            if (IsRelease(installed) && !IsRelease(newest))
+            {
+                // A newer pre-release must not hide a newer release: look for the newest release explicitly.
+                var releases = await GetVersionsAsync(installed.ProjectId, instance.MinecraftVersion, instance.Loader, ct);
+                var release = releases.Where(IsRelease).OrderByDescending(v => v.DatePublished).FirstOrDefault();
+                if (release is null) continue;
+                newest = release;
+            }
+            if (newest.DatePublished <= installed.DatePublished) continue;
             var file = newest.Files.FirstOrDefault(f => f.Primary) ?? newest.Files.FirstOrDefault();
             if (file is null || file.Hashes.GetValueOrDefault("sha1")?.Equals(hash, StringComparison.OrdinalIgnoreCase) == true) continue;
-            var installed = current.GetValueOrDefault(hash);
-            var installedIsRelease = installed?.VersionType is null or "release";
-            if (installedIsRelease && newest.VersionType is not (null or "release")) continue;
-            updates.Add(new ModUpdate(fileName, newest.ProjectId, installed?.VersionNumber, newest));
+            updates.Add(new ModUpdate(fileName, hash, newest.ProjectId, installed.VersionNumber, newest));
         }
         return updates.OrderBy(u => u.FileName, StringComparer.OrdinalIgnoreCase).ToList();
     }
 
-    /// <summary>Downloads the new file, keeps the enabled/disabled state, then removes the old file.</summary>
-    public async Task<string> ApplyUpdateAsync(ModUpdate update, string gameDirectory, CancellationToken ct)
+    private static bool IsRelease(ModrinthVersion v) => v.VersionType is null or "release";
+
+    private static readonly StringComparison PathComparison =
+        OperatingSystem.IsWindows() || OperatingSystem.IsMacOS() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+
+    /// <summary>
+    /// Downloads the new file, keeps the enabled/disabled state, removes the old file and installs any newly
+    /// required dependencies. Returns null (skipped) if the old file changed since the update check.
+    /// </summary>
+    public async Task<string?> ApplyUpdateAsync(ModUpdate update, GameInstance instance, string gameDirectory, CancellationToken ct)
     {
         var file = update.Latest.Files.FirstOrDefault(f => f.Primary) ?? update.Latest.Files.First();
         var url = new Uri(file.Url);
         if (!AllowedHosts.Contains(url.Host)) throw new InvalidOperationException($"Refusing download from unexpected host {url.Host}.");
         var dir = Path.Combine(gameDirectory, "mods");
         var oldPath = SafePath.Combine(dir, update.FileName);
+        // The user may have toggled, deleted or replaced the jar since checking; never act on a stale result.
+        if (!File.Exists(oldPath) || !Sha1Of(oldPath).Equals(update.Sha1, StringComparison.OrdinalIgnoreCase)) return null;
         var disabled = update.FileName.EndsWith(".disabled", StringComparison.OrdinalIgnoreCase);
         var newName = SafePath.SanitizeName(file.Filename) + (disabled ? ".disabled" : "");
         var newPath = SafePath.Combine(dir, newName);
         await downloads.DownloadAsync([new DownloadItem(url, newPath, file.Hashes.GetValueOrDefault("sha1"), file.Size)], null, ct);
-        if (!string.Equals(oldPath, newPath, StringComparison.OrdinalIgnoreCase) && File.Exists(oldPath)) File.Delete(oldPath);
+        if (!string.Equals(oldPath, newPath, PathComparison)) File.Delete(oldPath);
 
         var ledger = await LoadLedgerAsync(gameDirectory, ct);
         ledger[update.ProjectId] = new LedgerEntry(SafePath.SanitizeName(file.Filename), "mods", update.Latest.Id);
-        await SaveLedgerAsync(gameDirectory, ledger, ct);
+        try
+        {
+            var visited = new HashSet<string> { update.ProjectId };
+            var added = new List<InstalledContent>();
+            foreach (var dep in update.Latest.Dependencies.Where(d => d.DependencyType == "required" && d.ProjectId is not null))
+                await InstallRecursiveAsync(dep.ProjectId!, dep.ProjectId!, dep.VersionId, isRoot: false, ProjectKind.Mod, instance.Loader,
+                    instance.MinecraftVersion, gameDirectory, ledger, visited, added, ct);
+        }
+        finally { await SaveLedgerAsync(gameDirectory, ledger, CancellationToken.None); }
         return newName;
     }
 

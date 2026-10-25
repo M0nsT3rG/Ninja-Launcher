@@ -1,15 +1,12 @@
 name: Release
 
-# Builds signed-feed Velopack releases for every platform and attaches them to a DRAFT GitHub release.
-# Nothing is published automatically: the owner reviews and publishes the draft (docs/releases/RELEASING.md).
+# Builds Velopack releases for every platform, signs the update feeds, and attaches everything to a DRAFT
+# GitHub release. Tag pushes only (no manual dispatch), so a release is always tied to a tagged commit.
+# The signing key lives in the protected "release" environment and is only exposed to the small sign job,
+# which the owner approves (docs/releases/RELEASING.md). Nothing is published automatically.
 on:
   push:
     tags: ['v*.*.*']
-  workflow_dispatch:
-    inputs:
-      version:
-        description: Version to build (semver, without the leading v)
-        required: true
 
 permissions:
   contents: read
@@ -40,8 +37,8 @@ jobs:
       - name: Resolve version
         shell: bash
         run: |
-          V="${{ github.event.inputs.version }}"
-          [ -z "$V" ] && V="${GITHUB_REF_NAME#v}"
+          V="${GITHUB_REF_NAME#v}"
+          [[ "$V" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]] || { echo "::error::Tag '$GITHUB_REF_NAME' is not vMAJOR.MINOR.PATCH[-pre]"; exit 1; }
           echo "VERSION=$V" >> "$GITHUB_ENV"
 
       - name: Require the update public key
@@ -68,46 +65,68 @@ jobs:
       - name: Pack
         shell: bash
         run: |
-          dotnet tool install -g vpk --version "$VPK_VERSION"
+          dotnet tool install vpk --version "$VPK_VERSION" --tool-path .vpk
           EXTRA=""
           if [[ "${{ matrix.rid }}" == osx-* ]]; then EXTRA="--bundleId io.github.m0nst3rg.ninjalauncher"; fi
-          vpk pack --packId NinjaLauncher --packVersion "$VERSION" --packDir publish --mainExe "${{ matrix.exe }}" \
+          ./.vpk/vpk pack --packId NinjaLauncher --packVersion "$VERSION" --packDir publish --mainExe "${{ matrix.exe }}" \
             --packTitle "Ninja Launcher" --packAuthors "Ninja Launcher contributors" --channel "${{ matrix.rid }}" \
             --icon "${{ matrix.icon }}" --delta None -o releases $EXTRA
 
-      - name: Sign update feed
+      - uses: actions/upload-artifact@v4
+        with:
+          name: unsigned-${{ matrix.rid }}
+          path: releases/*
+          if-no-files-found: error
+
+  sign:
+    name: Sign update feeds
+    needs: pack
+    runs-on: ubuntu-latest
+    # Configure this environment with the owner as required reviewer and a v* tag-only deployment rule.
+    environment: release
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - name: Build signer (no secret in the environment)
+        run: dotnet build tools/NinjaLauncher.FeedSigner -c Release
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          pattern: unsigned-*
+          merge-multiple: true
+      - name: Sign and verify
         shell: bash
         env:
           NINJA_FEED_SIGNING_KEY: ${{ secrets.NINJA_FEED_SIGNING_KEY }}
         run: |
-          [ -n "$NINJA_FEED_SIGNING_KEY" ] || { echo "::error::Repository secret NINJA_FEED_SIGNING_KEY is not set"; exit 1; }
-          dotnet run --project tools/NinjaLauncher.FeedSigner -c Release -- sign "releases/releases.${{ matrix.rid }}.json"
-          dotnet run --project tools/NinjaLauncher.FeedSigner -c Release --no-build -- verify branding/update-signing-key.pub.pem "releases/releases.${{ matrix.rid }}.json"
-
+          [ -n "$NINJA_FEED_SIGNING_KEY" ] || { echo "::error::Secret NINJA_FEED_SIGNING_KEY is not set in the 'release' environment"; exit 1; }
+          dotnet run --project tools/NinjaLauncher.FeedSigner -c Release --no-build -- sign dist/releases.*.json
+          dotnet run --project tools/NinjaLauncher.FeedSigner -c Release --no-build -- verify branding/update-signing-key.pub.pem dist/releases.*.json
       - uses: actions/upload-artifact@v4
         with:
-          name: release-${{ matrix.rid }}
-          path: releases/*
+          name: signed-release
+          path: dist/*
           if-no-files-found: error
 
   draft:
     name: Draft GitHub release
-    needs: pack
+    needs: sign
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
       - uses: actions/download-artifact@v4
         with:
+          name: signed-release
           path: dist
-          merge-multiple: true
       - name: Checksums
         run: cd dist && sha256sum * > SHA256SUMS.txt && cat SHA256SUMS.txt
       - name: Create draft release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          V="${{ github.event.inputs.version }}"
-          [ -z "$V" ] && V="${GITHUB_REF_NAME#v}"
-          gh release create "v$V" dist/* --repo "${{ github.repository }}" --draft --title "Ninja Launcher $V" \
+          V="${GITHUB_REF_NAME#v}"
+          gh release create "$GITHUB_REF_NAME" dist/* --repo "${{ github.repository }}" --verify-tag --draft --title "Ninja Launcher $V" \
             --notes "Unsigned builds (no Authenticode / Apple notarisation yet). Verify downloads with SHA256SUMS.txt. NOT AN OFFICIAL MINECRAFT PRODUCT. NOT APPROVED BY OR ASSOCIATED WITH MOJANG OR MICROSOFT."
