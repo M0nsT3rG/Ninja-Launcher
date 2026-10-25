@@ -60,6 +60,10 @@ public static class AppServices
         s.AddSingleton<MrpackImporter>();
         s.AddSingleton<ModpackInstaller>();
         s.AddSingleton<ModCompatibilityChecker>();
+        s.AddSingleton(sp => new NinjaLauncher.Mods.CurseForge.CurseForgeClient(sp.GetRequiredService<HttpClient>(),
+            ct => sp.GetRequiredService<ISecretStore>().GetAsync(NinjaLauncher.Desktop.ViewModels.SettingsViewModel.CurseForgeSecretKey, ct),
+            sp.GetRequiredService<IDownloadService>()));
+        s.AddSingleton<NinjaLauncher.Mods.CurseForge.CurseForgeModpackInstaller>();
         s.AddSingleton<ILoaderProvider>(sp => MetaProfileLoaderProvider.Fabric(sp.GetRequiredService<IDownloadService>(), sp.GetRequiredService<VersionCatalog>()));
         s.AddSingleton<ILoaderProvider>(sp => MetaProfileLoaderProvider.Quilt(sp.GetRequiredService<IDownloadService>(), sp.GetRequiredService<VersionCatalog>()));
         foreach (var kind in new[] { ModLoaderKind.Forge, ModLoaderKind.NeoForge })

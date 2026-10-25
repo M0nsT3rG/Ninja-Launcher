@@ -10,100 +10,6 @@ using NinjaLauncher.Mods.Modrinth;
 
 namespace NinjaLauncher.Desktop.ViewModels;
 
-public sealed partial class DiscoverViewModel(UiContext ui, ModrinthClient modrinth, ModpackInstaller modpacks, InstanceService instances, JobQueue jobs, IUrlLauncher shell) : ViewModelBase
-{
-    private const int PageSize = 20;
-    private CancellationTokenSource? _searchCts;
-
-    public ObservableCollection<ModrinthHit> Results { get; } = [];
-    public ObservableCollection<GameInstance> Instances { get; } = [];
-    public IReadOnlyList<ProjectKind> Kinds { get; } = [ProjectKind.Mod, ProjectKind.Modpack, ProjectKind.Shader, ProjectKind.ResourcePack];
-    public bool NeedsTarget => Kind != ProjectKind.Modpack;
-
-    [ObservableProperty] public partial string Query { get; set; } = "";
-    [ObservableProperty] public partial ProjectKind Kind { get; set; } = ProjectKind.Mod;
-    [ObservableProperty] public partial GameInstance? Target { get; set; }
-    [ObservableProperty] public partial bool FilterByInstance { get; set; } = true;
-    [ObservableProperty] public partial bool IsBusy { get; set; }
-    [ObservableProperty] public partial string Summary { get; set; } = "";
-    [ObservableProperty, NotifyCanExecuteChangedFor(nameof(PreviousPageCommand), nameof(NextPageCommand))] public partial int Offset { get; set; }
-    [ObservableProperty, NotifyCanExecuteChangedFor(nameof(NextPageCommand))] public partial int Total { get; set; }
-
-    public string Warning => "Mods are programs that run with your user's permissions. Only install content you trust, even from Modrinth.";
-
-    public override async Task OnShownAsync()
-    {
-        var keep = Target?.Id;
-        Instances.Clear();
-        foreach (var i in await instances.ListAsync()) Instances.Add(i);
-        Target = Instances.FirstOrDefault(i => i.Id == keep) ?? Instances.FirstOrDefault(i => i.Loader != ModLoaderKind.None) ?? Instances.FirstOrDefault();
-        if (Results.Count == 0) await SearchAsync();
-    }
-
-    partial void OnKindChanged(ProjectKind value)
-    {
-        OnPropertyChanged(nameof(NeedsTarget));
-        _ = ui.RunAsync(() => { Offset = 0; return SearchAsync(); });
-    }
-    partial void OnTargetChanged(GameInstance? value) { if (FilterByInstance) _ = ui.RunAsync(() => { Offset = 0; return SearchAsync(); }); }
-    partial void OnFilterByInstanceChanged(bool value) => _ = ui.RunAsync(() => { Offset = 0; return SearchAsync(); });
-
-    [RelayCommand]
-    private Task Search() => ui.RunAsync(() => { Offset = 0; return SearchAsync(); });
-
-    [RelayCommand(CanExecute = nameof(CanGoBack))]
-    private Task PreviousPage() => ui.RunAsync(() => { Offset = Math.Max(0, Offset - PageSize); return SearchAsync(); });
-    private bool CanGoBack() => Offset > 0;
-
-    [RelayCommand(CanExecute = nameof(CanGoNext))]
-    private Task NextPage() => ui.RunAsync(() => { Offset += PageSize; return SearchAsync(); });
-    private bool CanGoNext() => Offset + PageSize < Total;
-
-    private async Task SearchAsync()
-    {
-        _searchCts?.Cancel();
-        _searchCts = new CancellationTokenSource();
-        var ct = _searchCts.Token;
-        IsBusy = true;
-        try
-        {
-            var filter = FilterByInstance && NeedsTarget ? Target : null;
-            var result = await modrinth.SearchAsync(Query, Kind, filter?.MinecraftVersion, filter?.Loader ?? ModLoaderKind.None, Offset, PageSize, ct);
-            if (ct.IsCancellationRequested) return;
-            Results.Clear();
-            foreach (var hit in result.Hits) Results.Add(hit);
-            Total = result.TotalHits;
-            Summary = Total == 0 ? "No results." : $"{Offset + 1}–{Offset + Results.Count} of {Total:N0}" + (filter is null ? "" : $" compatible with {filter.MinecraftVersion} {(Kind == ProjectKind.Mod ? filter.Loader.ToString() : "")}");
-        }
-        finally { IsBusy = false; }
-    }
-
-    [RelayCommand]
-    private Task Install(ModrinthHit hit) => ui.RunAsync(async () =>
-    {
-        if (Kind == ProjectKind.Modpack)
-        {
-            if (!await ui.ConfirmAsync($"Create a new instance from the modpack '{hit.Title}'? Its mods, loader and settings are downloaded from Modrinth.\n\n{Warning}")) return;
-            GameInstance? created = null;
-            await jobs.Run($"Install modpack {hit.Title}", async (progress, ct) => created = await modpacks.InstallFromModrinthAsync(hit, progress, ct));
-            ui.Info($"Created instance '{created!.Name}'. Find it in the Library.");
-            return;
-        }
-        var target = Target ?? throw new InvalidOperationException("Create or select an instance to install into.");
-        if (!await ui.ConfirmAsync($"Install '{hit.Title}' and its required dependencies into '{target.Name}'?\n\n{Warning}")) return;
-        IReadOnlyList<InstalledContent> installed = [];
-        await jobs.Run($"Install {hit.Title} → {target.Name}", async (progress, ct) =>
-        {
-            progress.Report(new(($"Resolving {hit.Title}"), 10, 0));
-            installed = await modrinth.InstallAsync(hit, Kind, target, instances.GetGameDirectory(target), ct);
-        });
-        ui.Info($"Installed {string.Join(", ", installed.Select(i => i.FileName))}");
-    });
-
-    [RelayCommand]
-    private void OpenPage(ModrinthHit hit) => shell.Open(new Uri($"https://modrinth.com/{hit.ProjectType}/{Uri.EscapeDataString(hit.Slug)}"));
-}
-
 public sealed partial class DownloadsViewModel(JobQueue jobs) : ViewModelBase
 {
     public ObservableCollection<JobViewModel> Jobs => jobs.Jobs;
@@ -180,7 +86,7 @@ public sealed partial class AccountsViewModel(UiContext ui, AccountService accou
     });
 }
 
-public sealed partial class SettingsViewModel(UiContext ui, SettingsHolder settings, IJavaDiscovery java, IAppPaths paths, IUrlLauncher shell, UpdateService updates) : ViewModelBase
+public sealed partial class SettingsViewModel(UiContext ui, SettingsHolder settings, IJavaDiscovery java, IAppPaths paths, IUrlLauncher shell, UpdateService updates, ISecretStore secrets) : ViewModelBase
 {
     public ObservableCollection<JavaInstallation> JavaInstallations { get; } = [];
     public IReadOnlyList<ThemeMode> Themes { get; } = Enum.GetValues<ThemeMode>();
@@ -197,6 +103,33 @@ public sealed partial class SettingsViewModel(UiContext ui, SettingsHolder setti
     [ObservableProperty] public partial bool Verbose { get; set; } = settings.Current.VerboseLogging;
     [ObservableProperty] public partial string ClientId { get; set; } = settings.Current.MicrosoftClientId;
     [ObservableProperty] public partial bool CheckForUpdates { get; set; } = settings.Current.CheckForUpdates;
+    [ObservableProperty] public partial string CurseForgeKey { get; set; } = "";
+    [ObservableProperty] public partial string CurseForgeStatus { get; set; } = "";
+
+    public const string CurseForgeSecretKey = "curseforge-api-key";
+
+    [RelayCommand]
+    private Task SaveCurseForgeKey() => ui.RunAsync(async () =>
+    {
+        var key = CurseForgeKey.Trim();
+        if (key.Length < 20 || key.Any(char.IsWhiteSpace)) throw new ArgumentException("That doesn't look like a CurseForge API key.");
+        await secrets.SetAsync(CurseForgeSecretKey, key);
+        CurseForgeKey = "";
+        await RefreshCurseForgeStatusAsync();
+        ui.Info("CurseForge API key saved in " + secrets.BackendName + ".");
+    });
+
+    [RelayCommand]
+    private Task RemoveCurseForgeKey() => ui.RunAsync(async () =>
+    {
+        await secrets.DeleteAsync(CurseForgeSecretKey);
+        await RefreshCurseForgeStatusAsync();
+    });
+
+    private async Task RefreshCurseForgeStatusAsync() =>
+        CurseForgeStatus = await secrets.GetAsync(CurseForgeSecretKey) is null
+            ? "No key saved. CurseForge is disabled in Discover."
+            : $"A key is saved ({secrets.BackendName}). CurseForge is enabled in Discover.";
     [ObservableProperty, NotifyPropertyChangedFor(nameof(HasPendingUpdate))] public partial string? PendingVersion { get; set; } = updates.PendingVersion;
     [ObservableProperty] public partial string UpdateStatus { get; set; } = updates.UnavailableReason ?? "Updates are signed by the Ninja Launcher release key and only install when you click Install.";
     [ObservableProperty] public partial bool IsUpdating { get; set; }
@@ -222,6 +155,7 @@ public sealed partial class SettingsViewModel(UiContext ui, SettingsHolder setti
 
     public override async Task OnShownAsync()
     {
+        await RefreshCurseForgeStatusAsync();
         JavaInstallations.Clear();
         foreach (var j in await java.DiscoverAsync()) JavaInstallations.Add(j);
     }

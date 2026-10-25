@@ -83,6 +83,21 @@
 
         <Border Classes="card">
           <StackPanel Spacing="10">
+            <TextBlock Classes="h2" Text="CurseForge" />
+            <TextBlock Classes="muted" Text="CurseForge requires a personal API key, which its terms do not allow to be shared or bundled with the launcher. Apply for one at console.curseforge.com, then paste it here. It is kept in your system's secure storage." />
+            <TextBlock Classes="muted" Text="CurseForge's terms also forbid using its API through a VPN or proxy that hides your location." />
+            <TextBlock Text="{Binding CurseForgeStatus}" />
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <TextBox Text="{Binding CurseForgeKey}" PasswordChar="•" PlaceholderText="Paste your CurseForge API key" Width="360" />
+              <Button Content="Save key" Command="{Binding SaveCurseForgeKeyCommand}" />
+              <Button Classes="danger" Content="Remove key" Command="{Binding RemoveCurseForgeKeyCommand}" />
+            </StackPanel>
+            <Button Content="Get a CurseForge API key" Command="{Binding OpenLinkCommand}" CommandParameter="https://console.curseforge.com/" />
+          </StackPanel>
+        </Border>
+
+        <Border Classes="card">
+          <StackPanel Spacing="10">
             <TextBlock Classes="h2" Text="Updates" />
             <TextBlock Classes="muted" Text="{Binding UpdateStatus}" />
             <CheckBox Content="Check for updates when the launcher starts" IsChecked="{Binding CheckForUpdates}" IsEnabled="{Binding UpdatesAvailable}" />

@@ -276,6 +276,30 @@ public sealed class InstallerLoaderTests
     }
 }
 
+/// <summary>Live CurseForge checks; skipped unless the key holder sets NINJA_CURSEFORGE_API_KEY (never committed, never logged).</summary>
+public sealed class CurseForgeLiveTests
+{
+    [Fact]
+    public async Task Search_and_install_against_the_real_api()
+    {
+        var key = Environment.GetEnvironmentVariable("NINJA_CURSEFORGE_API_KEY");
+        if (string.IsNullOrWhiteSpace(key)) Assert.Skip("Set NINJA_CURSEFORGE_API_KEY (your personal key) to run live CurseForge tests.");
+        var ct = TestContext.Current.CancellationToken;
+        var downloads = new HttpDownloadService(HttpDownloadService.CreateClient(), () => 8, NullLogger<HttpDownloadService>.Instance);
+        var client = new NinjaLauncher.Mods.CurseForge.CurseForgeClient(HttpDownloadService.CreateClient(), _ => Task.FromResult<string?>(key), downloads);
+
+        var result = await client.SearchAsync("jei", ProjectKind.Mod, "1.21.1", ModLoaderKind.NeoForge, 0, 5, ct);
+        Assert.NotEmpty(result.Mods);
+        Assert.True(await client.ShadersClassIdAsync(ct) > 0, "shaders class should resolve by slug");
+
+        var game = Directory.CreateTempSubdirectory("ninja-cf-").FullName;
+        var instance = new GameInstance { Id = Guid.NewGuid(), Name = "cf", MinecraftVersion = "1.21.1", Loader = ModLoaderKind.NeoForge, LoaderVersion = "x" };
+        var install = await client.InstallAsync(result.Mods[0], ProjectKind.Mod, instance, game, ct);
+        Assert.True(install.Installed.Count + install.Blocked.Count > 0);
+        Assert.All(install.Installed, i => Assert.True(File.Exists(Path.Combine(game, "mods", i.FileName))));
+    }
+}
+
 public sealed class SqliteTests : IDisposable
 {
     private readonly string _dir = Directory.CreateTempSubdirectory("ninja-db-").FullName;

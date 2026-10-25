@@ -36,13 +36,16 @@ public sealed partial class LibraryViewModel : ViewModelBase
     private readonly ModpackInstaller _modpacks;
     private readonly ModrinthClient _modrinth;
     private readonly ModCompatibilityChecker _checker;
+    private readonly NinjaLauncher.Mods.CurseForge.CurseForgeModpackInstaller _curseForgePacks;
     private readonly List<GameInstance> _all = [];
     private IReadOnlyList<ManifestVersion> _manifestVersions = [];
 
     public LibraryViewModel(UiContext ui, InstanceService instances, VersionCatalog catalog, IEnumerable<ILoaderProvider> loaders,
-        GameSessionService game, JobQueue jobs, IUrlLauncher shell, SettingsHolder settings, ModpackInstaller modpacks, ModrinthClient modrinth, ModCompatibilityChecker checker)
+        GameSessionService game, JobQueue jobs, IUrlLauncher shell, SettingsHolder settings, ModpackInstaller modpacks, ModrinthClient modrinth, ModCompatibilityChecker checker,
+        NinjaLauncher.Mods.CurseForge.CurseForgeModpackInstaller curseForgePacks)
     {
         (_ui, _instances, _catalog, _game, _jobs, _shell, _settings, _modpacks, _modrinth, _checker) = (ui, instances, catalog, game, jobs, shell, settings, modpacks, modrinth, checker);
+        _curseForgePacks = curseForgePacks;
         _loaders = loaders.ToDictionary(l => l.Kind);
         NewMemoryMb = settings.Current.DefaultMaxMemoryMb;
     }
@@ -233,13 +236,19 @@ public sealed partial class LibraryViewModel : ViewModelBase
     [RelayCommand]
     private Task ImportModpack() => _ui.RunAsync(async () =>
     {
-        var file = await _ui.PickFileAsync("Modrinth modpack", "*.mrpack");
+        var file = await _ui.PickFileAsync("Modpack (.mrpack or CurseForge .zip)", "*.mrpack;*.zip");
         if (file is null) return;
         GameInstance? created = null;
-        await _jobs.Run($"Import {Path.GetFileName(file)}", async (progress, ct) => created = await _modpacks.InstallFromFileAsync(file, progress, ct));
+        IReadOnlyList<NinjaLauncher.Mods.CurseForge.BlockedFile> blocked = [];
+        await _jobs.Run($"Import {Path.GetFileName(file)}", async (progress, ct) =>
+        {
+            if (file.EndsWith(".zip", StringComparison.OrdinalIgnoreCase)) (created, blocked) = await _curseForgePacks.InstallFromFileAsync(file, progress, ct);
+            else created = await _modpacks.InstallFromFileAsync(file, progress, ct);
+        });
         await OnShownAsync();
         Selected = Instances.FirstOrDefault(i => i.Id == created!.Id);
         _ui.Info($"Imported '{created!.Name}'.");
+        await DiscoverViewModel.OfferManualDownloadsAsync(_ui, _shell, blocked, _instances.GetGameDirectory(created));
     });
 
     [RelayCommand]

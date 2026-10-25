@@ -32,7 +32,7 @@ public partial class MainWindow : Window
         {
             Title = title,
             AllowMultiple = false,
-            FileTypeFilter = [new FilePickerFileType(title) { Patterns = [pattern] }],
+            FileTypeFilter = [new FilePickerFileType(title) { Patterns = pattern.Split(';') }],
         });
         return files.Count == 0 ? null : files[0].TryGetLocalPath();
     }
