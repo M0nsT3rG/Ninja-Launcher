@@ -1,0 +1,137 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:NinjaLauncher.Desktop.ViewModels"
+             xmlns:d="using:NinjaLauncher.Domain"
+             xmlns:v="using:NinjaLauncher.Desktop.Views"
+             x:Class="NinjaLauncher.Desktop.Views.LibraryView"
+             x:DataType="vm:LibraryViewModel" Classes="page">
+  <Grid RowDefinitions="Auto,*" ColumnDefinitions="340,*">
+    <DockPanel Grid.ColumnSpan="2" Margin="0,0,0,18">
+      <Button DockPanel.Dock="Right" Classes="accent" Content="+ New instance" Command="{Binding StartCreateCommand}" VerticalAlignment="Center" />
+      <StackPanel>
+        <TextBlock Classes="h1" Text="Library" />
+        <TextBlock Classes="muted" Text="Every instance is isolated: its own worlds, mods, options and logs." />
+      </StackPanel>
+    </DockPanel>
+
+    <!-- Instance list -->
+    <Border Grid.Row="1" Classes="card" Margin="0,0,18,0" Padding="12">
+      <DockPanel>
+        <TextBox DockPanel.Dock="Top" Text="{Binding Search}" PlaceholderText="Search instances" Margin="0,0,0,10" />
+        <ListBox ItemsSource="{Binding Instances}" SelectedItem="{Binding Selected}" Background="Transparent">
+          <ListBox.ItemTemplate>
+            <DataTemplate DataType="d:GameInstance">
+              <StackPanel Margin="2,4">
+                <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                  <TextBlock Classes="muted" FontSize="12" Text="{Binding MinecraftVersion}" />
+                  <TextBlock Classes="muted" FontSize="12" Text="{Binding Loader}" />
+                  <TextBlock Classes="muted" FontSize="12" Text="{Binding LoaderVersion}" />
+                </StackPanel>
+              </StackPanel>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+      </DockPanel>
+    </Border>
+
+    <!-- Create form -->
+    <Border Grid.Row="1" Grid.Column="1" Classes="card" IsVisible="{Binding IsCreating}">
+      <ScrollViewer>
+        <StackPanel Spacing="12" MaxWidth="520" HorizontalAlignment="Left">
+          <TextBlock Classes="h2" Text="New instance" />
+          <TextBlock Text="Name" />
+          <TextBox Text="{Binding NewName}" PlaceholderText="My survival world" MaxLength="64" />
+          <TextBlock Text="Minecraft version" />
+          <StackPanel Orientation="Horizontal" Spacing="12">
+            <ComboBox ItemsSource="{Binding Versions}" SelectedItem="{Binding NewVersion}" MinWidth="220" MaxDropDownHeight="360" />
+            <CheckBox Content="Show snapshots" IsChecked="{Binding ShowSnapshots}" />
+          </StackPanel>
+          <TextBlock Text="Mod loader" />
+          <StackPanel Orientation="Horizontal" Spacing="12">
+            <ComboBox ItemsSource="{Binding LoaderKinds}" SelectedItem="{Binding NewLoader}" MinWidth="140" />
+            <ComboBox ItemsSource="{Binding LoaderVersions}" SelectedItem="{Binding NewLoaderVersion}" MinWidth="220" MaxDropDownHeight="360"
+                      PlaceholderText="Loader version" IsVisible="{Binding LoaderVersions.Count}" />
+            <ProgressBar IsIndeterminate="True" Width="80" IsVisible="{Binding LoadingLoaderVersions}" />
+          </StackPanel>
+          <TextBlock Text="Maximum memory (MB)" />
+          <NumericUpDown Value="{Binding NewMemoryMb}" Minimum="512" Maximum="65536" Increment="512" FormatString="0" Width="180" HorizontalAlignment="Left" />
+          <TextBlock Classes="muted" FontSize="12" Text="Forge and NeoForge are installed by running their official installers, which can take a few minutes." />
+          <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,8,0,0">
+            <Button Classes="accent" Content="Create" Command="{Binding CreateCommand}" />
+            <Button Content="Cancel" Command="{Binding CancelCreateCommand}" />
+          </StackPanel>
+        </StackPanel>
+      </ScrollViewer>
+    </Border>
+
+    <!-- Details -->
+    <Border Grid.Row="1" Grid.Column="1" Classes="card" IsVisible="{Binding !IsCreating}">
+      <Panel>
+        <TextBlock Classes="muted" Text="Select an instance, or create one with “New instance”." IsVisible="{Binding !HasSelection}"
+                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+        <ScrollViewer IsVisible="{Binding HasSelection}">
+          <StackPanel Spacing="14">
+            <DockPanel>
+              <TextBlock DockPanel.Dock="Right" Classes="muted" Text="{Binding DiskUsage}" VerticalAlignment="Center" />
+              <TextBlock Classes="h2" Text="{Binding Selected.Name, FallbackValue=''}" />
+            </DockPanel>
+            <WrapPanel>
+              <Button Classes="accent" Content="▶ Launch" Command="{Binding LaunchCommand}" Margin="0,0,8,8" />
+              <Button Content="Repair" Command="{Binding RepairCommand}" Margin="0,0,8,8" ToolTip.Tip="Re-verify every file by hash and re-download anything broken" />
+              <Button Content="Clone" Command="{Binding CloneCommand}" Margin="0,0,8,8" />
+              <Button Content="Open folder" Command="{Binding OpenFolderCommand}" Margin="0,0,8,8" />
+              <Button Classes="danger" Content="Delete" Command="{Binding DeleteCommand}" Margin="0,0,8,8" />
+            </WrapPanel>
+
+            <TextBlock Text="Settings" FontWeight="SemiBold" />
+            <Grid ColumnDefinitions="160,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="8">
+              <TextBlock Text="Name" VerticalAlignment="Center" />
+              <TextBox Grid.Column="1" Text="{Binding EditName}" MaxLength="64" />
+              <TextBlock Grid.Row="1" Text="Memory (MB)" VerticalAlignment="Center" />
+              <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                <NumericUpDown Value="{Binding EditMinMemory}" Minimum="256" Maximum="65536" Increment="256" FormatString="0" Width="150" ToolTip.Tip="Minimum (-Xms)" />
+                <NumericUpDown Value="{Binding EditMaxMemory}" Minimum="512" Maximum="65536" Increment="512" FormatString="0" Width="150" ToolTip.Tip="Maximum (-Xmx)" />
+              </StackPanel>
+              <TextBlock Grid.Row="2" Text="JVM arguments" VerticalAlignment="Center" />
+              <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding EditJvmArgs}" PlaceholderText="Empty = recommended defaults from the version" />
+              <TextBlock Grid.Row="3" Text="Java executable" VerticalAlignment="Center" />
+              <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding EditJavaPath}" PlaceholderText="Empty = managed Java chosen for this version" />
+              <Button Grid.Row="4" Grid.Column="1" Content="Save settings" Command="{Binding SaveCommand}" />
+            </Grid>
+
+            <TextBlock Text="Mods" FontWeight="SemiBold" />
+            <TextBlock Classes="muted" Text="No mods installed. Find some on the Discover page." IsVisible="{Binding !Mods.Count}" />
+            <ItemsControl ItemsSource="{Binding Mods}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate DataType="vm:ModEntry">
+                  <DockPanel Margin="0,2">
+                    <ToggleSwitch DockPanel.Dock="Right" IsChecked="{Binding Enabled, Mode=OneWay}" OnContent="On" OffContent="Off"
+                                  Command="{Binding $parent[UserControl].((vm:LibraryViewModel)DataContext).ToggleModCommand}" CommandParameter="{Binding}" />
+                    <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                  </DockPanel>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <TextBlock Text="World backups" FontWeight="SemiBold" />
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <ComboBox ItemsSource="{Binding Worlds}" SelectedItem="{Binding SelectedWorld}" PlaceholderText="World" MinWidth="220" />
+              <Button Content="Back up" Command="{Binding BackupWorldCommand}" />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <ComboBox ItemsSource="{Binding Backups}" SelectedItem="{Binding SelectedBackup}" PlaceholderText="Backup" MinWidth="320">
+                <ComboBox.ItemTemplate>
+                  <DataTemplate x:DataType="x:String">
+                    <TextBlock Text="{Binding Converter={x:Static v:Converters.FileName}}" />
+                  </DataTemplate>
+                </ComboBox.ItemTemplate>
+              </ComboBox>
+              <Button Content="Restore" Command="{Binding RestoreBackupCommand}" />
+            </StackPanel>
+          </StackPanel>
+        </ScrollViewer>
+      </Panel>
+    </Border>
+  </Grid>
+</UserControl>

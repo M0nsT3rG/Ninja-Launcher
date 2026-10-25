@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\NinjaLauncher.Application\NinjaLauncher.Application.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="NinjaLauncher.UnitTests" />
+    <InternalsVisibleTo Include="NinjaLauncher.PlatformTests" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,289 @@
+using System.Collections.ObjectModel;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using NinjaLauncher.Application.Abstractions;
+using NinjaLauncher.Application.Services;
+using NinjaLauncher.Desktop.Services;
+using NinjaLauncher.Domain;
+using NinjaLauncher.Minecraft.Java.Metadata;
+using NinjaLauncher.Mods.Loaders;
+using NinjaLauncher.Mods.Modrinth;
+
+namespace NinjaLauncher.Desktop.ViewModels;
+
+public sealed partial class ModEntry(string fileName, bool enabled) : ObservableObject
+{
+    public string FileName { get; } = fileName;
+    [ObservableProperty] public partial bool Enabled { get; set; } = enabled;
+    public string DisplayName => FileName.Replace(".disabled", "");
+}
+
+public sealed partial class LibraryViewModel : ViewModelBase
+{
+    private readonly UiContext _ui;
+    private readonly InstanceService _instances;
+    private readonly VersionCatalog _catalog;
+    private readonly IReadOnlyDictionary<ModLoaderKind, ILoaderProvider> _loaders;
+    private readonly GameSessionService _game;
+    private readonly JobQueue _jobs;
+    private readonly IUrlLauncher _shell;
+    private readonly SettingsHolder _settings;
+    private readonly List<GameInstance> _all = [];
+    private IReadOnlyList<ManifestVersion> _manifestVersions = [];
+
+    public LibraryViewModel(UiContext ui, InstanceService instances, VersionCatalog catalog, IEnumerable<ILoaderProvider> loaders,
+        GameSessionService game, JobQueue jobs, IUrlLauncher shell, SettingsHolder settings)
+    {
+        (_ui, _instances, _catalog, _game, _jobs, _shell, _settings) = (ui, instances, catalog, game, jobs, shell, settings);
+        _loaders = loaders.ToDictionary(l => l.Kind);
+        NewMemoryMb = settings.Current.DefaultMaxMemoryMb;
+    }
+
+    public ObservableCollection<GameInstance> Instances { get; } = [];
+    public ObservableCollection<string> Versions { get; } = [];
+    public ObservableCollection<string> LoaderVersions { get; } = [];
+    public ObservableCollection<ModEntry> Mods { get; } = [];
+    public ObservableCollection<string> Worlds { get; } = [];
+    public ObservableCollection<string> Backups { get; } = [];
+    public IReadOnlyList<ModLoaderKind> LoaderKinds { get; } = Enum.GetValues<ModLoaderKind>();
+
+    [ObservableProperty] public partial string Search { get; set; } = "";
+    [ObservableProperty] public partial bool ShowSnapshots { get; set; }
+    [ObservableProperty] public partial bool IsCreating { get; set; }
+    [ObservableProperty] public partial string NewName { get; set; } = "";
+    [ObservableProperty] public partial string? NewVersion { get; set; }
+    [ObservableProperty] public partial ModLoaderKind NewLoader { get; set; }
+    [ObservableProperty] public partial string? NewLoaderVersion { get; set; }
+    [ObservableProperty] public partial int NewMemoryMb { get; set; }
+    [ObservableProperty] public partial bool LoadingLoaderVersions { get; set; }
+
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(HasSelection))]
+    public partial GameInstance? Selected { get; set; }
+    public bool HasSelection => Selected is not null;
+
+    // Editable copy of the selected instance.
+    [ObservableProperty] public partial string EditName { get; set; } = "";
+    [ObservableProperty] public partial int EditMinMemory { get; set; }
+    [ObservableProperty] public partial int EditMaxMemory { get; set; }
+    [ObservableProperty] public partial string EditJvmArgs { get; set; } = "";
+    [ObservableProperty] public partial string EditJavaPath { get; set; } = "";
+    [ObservableProperty] public partial string DiskUsage { get; set; } = "";
+    [ObservableProperty] public partial string? SelectedWorld { get; set; }
+    [ObservableProperty] public partial string? SelectedBackup { get; set; }
+
+    public override async Task OnShownAsync()
+    {
+        _all.Clear();
+        _all.AddRange(await _instances.ListAsync());
+        ApplyFilter();
+        if (Versions.Count == 0) await LoadVersionsAsync();
+    }
+
+    partial void OnSearchChanged(string value) => ApplyFilter();
+    partial void OnShowSnapshotsChanged(bool value) => FillVersions();
+
+    private void ApplyFilter()
+    {
+        var keep = Selected?.Id;
+        Instances.Clear();
+        foreach (var i in _all.Where(i => string.IsNullOrWhiteSpace(Search) || i.Name.Contains(Search, StringComparison.OrdinalIgnoreCase)
+                     || i.MinecraftVersion.Contains(Search, StringComparison.OrdinalIgnoreCase) || i.Loader.ToString().Contains(Search, StringComparison.OrdinalIgnoreCase)))
+            Instances.Add(i);
+        Selected = Instances.FirstOrDefault(i => i.Id == keep);
+    }
+
+    private async Task LoadVersionsAsync()
+    {
+        try
+        {
+            _manifestVersions = (await _catalog.GetManifestAsync()).Versions;
+            FillVersions();
+        }
+        catch (Exception e) when (e is not OperationCanceledException)
+        {
+            _ui.Error($"Could not load Minecraft versions: {e.Message}");
+        }
+    }
+
+    private void FillVersions()
+    {
+        Versions.Clear();
+        foreach (var v in _manifestVersions.Where(v => ShowSnapshots ? v.Type is "release" or "snapshot" : v.Type == "release")) Versions.Add(v.Id);
+        NewVersion ??= Versions.FirstOrDefault();
+    }
+
+    async partial void OnNewVersionChanged(string? value) => await RefreshLoaderVersionsAsync();
+    async partial void OnNewLoaderChanged(ModLoaderKind value) => await RefreshLoaderVersionsAsync();
+
+    private async Task RefreshLoaderVersionsAsync()
+    {
+        LoaderVersions.Clear();
+        NewLoaderVersion = null;
+        if (NewLoader == ModLoaderKind.None || NewVersion is null) return;
+        LoadingLoaderVersions = true;
+        await _ui.RunAsync(async () =>
+        {
+            var versions = await _loaders[NewLoader].GetVersionsAsync(NewVersion, CancellationToken.None);
+            foreach (var v in versions.OrderByDescending(v => v.Stable).Take(60)) LoaderVersions.Add(v.Version);
+            NewLoaderVersion = LoaderVersions.FirstOrDefault();
+            if (LoaderVersions.Count == 0) _ui.Error($"{NewLoader} has no build for Minecraft {NewVersion} that Ninja Launcher can install.");
+        });
+        LoadingLoaderVersions = false;
+    }
+
+    async partial void OnSelectedChanged(GameInstance? value)
+    {
+        Mods.Clear(); Worlds.Clear(); Backups.Clear();
+        DiskUsage = "";
+        if (value is null) return;
+        EditName = value.Name;
+        EditMinMemory = value.MinMemoryMb;
+        EditMaxMemory = value.MaxMemoryMb;
+        EditJvmArgs = value.ExtraJvmArguments;
+        EditJavaPath = value.JavaPath ?? "";
+        RefreshContent(value);
+        var bytes = await _instances.GetDiskUsageAsync(value);
+        DiskUsage = $"{bytes / 1024.0 / 1024.0:0.0} MB on disk";
+    }
+
+    private void RefreshContent(GameInstance instance)
+    {
+        Mods.Clear(); Worlds.Clear(); Backups.Clear();
+        foreach (var (file, enabled) in ModrinthClient.ListMods(_instances.GetGameDirectory(instance))) Mods.Add(new ModEntry(file, enabled));
+        foreach (var w in _instances.ListWorlds(instance)) Worlds.Add(w);
+        foreach (var b in _instances.ListBackups(instance)) Backups.Add(b);
+    }
+
+    [RelayCommand]
+    private void StartCreate()
+    {
+        IsCreating = true;
+        NewName = "";
+    }
+
+    [RelayCommand]
+    private void CancelCreate() => IsCreating = false;
+
+    [RelayCommand]
+    private Task Create() => _ui.RunAsync(async () =>
+    {
+        if (string.IsNullOrWhiteSpace(NewName)) throw new ArgumentException("Give the instance a name.");
+        if (NewVersion is null) throw new ArgumentException("Pick a Minecraft version.");
+        if (NewLoader != ModLoaderKind.None && NewLoaderVersion is null) throw new ArgumentException($"Pick a {NewLoader} version.");
+        var (name, mc, loader, loaderVersion, memory) = (NewName, NewVersion, NewLoader, NewLoaderVersion, NewMemoryMb);
+        var instance = await _instances.CreateAsync(name, mc, loader, loaderVersion, memory);
+        IsCreating = false;
+        if (loader != ModLoaderKind.None)
+        {
+            _ui.Info($"Installing {loader} {loaderVersion}… see Downloads.");
+            await _jobs.Run($"Install {loader} {loaderVersion} for {name}", async (progress, ct) =>
+            {
+                var id = await _loaders[loader].InstallAsync(mc, loaderVersion!, progress, ct);
+                await _instances.UpdateAsync(instance with { LaunchVersionId = id }, ct);
+            });
+        }
+        await OnShownAsync();
+        Selected = Instances.FirstOrDefault(i => i.Id == instance.Id);
+        _ui.Info($"Created '{name}'.");
+    });
+
+    [RelayCommand]
+    private Task Save() => _ui.RunAsync(async () =>
+    {
+        if (Selected is null) return;
+        var updated = await _instances.UpdateAsync(Selected with
+        {
+            Name = EditName, MinMemoryMb = EditMinMemory, MaxMemoryMb = EditMaxMemory,
+            ExtraJvmArguments = EditJvmArgs.Trim(), JavaPath = string.IsNullOrWhiteSpace(EditJavaPath) ? null : EditJavaPath.Trim(),
+        });
+        await OnShownAsync();
+        Selected = Instances.FirstOrDefault(i => i.Id == updated.Id);
+        _ui.Info("Instance saved.");
+    });
+
+    [RelayCommand]
+    private Task Launch() => _ui.RunAsync(async () =>
+    {
+        if (Selected is null) return;
+        if (Selected.Loader != ModLoaderKind.None && Selected.LaunchVersionId is null)
+            throw new InvalidOperationException($"{Selected.Loader} is not installed for this instance yet. Use Repair to install it.");
+        _ui.Info($"Preparing {Selected.Name}… progress is on the Downloads page.");
+        await _game.PlayAsync(Selected);
+    });
+
+    [RelayCommand]
+    private Task Repair() => _ui.RunAsync(async () =>
+    {
+        if (Selected is not { } instance) return;
+        if (instance.Loader != ModLoaderKind.None && instance.LoaderVersion is { } lv)
+        {
+            await _jobs.Run($"Reinstall {instance.Loader} for {instance.Name}", async (progress, ct) =>
+            {
+                var id = await _loaders[instance.Loader].InstallAsync(instance.MinecraftVersion, lv, progress, ct);
+                instance = await _instances.UpdateAsync(instance with { LaunchVersionId = id }, ct);
+            });
+        }
+        await _game.RepairAsync(instance);
+        _ui.Info($"'{instance.Name}' verified and repaired.");
+        await OnShownAsync();
+    });
+
+    [RelayCommand]
+    private Task Clone() => _ui.RunAsync(async () =>
+    {
+        if (Selected is null) return;
+        var clone = await _instances.CloneAsync(Selected.Id, $"{Selected.Name} (copy)"[..Math.Min(64, Selected.Name.Length + 7)]);
+        await OnShownAsync();
+        Selected = Instances.FirstOrDefault(i => i.Id == clone.Id);
+    });
+
+    [RelayCommand]
+    private Task Delete() => _ui.RunAsync(async () =>
+    {
+        if (Selected is not { } instance) return;
+        if (!await _ui.ConfirmAsync($"Delete '{instance.Name}'? Its worlds, mods and settings in the instance folder will be permanently removed. Backups are kept.")) return;
+        await _instances.DeleteAsync(instance.Id);
+        Selected = null;
+        await OnShownAsync();
+        _ui.Info($"Deleted '{instance.Name}'.");
+    });
+
+    [RelayCommand]
+    private void OpenFolder()
+    {
+        if (Selected is null) return;
+        var dir = _instances.GetGameDirectory(Selected);
+        Directory.CreateDirectory(dir);
+        _shell.OpenDirectory(dir);
+    }
+
+    [RelayCommand]
+    private void ToggleMod(ModEntry mod)
+    {
+        if (Selected is null) return;
+        try
+        {
+            ModrinthClient.SetModEnabled(_instances.GetGameDirectory(Selected), mod.FileName, !mod.Enabled);
+            RefreshContent(Selected);
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { _ui.Error(e.Message); }
+    }
+
+    [RelayCommand]
+    private Task BackupWorld() => _ui.RunAsync(async () =>
+    {
+        if (Selected is null || SelectedWorld is null) throw new InvalidOperationException("Select a world to back up.");
+        var file = await _instances.BackupWorldAsync(Selected, SelectedWorld);
+        RefreshContent(Selected);
+        _ui.Info($"Backup saved: {Path.GetFileName(file)}");
+    });
+
+    [RelayCommand]
+    private Task RestoreBackup() => _ui.RunAsync(async () =>
+    {
+        if (Selected is null || SelectedBackup is null) throw new InvalidOperationException("Select a backup to restore.");
+        await _instances.RestoreBackupAsync(Selected, SelectedBackup);
+        RefreshContent(Selected);
+        _ui.Info("Backup restored into the saves folder.");
+    });
+}

@@ -1,0 +1,45 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:NinjaLauncher.Desktop.ViewModels"
+             xmlns:s="using:NinjaLauncher.Desktop.Services"
+             x:Class="NinjaLauncher.Desktop.Views.DownloadsView"
+             x:DataType="vm:DownloadsViewModel" Classes="page">
+  <DockPanel>
+    <DockPanel DockPanel.Dock="Top" Margin="0,0,0,18">
+      <Button DockPanel.Dock="Right" Content="Clear finished" Command="{Binding ClearFinishedCommand}" VerticalAlignment="Center" />
+      <StackPanel>
+        <TextBlock Classes="h1" Text="Downloads" />
+        <TextBlock Classes="muted" Text="Installs, repairs, loader setups and game sessions. Every file is checked against its published hash." />
+      </StackPanel>
+    </DockPanel>
+    <Panel>
+      <TextBlock Classes="muted" Text="Nothing here yet." IsVisible="{Binding !Jobs.Count}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+      <ScrollViewer>
+        <ItemsControl ItemsSource="{Binding Jobs}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate DataType="s:JobViewModel">
+              <Border Classes="card" Padding="14" Margin="0,0,0,8">
+                <StackPanel Spacing="6">
+                  <DockPanel>
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8">
+                      <TextBlock Classes="muted" Text="{Binding Speed}" VerticalAlignment="Center" />
+                      <Button Content="Cancel" Command="{Binding CancelCommand}" IsVisible="{Binding IsRunning}" />
+                      <Button Content="Retry" Command="{Binding RetryCommand}" IsVisible="{Binding CanRetry}" />
+                    </StackPanel>
+                    <StackPanel>
+                      <TextBlock Text="{Binding Title}" FontWeight="SemiBold" />
+                      <TextBlock Classes="muted" FontSize="12" Text="{Binding Status}" />
+                    </StackPanel>
+                  </DockPanel>
+                  <ProgressBar Value="{Binding Percent}" Maximum="100" Height="6" />
+                  <TextBlock Text="{Binding Error}" Foreground="{DynamicResource NinjaDanger}" TextWrapping="Wrap"
+                             IsVisible="{Binding Error, Converter={x:Static ObjectConverters.IsNotNull}}" />
+                </StackPanel>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </ScrollViewer>
+    </Panel>
+  </DockPanel>
+</UserControl>

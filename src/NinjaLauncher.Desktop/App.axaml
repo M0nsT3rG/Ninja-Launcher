@@ -1,0 +1,134 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="NinjaLauncher.Desktop.App"
+             Name="Ninja Launcher"
+             RequestedThemeVariant="Dark">
+  <Application.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.ThemeDictionaries>
+        <ResourceDictionary x:Key="Dark">
+          <SolidColorBrush x:Key="NinjaBackground" Color="#0E0A16" />
+          <SolidColorBrush x:Key="NinjaSidebar" Color="#130E1E" />
+          <SolidColorBrush x:Key="NinjaSurface" Color="#1A1328" />
+          <SolidColorBrush x:Key="NinjaSurfaceRaised" Color="#241A37" />
+          <SolidColorBrush x:Key="NinjaBorder" Color="#33264D" />
+          <SolidColorBrush x:Key="NinjaText" Color="#F4EDFF" />
+          <SolidColorBrush x:Key="NinjaMuted" Color="#A795C7" />
+          <SolidColorBrush x:Key="NinjaDanger" Color="#FF5C8A" />
+          <SolidColorBrush x:Key="NinjaToastBg" Color="#2A1E40" />
+        </ResourceDictionary>
+        <ResourceDictionary x:Key="Light">
+          <SolidColorBrush x:Key="NinjaBackground" Color="#F7F3FD" />
+          <SolidColorBrush x:Key="NinjaSidebar" Color="#EFE7FB" />
+          <SolidColorBrush x:Key="NinjaSurface" Color="#FFFFFF" />
+          <SolidColorBrush x:Key="NinjaSurfaceRaised" Color="#F3ECFD" />
+          <SolidColorBrush x:Key="NinjaBorder" Color="#DCCCF3" />
+          <SolidColorBrush x:Key="NinjaText" Color="#1D1030" />
+          <SolidColorBrush x:Key="NinjaMuted" Color="#6A5888" />
+          <SolidColorBrush x:Key="NinjaDanger" Color="#C8174E" />
+          <SolidColorBrush x:Key="NinjaToastBg" Color="#FFFFFF" />
+        </ResourceDictionary>
+      </ResourceDictionary.ThemeDictionaries>
+      <Color x:Key="NinjaAccentColor">#B44CFF</Color>
+      <SolidColorBrush x:Key="NinjaAccentBrush" Color="#B44CFF" />
+      <Color x:Key="SystemAccentColor">#B44CFF</Color>
+      <LinearGradientBrush x:Key="NinjaGradient" StartPoint="0%,0%" EndPoint="100%,100%">
+        <GradientStop Offset="0" Color="#7C3AED" />
+        <GradientStop Offset="1" Color="#EC4899" />
+      </LinearGradientBrush>
+    </ResourceDictionary>
+  </Application.Resources>
+
+  <Application.Styles>
+    <FluentTheme />
+    <Style Selector="Window, UserControl">
+      <Setter Property="FontFamily" Value="{StaticResource ContentControlThemeFontFamily}" />
+    </Style>
+    <Style Selector="TextBlock">
+      <Setter Property="Foreground" Value="{DynamicResource NinjaText}" />
+    </Style>
+    <Style Selector="TextBlock.h1">
+      <Setter Property="FontSize" Value="28" />
+      <Setter Property="FontWeight" Value="Bold" />
+    </Style>
+    <Style Selector="TextBlock.h2">
+      <Setter Property="FontSize" Value="17" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style Selector="TextBlock.muted">
+      <Setter Property="Foreground" Value="{DynamicResource NinjaMuted}" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+    <Style Selector="Border.card">
+      <Setter Property="Background" Value="{DynamicResource NinjaSurface}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource NinjaBorder}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="14" />
+      <Setter Property="Padding" Value="18" />
+    </Style>
+    <Style Selector="Button">
+      <Setter Property="CornerRadius" Value="10" />
+      <Setter Property="Padding" Value="14,8" />
+    </Style>
+    <Style Selector="Button.accent">
+      <Setter Property="Background" Value="{DynamicResource NinjaAccentBrush}" />
+      <Setter Property="Foreground" Value="White" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style Selector="Button.accent:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource NinjaGradient}" />
+      <Setter Property="Foreground" Value="White" />
+    </Style>
+    <Style Selector="Button.danger">
+      <Setter Property="Foreground" Value="{DynamicResource NinjaDanger}" />
+    </Style>
+    <Style Selector="Button.play">
+      <Setter Property="Background" Value="{DynamicResource NinjaGradient}" />
+      <Setter Property="Foreground" Value="White" />
+      <Setter Property="FontSize" Value="20" />
+      <Setter Property="FontWeight" Value="Bold" />
+      <Setter Property="Padding" Value="56,16" />
+      <Setter Property="CornerRadius" Value="16" />
+      <Setter Property="Transitions">
+        <Transitions>
+          <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.15" />
+        </Transitions>
+      </Setter>
+    </Style>
+    <Style Selector="Button.play:pointerover">
+      <Setter Property="RenderTransform" Value="scale(1.03)" />
+    </Style>
+    <Style Selector="Button.play:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource NinjaGradient}" />
+      <Setter Property="Foreground" Value="White" />
+    </Style>
+    <Style Selector="Button.play:disabled /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource NinjaSurfaceRaised}" />
+      <Setter Property="Foreground" Value="{DynamicResource NinjaMuted}" />
+    </Style>
+    <Style Selector="ListBox.nav">
+      <Setter Property="Background" Value="Transparent" />
+    </Style>
+    <Style Selector="ListBox.nav ListBoxItem">
+      <Setter Property="CornerRadius" Value="10" />
+      <Setter Property="Margin" Value="0,2" />
+      <Setter Property="Padding" Value="12,10" />
+    </Style>
+    <Style Selector="ListBox.nav ListBoxItem:selected /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource NinjaSurfaceRaised}" />
+    </Style>
+    <Style Selector="ListBox.nav ListBoxItem:selected PathIcon">
+      <Setter Property="Foreground" Value="{DynamicResource NinjaAccentBrush}" />
+    </Style>
+    <Style Selector="ProgressBar">
+      <Setter Property="Foreground" Value="{DynamicResource NinjaGradient}" />
+    </Style>
+    <Style Selector="UserControl.page">
+      <Setter Property="Transitions">
+        <Transitions>
+          <DoubleTransition Property="Opacity" Duration="0:0:0.2" />
+        </Transitions>
+      </Setter>
+    </Style>
+  </Application.Styles>
+</Application>

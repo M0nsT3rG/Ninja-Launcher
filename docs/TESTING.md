@@ -1,0 +1,28 @@
+# Testing
+
+```bash
+dotnet test --project tests/NinjaLauncher.UnitTests          # fast, offline, no mocks of external APIs needed
+dotnet test --project tests/NinjaLauncher.PlatformTests      # OS-specific behaviour (paths, secret store, Java discovery)
+dotnet test --project tests/NinjaLauncher.IntegrationTests   # live public APIs: Mojang, Fabric, Quilt, NeoForge, Forge, Modrinth
+```
+
+| Kind | Project | Uses network | What it proves |
+| --- | --- | --- | --- |
+| Unit | UnitTests | No | Path and zip-slip safety, decompression limits, redaction, rule evaluation (including 26.x `versionRange`), inheritance merge, library resolution, argument building, log parsing, instance isolation, backup and restore, account flows (with a fake authenticator), loader version mapping |
+| Platform | PlatformTests | No | OS detection, standard directories, Unicode paths, secret store round trip (DPAPI ciphertext is checked to not contain the plaintext), Java discovery |
+| Integration (live) | IntegrationTests | Yes, no credentials | Manifest and metadata, Fabric/Quilt profile install and merge, NeoForge/Forge version lists, Modrinth search, version filters and dependency install, runtime index, hash-mismatch rejection, SQLite round trip and migrations |
+| Full install (opt-in) | IntegrationTests `NINJA_FULL_INSTALL=1` | Yes (~1 GB) | A complete version and its Mojang Java runtime install with every file hash-verified; a second pass is a fast no-op |
+| Engine launch smoke (opt-in) | IntegrationTests `NINJA_LAUNCH_SMOKE=1` with `NINJA_IT_HOME` | Yes | The generated command line boots the real client to LWJGL and resource initialisation, then the test stops it. It uses a placeholder session. **This is not an authenticated launch and not the acceptance test** |
+| Authenticated launch (acceptance) | manual | Yes | **Not yet performed.** Blocked by `.ai/BLOCKERS.md` B-01 |
+
+No test fixture contains real credentials or game files. The mocks are a fake `IMinecraftAuthenticator` and in-memory repositories, and they are only used for account and instance logic.
+
+## Results log
+
+| Date | Suite | Result |
+| --- | --- | --- |
+| 2026-10-25 | Unit | 79 passed |
+| 2026-10-25 | Platform (Windows 11 x64) | 5 passed |
+| 2026-10-25 | Integration (live) | 8 passed, 1 skipped (full install, opt-in) |
+| 2026-10-25 | Full install 1.21.1 + java-runtime-delta (Windows x64) | passed, 72 s on a cold cache, ~970 MB |
+| 2026-10-25 | Launch smoke 1.21.1 (Windows x64) | passed, client reached LWJGL init in ~16 s |

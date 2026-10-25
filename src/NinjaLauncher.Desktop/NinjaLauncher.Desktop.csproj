@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <AssemblyName>NinjaLauncher</AssemblyName>
+    <RootNamespace>NinjaLauncher.Desktop</RootNamespace>
+    <ApplicationIcon>Assets\ninja-launcher.ico</ApplicationIcon>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+  </PropertyGroup>
+  <ItemGroup>
+    <AvaloniaResource Include="Assets\**" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Avalonia" />
+    <PackageReference Include="Avalonia.Desktop" />
+    <PackageReference Include="Avalonia.Themes.Fluent" />
+    <PackageReference Include="Avalonia.Fonts.Inter" />
+    <PackageReference Include="AvaloniaUI.DiagnosticsSupport">
+      <IncludeAssets Condition="'$(Configuration)' != 'Debug'">None</IncludeAssets>
+      <PrivateAssets Condition="'$(Configuration)' != 'Debug'">All</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="CommunityToolkit.Mvvm" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\NinjaLauncher.Infrastructure\NinjaLauncher.Infrastructure.csproj" />
+    <ProjectReference Include="..\NinjaLauncher.Platform\NinjaLauncher.Platform.csproj" />
+    <ProjectReference Include="..\NinjaLauncher.Minecraft.Java\NinjaLauncher.Minecraft.Java.csproj" />
+    <ProjectReference Include="..\NinjaLauncher.Minecraft.Bedrock\NinjaLauncher.Minecraft.Bedrock.csproj" />
+    <ProjectReference Include="..\NinjaLauncher.Mods\NinjaLauncher.Mods.csproj" />
+  </ItemGroup>
+</Project>

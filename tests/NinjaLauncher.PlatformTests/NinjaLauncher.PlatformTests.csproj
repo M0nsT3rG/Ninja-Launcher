@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <NoWarn>$(NoWarn);xUnit1051</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="xunit.v3" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\NinjaLauncher.Infrastructure\NinjaLauncher.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\NinjaLauncher.Platform\NinjaLauncher.Platform.csproj" />
+    <ProjectReference Include="..\..\src\NinjaLauncher.Minecraft.Java\NinjaLauncher.Minecraft.Java.csproj" />
+    <ProjectReference Include="..\..\src\NinjaLauncher.Minecraft.Bedrock\NinjaLauncher.Minecraft.Bedrock.csproj" />
+    <ProjectReference Include="..\..\src\NinjaLauncher.Mods\NinjaLauncher.Mods.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+</Project>

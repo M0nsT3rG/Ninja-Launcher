@@ -1,0 +1,17 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/NinjaLauncher.Application/NinjaLauncher.Application.csproj" />
+    <Project Path="src/NinjaLauncher.Desktop/NinjaLauncher.Desktop.csproj" />
+    <Project Path="src/NinjaLauncher.Domain/NinjaLauncher.Domain.csproj" />
+    <Project Path="src/NinjaLauncher.Infrastructure/NinjaLauncher.Infrastructure.csproj" />
+    <Project Path="src/NinjaLauncher.Minecraft.Bedrock/NinjaLauncher.Minecraft.Bedrock.csproj" />
+    <Project Path="src/NinjaLauncher.Minecraft.Java/NinjaLauncher.Minecraft.Java.csproj" />
+    <Project Path="src/NinjaLauncher.Mods/NinjaLauncher.Mods.csproj" />
+    <Project Path="src/NinjaLauncher.Platform/NinjaLauncher.Platform.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/NinjaLauncher.IntegrationTests/NinjaLauncher.IntegrationTests.csproj" />
+    <Project Path="tests/NinjaLauncher.PlatformTests/NinjaLauncher.PlatformTests.csproj" />
+    <Project Path="tests/NinjaLauncher.UnitTests/NinjaLauncher.UnitTests.csproj" />
+  </Folder>
+</Solution>

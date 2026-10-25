@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\NinjaLauncher.Minecraft.Java\NinjaLauncher.Minecraft.Java.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="NinjaLauncher.UnitTests" />
+    <InternalsVisibleTo Include="NinjaLauncher.IntegrationTests" />
+  </ItemGroup>
+</Project>

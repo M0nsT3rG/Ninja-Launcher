@@ -1,0 +1,77 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:NinjaLauncher.Desktop.ViewModels"
+        xmlns:v="using:NinjaLauncher.Desktop.Views"
+        x:Class="NinjaLauncher.Desktop.Views.MainWindow"
+        x:DataType="vm:MainViewModel"
+        Icon="/Assets/ninja-launcher.ico"
+        Title="Ninja Launcher"
+        Width="1240" Height="780" MinWidth="960" MinHeight="620"
+        Background="{DynamicResource NinjaBackground}">
+  <Window.DataTemplates>
+    <DataTemplate DataType="vm:HomeViewModel"><v:HomeView /></DataTemplate>
+    <DataTemplate DataType="vm:LibraryViewModel"><v:LibraryView /></DataTemplate>
+    <DataTemplate DataType="vm:DiscoverViewModel"><v:DiscoverView /></DataTemplate>
+    <DataTemplate DataType="vm:DownloadsViewModel"><v:DownloadsView /></DataTemplate>
+    <DataTemplate DataType="vm:AccountsViewModel"><v:AccountsView /></DataTemplate>
+    <DataTemplate DataType="vm:SettingsViewModel"><v:SettingsView /></DataTemplate>
+  </Window.DataTemplates>
+
+  <Grid ColumnDefinitions="232,*">
+    <!-- Sidebar -->
+    <Border Background="{DynamicResource NinjaSidebar}" BorderBrush="{DynamicResource NinjaBorder}" BorderThickness="0,0,1,0">
+      <DockPanel Margin="14,18">
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="10" Margin="6,0,0,22">
+          <Image Source="/Assets/ninja-launcher.png" Width="44" Height="44" RenderOptions.BitmapInterpolationMode="HighQuality" />
+          <StackPanel VerticalAlignment="Center">
+            <TextBlock Text="Ninja" FontSize="20" FontWeight="Black" />
+            <TextBlock Text="LAUNCHER" FontSize="10" FontWeight="SemiBold" LetterSpacing="3" Foreground="{DynamicResource NinjaAccentBrush}" />
+          </StackPanel>
+        </StackPanel>
+        <TextBlock DockPanel.Dock="Bottom" Classes="muted" FontSize="9" Margin="6,12,6,0"
+                   Text="Not an official Minecraft product. Not approved by or associated with Mojang or Microsoft." />
+        <ListBox Classes="nav" ItemsSource="{Binding Navigation}" SelectedItem="{Binding SelectedNav}">
+          <ListBox.ItemTemplate>
+            <DataTemplate DataType="vm:NavItem">
+              <StackPanel Orientation="Horizontal" Spacing="12">
+                <PathIcon Data="{Binding Icon, Converter={x:Static v:Converters.Geometry}}" Width="18" Height="18" Foreground="{DynamicResource NinjaMuted}" />
+                <TextBlock Text="{Binding Title}" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center" />
+              </StackPanel>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+      </DockPanel>
+    </Border>
+
+    <!-- Page -->
+    <ContentControl Grid.Column="1" Content="{Binding CurrentPage}" Margin="28,24,28,20" />
+
+    <!-- Toast -->
+    <Border Grid.Column="1" IsVisible="{Binding Toast, Converter={x:Static ObjectConverters.IsNotNull}}"
+            HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="24" MaxWidth="520"
+            Background="{DynamicResource NinjaToastBg}" BorderBrush="{DynamicResource NinjaAccentBrush}" BorderThickness="1" CornerRadius="12" Padding="16,12"
+            Classes.error="{Binding ToastIsError}">
+      <Border.Styles>
+        <Style Selector="Border.error"><Setter Property="BorderBrush" Value="{DynamicResource NinjaDanger}" /></Style>
+      </Border.Styles>
+      <DockPanel>
+        <Button DockPanel.Dock="Right" Content="✕" Command="{Binding DismissToastCommand}" Background="Transparent" Padding="6,2" Margin="12,0,0,0" VerticalAlignment="Top" />
+        <TextBlock Text="{Binding Toast}" TextWrapping="Wrap" />
+      </DockPanel>
+    </Border>
+
+    <!-- Confirmation -->
+    <Grid Grid.ColumnSpan="2" IsVisible="{Binding IsConfirmOpen}" Background="#99000000">
+      <Border Classes="card" Width="460" HorizontalAlignment="Center" VerticalAlignment="Center" Padding="24">
+        <StackPanel Spacing="18">
+          <TextBlock Classes="h2" Text="Are you sure?" />
+          <TextBlock Text="{Binding ConfirmText}" TextWrapping="Wrap" />
+          <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10">
+            <Button Content="Cancel" Command="{Binding AnswerCommand}" CommandParameter="no" IsCancel="True" />
+            <Button Classes="accent" Content="Continue" Command="{Binding AnswerCommand}" CommandParameter="yes" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+    </Grid>
+  </Grid>
+</Window>

@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-test:
+    name: ${{ matrix.name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: Windows x64, os: windows-latest, rid: win-x64 }
+          - { name: Linux x64, os: ubuntu-latest, rid: linux-x64 }
+          - { name: macOS ARM64, os: macos-latest, rid: osx-arm64 }
+          - { name: macOS x64, os: macos-15-intel, rid: osx-x64 }
+    runs-on: ${{ matrix.os }}
+    env:
+      DOTNET_NOLOGO: true
+      DOTNET_CLI_TELEMETRY_OPTOUT: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - name: Build
+        run: dotnet build NinjaLauncher.slnx -c Release
+      - name: Unit tests
+        run: dotnet test --project tests/NinjaLauncher.UnitTests -c Release --no-build
+      - name: Platform tests
+        run: dotnet test --project tests/NinjaLauncher.PlatformTests -c Release --no-build
+      - name: Integration tests (live public APIs, no credentials)
+        if: matrix.rid == 'linux-x64'
+        run: dotnet test --project tests/NinjaLauncher.IntegrationTests -c Release --no-build
+      - name: Publish (self-contained, unsigned)
+        run: dotnet publish src/NinjaLauncher.Desktop -c Release -r ${{ matrix.rid }} --self-contained -o publish/${{ matrix.rid }}
+      - name: Verify publish output
+        shell: bash
+        run: |
+          ls publish/${{ matrix.rid }} | head -50
+          test -f publish/${{ matrix.rid }}/NinjaLauncher || test -f publish/${{ matrix.rid }}/NinjaLauncher.exe
+      - uses: actions/upload-artifact@v4
+        with:
+          name: NinjaLauncher-${{ matrix.rid }}-unsigned
+          path: publish/${{ matrix.rid }}
+          retention-days: 7

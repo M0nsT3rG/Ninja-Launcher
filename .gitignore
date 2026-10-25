@@ -1,0 +1,21 @@
+bin/
+obj/
+*.user
+*.suo
+.vs/
+.idea/
+.vscode/
+*.swp
+TestResults/
+artifacts/
+publish/
+*.db
+*.db-shm
+*.db-wal
+.DS_Store
+# never commit secrets or game files
+*.pfx
+*.p12
+*.snk
+secrets.json
+.env
