@@ -19,13 +19,21 @@ public sealed record PlatformInfo(string MojangOsName, string MojangArch, string
             return new("windows", ArchName(arch), arch == Architecture.Arm64 ? "windows-arm64" : arch == Architecture.X86 ? "windows-x86" : "windows-x64", ";");
         if (OperatingSystem.IsMacOS())
             return new("osx", ArchName(arch), arch == Architecture.Arm64 ? "mac-os-arm64" : "mac-os", ":");
-        return new("linux", ArchName(arch), arch == Architecture.X86 ? "linux-i386" : "linux", ":");
+        // Mojang publishes no Linux ARM runtimes; these keys are absent from all.json so a system Java is used instead.
+        return new("linux", ArchName(arch), arch switch
+        {
+            Architecture.X86 => "linux-i386",
+            Architecture.Arm64 => "linux-arm64",
+            Architecture.Arm => "linux-arm32",
+            _ => "linux",
+        }, ":");
     }
 
     private static string ArchName(Architecture a) => a switch
     {
         Architecture.X86 => "x86",
         Architecture.Arm64 => "arm64",
+        Architecture.Arm => "arm32",
         _ => "x86_64",
     };
 

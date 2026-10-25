@@ -38,6 +38,14 @@ public sealed class SecurityTests : IDisposable
     public void SanitizeName_removes_separators(string input, string expected) => Assert.Equal(expected, SafePath.SanitizeName(input));
 
     [Fact]
+    public void SanitizeName_keeps_extension_when_truncating()
+    {
+        var name = SafePath.SanitizeName(new string('a', 120) + ".jar");
+        Assert.EndsWith(".jar", name);
+        Assert.Equal(80, name.Length);
+    }
+
+    [Fact]
     public void Extract_blocks_zip_slip()
     {
         var zip = Path.Combine(_root, "evil.zip");

@@ -96,9 +96,42 @@ public sealed class InstanceService(IInstanceRepository repository, IAppPaths pa
         var backupDir = Path.Combine(paths.BackupsDirectory, instance.Id.ToString("N"));
         Directory.CreateDirectory(backupDir);
         var file = Path.Combine(backupDir, $"{SafePath.SanitizeName(worldName)}-{DateTime.UtcNow:yyyyMMdd-HHmmss}.zip");
-        await Task.Run(() => ZipFile.CreateFromDirectory(world, file, CompressionLevel.Optimal, includeBaseDirectory: true), ct);
+        // Write to a temp name so a failure never leaves a truncated zip that looks like a valid backup.
+        var temp = file + ".tmp";
+        try
+        {
+            await Task.Run(() => ZipWorld(world, temp, ct), ct);
+            File.Move(temp, file);
+        }
+        catch
+        {
+            File.Delete(temp);
+            throw;
+        }
         await activity.AddAsync($"Backed up world '{worldName}' of '{instance.Name}'", ct);
         return file;
+    }
+
+    private static void ZipWorld(string world, string zipPath, CancellationToken ct)
+    {
+        var root = Path.GetFileName(Path.TrimEndingDirectorySeparator(world));
+        using var zip = ZipFile.Open(zipPath, ZipArchiveMode.Create);
+        foreach (var path in Directory.EnumerateFiles(world, "*", SearchOption.AllDirectories))
+        {
+            ct.ThrowIfCancellationRequested();
+            if (Path.GetFileName(path) == "session.lock") continue; // held open by a running game; not world data
+            var name = root + "/" + Path.GetRelativePath(world, path).Replace('\\', '/');
+            zip.CreateEntryFromFile(path, name, CompressionLevel.Optimal);
+        }
+    }
+
+    /// <summary>Records the installed loader profile without overwriting other fields edited meanwhile.</summary>
+    public async Task<GameInstance> SetLaunchVersionAsync(Guid id, string launchVersionId, string? loaderVersion = null, CancellationToken ct = default)
+    {
+        var current = await GetRequiredAsync(id, ct);
+        var updated = current with { LaunchVersionId = launchVersionId, LoaderVersion = loaderVersion ?? current.LoaderVersion };
+        await repository.UpsertAsync(updated, ct);
+        return updated;
     }
 
     public IReadOnlyList<string> ListBackups(GameInstance instance)

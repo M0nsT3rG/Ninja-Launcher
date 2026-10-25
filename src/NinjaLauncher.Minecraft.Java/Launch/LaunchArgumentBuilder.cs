@@ -58,8 +58,9 @@ public static partial class LaunchArgumentBuilder
 
         var args = new List<string> { $"-Xms{options.MinMemoryMb}M", $"-Xmx{options.MaxMemoryMb}M" };
 
+        // A legacy (minecraftArguments) base needs the synthesized classpath even if a child profile adds its own JVM args.
+        if (v.MinecraftArguments is not null || v.Arguments?.Jvm is not { Count: > 0 }) args.AddRange(LegacyJvmArguments(platform));
         if (v.Arguments?.Jvm is { Count: > 0 } jvm) args.AddRange(Expand(jvm, rules));
-        else args.AddRange(LegacyJvmArguments(platform));
 
         if (installed.LoggingArgument is { } logging) args.Add(logging);
 
@@ -70,8 +71,8 @@ public static partial class LaunchArgumentBuilder
 
         args.Add(v.MainClass ?? throw new InvalidDataException($"Version {v.Id} has no mainClass."));
 
+        if (v.MinecraftArguments is { } legacy) args.AddRange(legacy.Split(' ', StringSplitOptions.RemoveEmptyEntries));
         if (v.Arguments?.Game is { Count: > 0 } game) args.AddRange(Expand(game, rules));
-        else if (v.MinecraftArguments is { } legacy) args.AddRange(legacy.Split(' ', StringSplitOptions.RemoveEmptyEntries));
 
         return args.Select(a => Substitute(a, vars)).ToList();
     }

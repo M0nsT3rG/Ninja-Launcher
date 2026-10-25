@@ -71,16 +71,21 @@ public static class AppServices
     }
 }
 
-/// <summary>Current settings plus persistence; view models read <see cref="Current"/> and call <see cref="SaveAsync"/>.</summary>
+/// <summary>Current settings plus persistence. Updates are serialised and applied to the latest value so concurrent edits don't clobber each other.</summary>
 public sealed class SettingsHolder(ISettingsStore store, LauncherSettings initial)
 {
+    private readonly SemaphoreSlim _lock = new(1, 1);
     public LauncherSettings Current { get; private set; } = initial;
-    public event Action<LauncherSettings>? Changed;
 
-    public async Task SaveAsync(LauncherSettings settings)
+    public async Task UpdateAsync(Func<LauncherSettings, LauncherSettings> change)
     {
-        await store.SaveAsync(settings);
-        Current = settings;
-        Changed?.Invoke(settings);
+        await _lock.WaitAsync();
+        try
+        {
+            var next = change(Current);
+            await store.SaveAsync(next);
+            Current = next;
+        }
+        finally { _lock.Release(); }
     }
 }

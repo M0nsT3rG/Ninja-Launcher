@@ -64,16 +64,16 @@ public sealed partial class HomeViewModel : ViewModelBase
         if (IsBedrock) await RefreshBedrockAsync();
     }
 
-    async partial void OnIsJavaChanged(bool value)
+    partial void OnIsJavaChanged(bool value) => _ = _ui.RunAsync(async () =>
     {
-        await _settings.SaveAsync(_settings.Current with { LastEdition = value ? GameEdition.Java : GameEdition.Bedrock });
-        if (!value) await _ui.RunAsync(RefreshBedrockAsync);
-    }
+        await _settings.UpdateAsync(s => s with { LastEdition = value ? GameEdition.Java : GameEdition.Bedrock });
+        if (!value) await RefreshBedrockAsync();
+    });
 
-    async partial void OnSelectedInstanceChanged(GameInstance? value)
+    partial void OnSelectedInstanceChanged(GameInstance? value)
     {
         if (value is not null && value.Id != _settings.Current.SelectedInstanceId)
-            await _settings.SaveAsync(_settings.Current with { SelectedInstanceId = value.Id });
+            _ = _ui.RunAsync(() => _settings.UpdateAsync(s => s with { SelectedInstanceId = value.Id }));
     }
 
     private async Task RefreshBedrockAsync()

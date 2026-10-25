@@ -40,6 +40,8 @@ public sealed class JavaRuntimeManager(IDownloadService downloads, IAppPaths pat
                 $"No Java {major} runtime is available from Mojang for {platform.JavaRuntimeKey}, and none was found on this computer. Install Java {major} and select it in the instance settings.");
         }
 
+        // Incomplete runtimes are rebuilt from scratch so downloads never write through previously created links.
+        if (Directory.Exists(home)) Directory.Delete(home, recursive: true);
         await InstallFromManifestAsync(manifestUrl, home, progress, ct);
         if (!File.Exists(exe)) throw new FileNotFoundException("Runtime installed but java executable is missing.", exe);
         await File.WriteAllTextAsync(marker, DateTimeOffset.UtcNow.ToString("O"), ct);

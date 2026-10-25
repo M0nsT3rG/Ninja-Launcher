@@ -25,7 +25,7 @@ public sealed class ModpackInstaller(InstanceService instances, IEnumerable<ILoa
                 // Forge/NeoForge installer ids are the full maven version (e.g. "1.20.1-47.3.0"); packs list only the loader part.
                 var version = kind == ModLoaderKind.Forge && !loaderVersion!.StartsWith(index.MinecraftVersion + "-") ? $"{index.MinecraftVersion}-{loaderVersion}" : loaderVersion!;
                 var id = await provider.InstallAsync(index.MinecraftVersion, version, progress, ct);
-                instance = await instances.UpdateAsync(instance with { LaunchVersionId = id, LoaderVersion = version }, ct);
+                instance = await instances.SetLaunchVersionAsync(instance.Id, id, version, ct);
             }
             await importer.InstallContentAsync(mrpackPath, index, instances.GetGameDirectory(instance),
                 new Progress<DownloadProgress>(p => progress?.Report(new InstallProgress($"Downloading modpack files ({p.CompletedFiles}/{p.TotalFiles})",

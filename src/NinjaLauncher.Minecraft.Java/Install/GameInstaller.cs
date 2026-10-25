@@ -90,8 +90,9 @@ public sealed class GameInstaller(IDownloadService downloads, IAppPaths paths, I
         {
             if (!File.Exists(lib.Path)) continue;
             var exclude = lib.ExtractExclude.Concat(["META-INF/"]).ToList();
+            // Never overwrite: another instance of the same version may have these DLLs loaded (locked on Windows).
             SafeArchive.ExtractToDirectory(lib.Path, nativesDir, name => !exclude.Any(e => name.StartsWith(e, StringComparison.Ordinal)),
-                maxTotalBytes: 512L * 1024 * 1024);
+                maxTotalBytes: 512L * 1024 * 1024, overwrite: false);
         }
     }
 

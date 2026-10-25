@@ -62,6 +62,7 @@ public static partial class GameProcess
     {
         private GameLogLevel _level = GameLogLevel.Info;
         private System.Text.StringBuilder? _message;
+        private string _closing = "</log4j:Message>";
 
         public void Feed(string line)
         {
@@ -71,19 +72,23 @@ public static partial class GameProcess
                 _level = LevelAttr().Match(trimmed) is { Success: true } m ? ParseLevel(m.Groups[1].Value) : GameLogLevel.Info;
                 return;
             }
-            if (trimmed.StartsWith("<log4j:Message>", StringComparison.Ordinal))
+            // Messages and stack traces (Throwable) are both CDATA blocks that can span many lines.
+            foreach (var tag in new[] { "Message", "Throwable" })
             {
-                _message = new System.Text.StringBuilder(StripCdata(trimmed["<log4j:Message>".Length..]));
-                if (trimmed.EndsWith("</log4j:Message>", StringComparison.Ordinal)) Flush();
+                if (!trimmed.StartsWith($"<log4j:{tag}>", StringComparison.Ordinal)) continue;
+                _closing = $"</log4j:{tag}>";
+                if (tag == "Throwable") _level = GameLogLevel.Error;
+                _message = new System.Text.StringBuilder(StripCdata(trimmed[(tag.Length + 8)..]));
+                if (trimmed.EndsWith(_closing, StringComparison.Ordinal)) Flush();
                 return;
             }
             if (_message is not null)
             {
                 _message.Append('\n').Append(StripCdata(trimmed));
-                if (trimmed.EndsWith("</log4j:Message>", StringComparison.Ordinal)) Flush();
+                if (trimmed.EndsWith(_closing, StringComparison.Ordinal)) Flush();
                 return;
             }
-            if (trimmed.StartsWith("</log4j:Event", StringComparison.Ordinal) || trimmed.StartsWith("<log4j:Throwable", StringComparison.Ordinal) || trimmed.Length == 0) return;
+            if (trimmed.StartsWith("</log4j:Event", StringComparison.Ordinal) || trimmed.Length == 0) return;
             onLog(new GameLogLine(GuessLevel(line), SecretRedactor.Redact(line)));
         }
 
@@ -94,7 +99,7 @@ public static partial class GameProcess
         }
 
         private static string StripCdata(string s) =>
-            s.Replace("<![CDATA[", "").Replace("]]>", "").Replace("</log4j:Message>", "");
+            s.Replace("<![CDATA[", "").Replace("]]>", "").Replace("</log4j:Message>", "").Replace("</log4j:Throwable>", "");
 
         private static GameLogLevel ParseLevel(string s) => s switch
         {

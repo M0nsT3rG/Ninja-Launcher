@@ -94,6 +94,37 @@ public sealed class LaunchTests
     }
 
     [Fact]
+    public void Legacy_base_with_modern_child_keeps_classpath_and_game_args()
+    {
+        var v = MetadataJson.Parse<VersionJson>("""
+            {"id":"legacy-fabric","mainClass":"K","minecraftArguments":"--username ${auth_player_name}",
+             "arguments":{"jvm":["-Dloader=1"],"game":["--extra"]}}
+            """);
+        var args = LaunchArgumentBuilder.Build(Installed(v), Session, new LaunchOptions("g", 512, 1024, ""), Windows64, "10.0").ToList();
+        Assert.Contains("-cp", args);
+        Assert.Contains("-Dloader=1", args);
+        Assert.Equal("Steve", args[args.IndexOf("--username") + 1]);
+        Assert.Contains("--extra", args);
+    }
+
+    [Fact]
+    public void Log4j_throwables_are_kept_as_error_lines()
+    {
+        var lines = new List<GameLogLine>();
+        var parser = new GameProcess.Log4jStreamParser(lines.Add);
+        parser.Feed("<log4j:Event logger=\"x\" level=\"ERROR\">");
+        parser.Feed("<log4j:Message><![CDATA[Crash]]></log4j:Message>");
+        parser.Feed("<log4j:Throwable><![CDATA[java.lang.IllegalStateException: boom");
+        parser.Feed("	at a.b.C.d(C.java:1)");
+        parser.Feed("]]></log4j:Throwable>");
+        parser.Feed("</log4j:Event>");
+        Assert.Equal(2, lines.Count);
+        Assert.StartsWith("java.lang.IllegalStateException: boom", lines[1].Text);
+        Assert.Equal(GameLogLevel.Error, lines[1].Level);
+        Assert.DoesNotContain("]]>", lines[1].Text);
+    }
+
+    [Fact]
     public void Log4j_xml_events_become_plain_lines()
     {
         var lines = new List<GameLogLine>();

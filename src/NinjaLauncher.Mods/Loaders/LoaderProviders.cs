@@ -132,7 +132,12 @@ public sealed class InstallerLoaderProvider(
             using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
             timeout.CancelAfter(TimeSpan.FromMinutes(15));
             try { await p.WaitForExitAsync(timeout.Token); }
-            catch (OperationCanceledException) { p.Kill(true); throw; }
+            catch (OperationCanceledException)
+            {
+                p.Kill(true);
+                if (ct.IsCancellationRequested) throw;
+                throw new TimeoutException($"The {kind} installer did not finish within 15 minutes.");
+            }
             if (p.ExitCode != 0) throw new InvalidOperationException($"{kind} installer failed with exit code {p.ExitCode}. See the launcher log for details.");
         }
         finally

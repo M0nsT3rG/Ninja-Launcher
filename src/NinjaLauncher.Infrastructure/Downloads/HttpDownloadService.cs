@@ -137,7 +137,14 @@ public sealed class HttpDownloadService(HttpClient http, Func<int> concurrency, 
     {
         for (var attempt = 1; ; attempt++)
         {
-            try { return await action(ct); }
+            try
+            {
+                try { return await action(ct); }
+                catch (OperationCanceledException e) when (!ct.IsCancellationRequested)
+                {
+                    throw new TimeoutException($"Timed out downloading {url}.", e); // a timeout, not a user cancel
+                }
+            }
             catch (Exception e) when (attempt < MaxAttempts && !ct.IsCancellationRequested && IsTransient(e))
             {
                 logger.LogWarning("Attempt {Attempt} for {Url} failed: {Message}", attempt, url, e.Message);
@@ -149,7 +156,7 @@ public sealed class HttpDownloadService(HttpClient http, Func<int> concurrency, 
     private static bool IsTransient(Exception e) => e switch
     {
         HttpStatusException { StatusCode: { } code } => (int)code >= 500 || code is HttpStatusCode.TooManyRequests or HttpStatusCode.RequestTimeout,
-        HttpRequestException or IOException or InvalidDataException or TaskCanceledException => true,
+        HttpRequestException or IOException or InvalidDataException or TimeoutException => true,
         _ => false,
     };
 

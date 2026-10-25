@@ -33,7 +33,11 @@ public sealed record ModrinthVersion(
     IReadOnlyList<string> Loaders,
     IReadOnlyList<ModrinthFile> Files,
     IReadOnlyList<ModrinthDependency> Dependencies,
-    [property: JsonPropertyName("date_published")] DateTimeOffset DatePublished);
+    [property: JsonPropertyName("date_published")] DateTimeOffset DatePublished,
+    [property: JsonPropertyName("version_type")] string? VersionType = null);
+
+/// <summary>Which Modrinth project owns which installed file, so updates replace instead of duplicating.</summary>
+internal sealed record LedgerEntry(string FileName, string Folder, string VersionId);
 
 public sealed record InstalledContent(string FileName, string ProjectTitle, string VersionNumber);
 
@@ -83,28 +87,71 @@ public sealed class ModrinthClient(IDownloadService downloads)
         var loader = kind == ProjectKind.Mod ? instance.Loader : ModLoaderKind.None;
         if (kind == ProjectKind.Mod && loader == ModLoaderKind.None)
             throw new InvalidOperationException("This instance has no mod loader. Create a Fabric, Quilt, Forge or NeoForge instance to install mods.");
-        await InstallRecursiveAsync(project.ProjectId, project.Title, kind, loader, instance.MinecraftVersion, gameDirectory, visited, installed, ct);
+        var ledger = await LoadLedgerAsync(gameDirectory, ct);
+        try
+        {
+            await InstallRecursiveAsync(project.ProjectId, project.Title, null, isRoot: true, kind, loader, instance.MinecraftVersion, gameDirectory, ledger, visited, installed, ct);
+        }
+        finally { await SaveLedgerAsync(gameDirectory, ledger, CancellationToken.None); }
         return installed;
     }
 
-    private async Task InstallRecursiveAsync(string projectId, string title, ProjectKind kind, ModLoaderKind loader, string mc, string gameDir,
-        HashSet<string> visited, List<InstalledContent> installed, CancellationToken ct)
+    private async Task InstallRecursiveAsync(string projectId, string title, string? pinnedVersionId, bool isRoot, ProjectKind kind, ModLoaderKind loader,
+        string mc, string gameDir, Dictionary<string, LedgerEntry> ledger, HashSet<string> visited, List<InstalledContent> installed, CancellationToken ct)
     {
         if (!visited.Add(projectId) || visited.Count > 64) return;
-        var versions = await GetVersionsAsync(projectId, mc, loader, ct);
-        var version = versions.OrderByDescending(v => v.DatePublished).FirstOrDefault()
-            ?? throw new InvalidOperationException($"'{title}' has no release for Minecraft {mc}{(loader == ModLoaderKind.None ? "" : " / " + loader)}.");
+        // Dependencies already installed by an earlier install are left alone; the project the user picked is updated in place.
+        if (!isRoot && ledger.TryGetValue(projectId, out var existing) && File.Exists(Path.Combine(gameDir, existing.Folder, existing.FileName))) return;
+
+        ModrinthVersion version;
+        if (pinnedVersionId is not null)
+            version = JsonSerializer.Deserialize<ModrinthVersion>(await GetCachedAsync($"{ApiBase}/version/{Uri.EscapeDataString(pinnedVersionId)}", ct), Json)!;
+        else
+        {
+            var versions = await GetVersionsAsync(projectId, mc, loader, ct);
+            var ordered = versions.OrderByDescending(v => v.DatePublished).ToList();
+            version = ordered.FirstOrDefault(v => v.VersionType is null or "release") ?? ordered.FirstOrDefault()
+                ?? throw new InvalidOperationException($"'{title}' has no release for Minecraft {mc}{(loader == ModLoaderKind.None ? "" : " / " + loader)}.");
+        }
         var file = version.Files.FirstOrDefault(f => f.Primary) ?? version.Files.First();
         var url = new Uri(file.Url);
         if (!AllowedHosts.Contains(url.Host)) throw new InvalidOperationException($"Refusing download from unexpected host {url.Host}.");
 
-        var folder = Path.Combine(gameDir, ContentFolder(kind));
+        var folderName = ContentFolder(kind);
+        var folder = Path.Combine(gameDir, folderName);
         var target = SafePath.Combine(folder, SafePath.SanitizeName(file.Filename));
         await downloads.DownloadAsync([new DownloadItem(url, target, file.Hashes.GetValueOrDefault("sha1"), file.Size)], null, ct);
+        if (ledger.TryGetValue(projectId, out var previous) && previous.FileName != Path.GetFileName(target))
+        {
+            // Replace the older version (enabled or disabled copy) so the loader never sees two copies of one mod.
+            foreach (var old in new[] { previous.FileName, previous.FileName + ".disabled" })
+            {
+                var oldPath = SafePath.Combine(gameDir, Path.Combine(previous.Folder, old)); // ledger is on-disk data: keep it inside the instance
+                if (File.Exists(oldPath)) File.Delete(oldPath);
+            }
+        }
+        ledger[projectId] = new LedgerEntry(Path.GetFileName(target), folderName, version.Id);
         installed.Add(new InstalledContent(Path.GetFileName(target), title, version.VersionNumber));
 
         foreach (var dep in version.Dependencies.Where(d => d.DependencyType == "required" && d.ProjectId is not null))
-            await InstallRecursiveAsync(dep.ProjectId!, dep.ProjectId!, kind, loader, mc, gameDir, visited, installed, ct);
+            await InstallRecursiveAsync(dep.ProjectId!, dep.ProjectId!, dep.VersionId, isRoot: false, kind, loader, mc, gameDir, ledger, visited, installed, ct);
+    }
+
+    private static string LedgerPath(string gameDir) => Path.Combine(gameDir, ".ninja", "modrinth.json");
+
+    private static async Task<Dictionary<string, LedgerEntry>> LoadLedgerAsync(string gameDir, CancellationToken ct)
+    {
+        var path = LedgerPath(gameDir);
+        if (!File.Exists(path)) return new();
+        try { return JsonSerializer.Deserialize<Dictionary<string, LedgerEntry>>(await File.ReadAllTextAsync(path, ct), Json) ?? new(); }
+        catch (JsonException) { return new(); }
+    }
+
+    private static async Task SaveLedgerAsync(string gameDir, Dictionary<string, LedgerEntry> ledger, CancellationToken ct)
+    {
+        var path = LedgerPath(gameDir);
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        await File.WriteAllTextAsync(path, JsonSerializer.Serialize(ledger, Json), ct);
     }
 
     public static string ContentFolder(ProjectKind kind) => kind switch

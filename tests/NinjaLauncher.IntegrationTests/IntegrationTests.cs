@@ -95,6 +95,9 @@ public sealed class NetworkTests : IDisposable
         var installed = await client.InstallAsync(hit, ProjectKind.Mod, instance, game, TestContext.Current.CancellationToken);
         Assert.NotEmpty(installed);
         Assert.All(installed, i => Assert.True(File.Exists(Path.Combine(game, "mods", i.FileName))));
+        var before = Directory.GetFiles(Path.Combine(game, "mods")).Length;
+        await client.InstallAsync(hit, ProjectKind.Mod, instance, game, TestContext.Current.CancellationToken); // reinstall must not duplicate
+        Assert.Equal(before, Directory.GetFiles(Path.Combine(game, "mods")).Length);
     }
 
     [Fact]

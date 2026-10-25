@@ -50,17 +50,25 @@ public sealed class AccountService(IAccountRepository accounts, ISecretStore sec
     /// <summary>Returns a valid Minecraft token for the account, refreshing through Microsoft when needed.</summary>
     public async Task<MinecraftSignIn> GetSessionAsync(MinecraftAccount account, CancellationToken ct = default)
     {
-        lock (_sessions)
-            if (_sessions.TryGetValue(account.ProfileId, out var cached) && cached.ExpiresUtc > DateTimeOffset.UtcNow.AddMinutes(5))
-                return cached;
-        var refresh = await secrets.GetAsync(SecretKey(account.ProfileId), ct)
-            ?? throw new AuthenticationException($"The session for {account.Username} has expired. Please sign in again.");
-        var result = await authenticator.RefreshAsync(refresh, ct);
-        if (!string.Equals(result.ProfileId, account.ProfileId, StringComparison.OrdinalIgnoreCase))
-            throw new AuthenticationException("The refreshed Microsoft account belongs to a different Minecraft profile.");
-        await StoreAsync(result, ct);
-        return result;
+        // Single-flight: refresh tokens rotate, so two concurrent refreshes would invalidate each other.
+        await _refreshLock.WaitAsync(ct);
+        try
+        {
+            lock (_sessions)
+                if (_sessions.TryGetValue(account.ProfileId, out var cached) && cached.ExpiresUtc > DateTimeOffset.UtcNow.AddMinutes(5))
+                    return cached;
+            var refresh = await secrets.GetAsync(SecretKey(account.ProfileId), ct)
+                ?? throw new AuthenticationException($"The session for {account.Username} has expired. Please sign in again.");
+            var result = await authenticator.RefreshAsync(refresh, ct);
+            if (!string.Equals(result.ProfileId, account.ProfileId, StringComparison.OrdinalIgnoreCase))
+                throw new AuthenticationException("The refreshed Microsoft account belongs to a different Minecraft profile.");
+            await StoreAsync(result, ct);
+            return result;
+        }
+        finally { _refreshLock.Release(); }
     }
+
+    private readonly SemaphoreSlim _refreshLock = new(1, 1);
 
     private async Task<MinecraftAccount> StoreAsync(MinecraftSignIn result, CancellationToken ct)
     {

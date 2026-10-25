@@ -114,26 +114,31 @@ public sealed partial class LibraryViewModel : ViewModelBase
         NewVersion ??= Versions.FirstOrDefault();
     }
 
-    async partial void OnNewVersionChanged(string? value) => await RefreshLoaderVersionsAsync();
-    async partial void OnNewLoaderChanged(ModLoaderKind value) => await RefreshLoaderVersionsAsync();
+    partial void OnNewVersionChanged(string? value) => _ = RefreshLoaderVersionsAsync();
+    partial void OnNewLoaderChanged(ModLoaderKind value) => _ = RefreshLoaderVersionsAsync();
+
+    private int _loaderRequest;
 
     private async Task RefreshLoaderVersionsAsync()
     {
+        var request = ++_loaderRequest; // results of an older (slower) request are discarded
+        var (loader, mc) = (NewLoader, NewVersion);
         LoaderVersions.Clear();
         NewLoaderVersion = null;
-        if (NewLoader == ModLoaderKind.None || NewVersion is null) return;
+        if (loader == ModLoaderKind.None || mc is null) { LoadingLoaderVersions = false; return; }
         LoadingLoaderVersions = true;
         await _ui.RunAsync(async () =>
         {
-            var versions = await _loaders[NewLoader].GetVersionsAsync(NewVersion, CancellationToken.None);
+            var versions = await _loaders[loader].GetVersionsAsync(mc, CancellationToken.None);
+            if (request != _loaderRequest) return;
             foreach (var v in versions.OrderByDescending(v => v.Stable).Take(60)) LoaderVersions.Add(v.Version);
             NewLoaderVersion = LoaderVersions.FirstOrDefault();
-            if (LoaderVersions.Count == 0) _ui.Error($"{NewLoader} has no build for Minecraft {NewVersion} that Ninja Launcher can install.");
+            if (LoaderVersions.Count == 0) _ui.Error($"{loader} has no build for Minecraft {mc} that Ninja Launcher can install.");
         });
-        LoadingLoaderVersions = false;
+        if (request == _loaderRequest) LoadingLoaderVersions = false;
     }
 
-    async partial void OnSelectedChanged(GameInstance? value)
+    partial void OnSelectedChanged(GameInstance? value)
     {
         Mods.Clear(); Worlds.Clear(); Backups.Clear();
         DiskUsage = "";
@@ -143,9 +148,12 @@ public sealed partial class LibraryViewModel : ViewModelBase
         EditMaxMemory = value.MaxMemoryMb;
         EditJvmArgs = value.ExtraJvmArguments;
         EditJavaPath = value.JavaPath ?? "";
-        RefreshContent(value);
-        var bytes = await _instances.GetDiskUsageAsync(value);
-        DiskUsage = $"{bytes / 1024.0 / 1024.0:0.0} MB on disk";
+        _ = _ui.RunAsync(async () =>
+        {
+            RefreshContent(value);
+            var bytes = await _instances.GetDiskUsageAsync(value);
+            if (Selected?.Id == value.Id) DiskUsage = $"{bytes / 1024.0 / 1024.0:0.0} MB on disk";
+        });
     }
 
     private void RefreshContent(GameInstance instance)
@@ -186,7 +194,7 @@ public sealed partial class LibraryViewModel : ViewModelBase
             await _jobs.Run($"Install {instance.Loader} {lv} for {instance.Name}", async (progress, ct) =>
             {
                 var id = await _loaders[instance.Loader].InstallAsync(instance.MinecraftVersion, lv, progress, ct);
-                await _instances.UpdateAsync(instance with { LaunchVersionId = id }, ct);
+                await _instances.SetLaunchVersionAsync(instance.Id, id, ct: ct);
             });
         await OnShownAsync();
         Selected = Instances.FirstOrDefault(i => i.Id == instance.Id);
@@ -211,6 +219,8 @@ public sealed partial class LibraryViewModel : ViewModelBase
         if (string.IsNullOrWhiteSpace(NewName)) throw new ArgumentException("Give the instance a name.");
         if (NewVersion is null) throw new ArgumentException("Pick a Minecraft version.");
         if (NewLoader != ModLoaderKind.None && NewLoaderVersion is null) throw new ArgumentException($"Pick a {NewLoader} version.");
+        if (NewLoader == ModLoaderKind.Forge && !NewLoaderVersion!.StartsWith(NewVersion + "-", StringComparison.Ordinal))
+            throw new ArgumentException($"Forge {NewLoaderVersion} is not a build for Minecraft {NewVersion}.");
         var (name, mc, loader, loaderVersion, memory) = (NewName, NewVersion, NewLoader, NewLoaderVersion, NewMemoryMb);
         var instance = await _instances.CreateAsync(name, mc, loader, loaderVersion, memory);
         IsCreating = false;
@@ -220,7 +230,7 @@ public sealed partial class LibraryViewModel : ViewModelBase
             await _jobs.Run($"Install {loader} {loaderVersion} for {name}", async (progress, ct) =>
             {
                 var id = await _loaders[loader].InstallAsync(mc, loaderVersion!, progress, ct);
-                await _instances.UpdateAsync(instance with { LaunchVersionId = id }, ct);
+                await _instances.SetLaunchVersionAsync(instance.Id, id, ct: ct);
             });
         }
         await OnShownAsync();
@@ -256,12 +266,13 @@ public sealed partial class LibraryViewModel : ViewModelBase
     private Task Repair() => _ui.RunAsync(async () =>
     {
         if (Selected is not { } instance) return;
+        _game.EnsureNotRunning(instance, "repair it");
         if (instance.Loader != ModLoaderKind.None && instance.LoaderVersion is { } lv)
         {
             await _jobs.Run($"Reinstall {instance.Loader} for {instance.Name}", async (progress, ct) =>
             {
                 var id = await _loaders[instance.Loader].InstallAsync(instance.MinecraftVersion, lv, progress, ct);
-                instance = await _instances.UpdateAsync(instance with { LaunchVersionId = id }, ct);
+                instance = await _instances.SetLaunchVersionAsync(instance.Id, id, ct: ct);
             });
         }
         await _game.RepairAsync(instance);
@@ -282,6 +293,7 @@ public sealed partial class LibraryViewModel : ViewModelBase
     private Task Delete() => _ui.RunAsync(async () =>
     {
         if (Selected is not { } instance) return;
+        _game.EnsureNotRunning(instance, "delete it");
         if (!await _ui.ConfirmAsync($"Delete '{instance.Name}'? Its worlds, mods and settings in the instance folder will be permanently removed. Backups are kept.")) return;
         await _instances.DeleteAsync(instance.Id);
         Selected = null;
@@ -314,6 +326,7 @@ public sealed partial class LibraryViewModel : ViewModelBase
     private Task BackupWorld() => _ui.RunAsync(async () =>
     {
         if (Selected is null || SelectedWorld is null) throw new InvalidOperationException("Select a world to back up.");
+        _game.EnsureNotRunning(Selected, "back up its worlds"); // a running game keeps writing region files
         var file = await _instances.BackupWorldAsync(Selected, SelectedWorld);
         RefreshContent(Selected);
         _ui.Info($"Backup saved: {Path.GetFileName(file)}");
@@ -323,6 +336,7 @@ public sealed partial class LibraryViewModel : ViewModelBase
     private Task RestoreBackup() => _ui.RunAsync(async () =>
     {
         if (Selected is null || SelectedBackup is null) throw new InvalidOperationException("Select a backup to restore.");
+        _game.EnsureNotRunning(Selected, "restore a backup");
         await _instances.RestoreBackupAsync(Selected, SelectedBackup);
         RefreshContent(Selected);
         _ui.Info("Backup restored into the saves folder.");

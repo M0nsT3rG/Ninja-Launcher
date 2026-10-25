@@ -34,8 +34,9 @@ public sealed class DpapiSecretStore(string directory) : ISecretStore
         Directory.CreateDirectory(directory);
         var blob = ProtectedData.Protect(Encoding.UTF8.GetBytes(secret), Entropy, DataProtectionScope.CurrentUser);
         var path = PathFor(key);
-        await File.WriteAllBytesAsync(path + ".tmp", blob, ct);
-        File.Move(path + ".tmp", path, overwrite: true);
+        var temp = $"{path}.{Guid.NewGuid():N}.tmp"; // unique: concurrent refreshes must not share a temp file
+        await File.WriteAllBytesAsync(temp, blob, ct);
+        File.Move(temp, path, overwrite: true);
     }
 
     public async Task<string?> GetAsync(string key, CancellationToken ct = default)

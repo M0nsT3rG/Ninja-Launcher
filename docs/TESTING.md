@@ -29,3 +29,6 @@ No test fixture contains real credentials or game files. The mocks are a fake `I
 | 2026-10-25 | Loader installers (opt-in `NINJA_LOADER_INSTALL=1`) | NeoForge 21.1.265 and Forge 47.4.28 installed and resolved |
 | 2026-10-25 | Launch smoke NeoForge 21.1.265, Forge 1.20.1-47.4.28 | first failed: the vanilla jar on the classpath clashed with NeoForge's patched module. Fixed by placing the client jar at `versions/<profile>/<profile>.jar`, as the official launcher does. Both now pass |
 | 2026-10-25 | CI (Windows, Linux, macOS arm64, macOS x64) | green |
+| 2026-10-25 | Independent code review (Codex was at its usage limit, so a separate reviewer agent ran) | 16 findings; all fixed with regression tests, see `docs/testing/REVIEW-2026-10-25.md` |
+| 2026-10-25 | Unit / platform / integration after the review fixes | 93 / 5 / 13 passed (4 opt-in skipped) |
+| 2026-10-25 | Launch smoke 1.8.9 (legacy, Java 8), NeoForge 21.1.265, 1.21.1 | all passed |

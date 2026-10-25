@@ -203,7 +203,7 @@ public sealed partial class SettingsViewModel(UiContext ui, SettingsHolder setti
         var customDir = string.IsNullOrWhiteSpace(InstancesDirectory) || Path.GetFullPath(InstancesDirectory) == Path.GetFullPath(Path.Combine(paths.DataDirectory, "instances"))
             ? null : Path.GetFullPath(InstancesDirectory);
         var restart = customDir != settings.Current.CustomInstancesDirectory || Verbose != settings.Current.VerboseLogging;
-        await settings.SaveAsync(settings.Current with
+        await settings.UpdateAsync(current => current with
         {
             Theme = Theme, AccentColor = AccentColor, DefaultMaxMemoryMb = DefaultMemory, DownloadConcurrency = Math.Clamp(Concurrency, 1, 32),
             CustomInstancesDirectory = customDir, VerboseLogging = Verbose, MicrosoftClientId = ClientId.Trim(),

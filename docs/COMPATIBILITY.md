@@ -14,7 +14,7 @@
 | Range | Status |
 | --- | --- |
 | 1.13 → 26.x (modern `arguments`) | Supported. 1.21.1 vanilla, NeoForge and 1.20.1 Forge were installed and booted (engine smoke). 26.x rules (`versionRange`, `default-user-jvm`) are covered by unit tests |
-| 1.6 → 1.12.2 (legacy `minecraftArguments`, legacy natives) | Supported by the engine and unit-tested, not booted yet |
+| 1.6 → 1.12.2 (legacy `minecraftArguments`, legacy natives) | Supported. 1.8.9 was installed and booted with the Mojang Java 8 runtime (engine smoke) |
 | Before 1.6 (`pre-1.6` resources) | Best effort |
 | Apple Silicon or Windows ARM with LWJGL 2 versions (≤1.18) | Not supported: Mojang ships no native arm64 binaries for them |
 

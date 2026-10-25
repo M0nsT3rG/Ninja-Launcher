@@ -129,6 +129,32 @@ public sealed class InstanceServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task SetLaunchVersion_does_not_overwrite_concurrent_edits()
+    {
+        var a = await _service.CreateAsync("A", "1.21.1", ModLoaderKind.Forge, "1.21.1-52.0.1");
+        await _service.UpdateAsync(a with { MaxMemoryMb = 8192, Name = "Renamed" }); // user edit while installer runs
+        var after = await _service.SetLaunchVersionAsync(a.Id, "1.21.1-forge-52.0.1");
+        Assert.Equal((8192, "Renamed", "1.21.1-forge-52.0.1"), (after.MaxMemoryMb, after.Name, after.LaunchVersionId));
+    }
+
+    [Fact]
+    public async Task Backup_skips_session_lock_and_leaves_no_temp_file()
+    {
+        var a = await _service.CreateAsync("A", "1.21.1");
+        var world = Path.Combine(_service.GetGameDirectory(a), "saves", "W");
+        Directory.CreateDirectory(Path.Combine(world, "region"));
+        await File.WriteAllTextAsync(Path.Combine(world, "region", "r.0.0.mca"), "chunks");
+        await File.WriteAllTextAsync(Path.Combine(world, "session.lock"), "lock");
+        var zip = await _service.BackupWorldAsync(a, "W");
+        using (var archive = System.IO.Compression.ZipFile.OpenRead(zip))
+        {
+            Assert.Contains(archive.Entries, e => e.FullName == "W/region/r.0.0.mca");
+            Assert.DoesNotContain(archive.Entries, e => e.Name == "session.lock");
+        }
+        Assert.Empty(Directory.GetFiles(Path.GetDirectoryName(zip)!, "*.tmp"));
+    }
+
+    [Fact]
     public async Task Restore_refuses_files_outside_backups_directory()
     {
         var a = await _service.CreateAsync("A", "1.21.1");

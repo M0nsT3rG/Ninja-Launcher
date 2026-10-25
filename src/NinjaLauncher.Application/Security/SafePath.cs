@@ -27,7 +27,10 @@ public static class SafePath
     {
         var invalid = Path.GetInvalidFileNameChars().Concat(['/', '\\', ':', '*', '?', '"', '<', '>', '|']).ToHashSet();
         var cleaned = new string(name.Trim().Select(c => invalid.Contains(c) || char.IsControl(c) ? '_' : c).ToArray()).Trim('.', ' ');
-        return cleaned.Length == 0 ? "unnamed" : cleaned[..Math.Min(cleaned.Length, 80)];
+        if (cleaned.Length == 0) return "unnamed";
+        if (cleaned.Length <= 80) return cleaned;
+        var ext = Path.GetExtension(cleaned); // keep ".jar"/".zip" when truncating long names
+        return ext.Length is > 0 and <= 12 ? cleaned[..(80 - ext.Length)] + ext : cleaned[..80];
     }
 }
 
