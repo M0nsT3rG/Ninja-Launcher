@@ -7,7 +7,10 @@
              x:DataType="vm:LibraryViewModel" Classes="page">
   <Grid RowDefinitions="Auto,*" ColumnDefinitions="340,*">
     <DockPanel Grid.ColumnSpan="2" Margin="0,0,0,18">
-      <Button DockPanel.Dock="Right" Classes="accent" Content="+ New instance" Command="{Binding StartCreateCommand}" VerticalAlignment="Center" />
+      <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+        <Button Content="Import .mrpack" Command="{Binding ImportModpackCommand}" />
+        <Button Classes="accent" Content="+ New instance" Command="{Binding StartCreateCommand}" />
+      </StackPanel>
       <StackPanel>
         <TextBlock Classes="h1" Text="Library" />
         <TextBlock Classes="muted" Text="Every instance is isolated: its own worlds, mods, options and logs." />

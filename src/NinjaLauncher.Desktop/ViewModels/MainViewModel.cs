@@ -101,6 +101,12 @@ public sealed class UiContext(MainViewModel shell)
     public void Navigate(ViewModelBase page) => shell.Navigate(page);
     public MainViewModel Shell => shell;
 
+    /// <summary>Set by the main window: (title, pattern) → chosen local file path, or null if cancelled.</summary>
+    public Func<string, string, Task<string?>>? FilePicker { get; set; }
+
+    public Task<string?> PickFileAsync(string title, string pattern) =>
+        FilePicker?.Invoke(title, pattern) ?? Task.FromResult<string?>(null);
+
     /// <summary>Runs an action and turns any exception into an error toast.</summary>
     public async Task RunAsync(Func<Task> action)
     {

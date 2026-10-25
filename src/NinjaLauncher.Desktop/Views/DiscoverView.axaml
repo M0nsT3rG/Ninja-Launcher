@@ -19,15 +19,18 @@
         </DockPanel>
         <WrapPanel>
           <ComboBox ItemsSource="{Binding Kinds}" SelectedItem="{Binding Kind}" MinWidth="150" Margin="0,0,12,0" />
-          <TextBlock Text="Install into" VerticalAlignment="Center" Margin="0,0,8,0" />
-          <ComboBox ItemsSource="{Binding Instances}" SelectedItem="{Binding Target}" MinWidth="220" PlaceholderText="No instances" Margin="0,0,12,0">
-            <ComboBox.ItemTemplate>
-              <DataTemplate DataType="d:GameInstance">
-                <TextBlock Text="{Binding Name}" />
-              </DataTemplate>
-            </ComboBox.ItemTemplate>
-          </ComboBox>
-          <CheckBox Content="Only compatible with this instance" IsChecked="{Binding FilterByInstance}" />
+          <StackPanel Orientation="Horizontal" IsVisible="{Binding NeedsTarget}">
+            <TextBlock Text="Install into" VerticalAlignment="Center" Margin="0,0,8,0" />
+            <ComboBox ItemsSource="{Binding Instances}" SelectedItem="{Binding Target}" MinWidth="220" PlaceholderText="No instances" Margin="0,0,12,0">
+              <ComboBox.ItemTemplate>
+                <DataTemplate DataType="d:GameInstance">
+                  <TextBlock Text="{Binding Name}" />
+                </DataTemplate>
+              </ComboBox.ItemTemplate>
+            </ComboBox>
+            <CheckBox Content="Only compatible with this instance" IsChecked="{Binding FilterByInstance}" />
+          </StackPanel>
+          <TextBlock Classes="muted" Text="Installing a modpack creates a new instance." VerticalAlignment="Center" IsVisible="{Binding !NeedsTarget}" />
         </WrapPanel>
         <TextBlock Classes="muted" FontSize="12" Text="{Binding Warning}" />
       </StackPanel>

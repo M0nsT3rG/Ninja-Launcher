@@ -28,13 +28,14 @@ public sealed partial class LibraryViewModel : ViewModelBase
     private readonly JobQueue _jobs;
     private readonly IUrlLauncher _shell;
     private readonly SettingsHolder _settings;
+    private readonly ModpackInstaller _modpacks;
     private readonly List<GameInstance> _all = [];
     private IReadOnlyList<ManifestVersion> _manifestVersions = [];
 
     public LibraryViewModel(UiContext ui, InstanceService instances, VersionCatalog catalog, IEnumerable<ILoaderProvider> loaders,
-        GameSessionService game, JobQueue jobs, IUrlLauncher shell, SettingsHolder settings)
+        GameSessionService game, JobQueue jobs, IUrlLauncher shell, SettingsHolder settings, ModpackInstaller modpacks)
     {
-        (_ui, _instances, _catalog, _game, _jobs, _shell, _settings) = (ui, instances, catalog, game, jobs, shell, settings);
+        (_ui, _instances, _catalog, _game, _jobs, _shell, _settings, _modpacks) = (ui, instances, catalog, game, jobs, shell, settings, modpacks);
         _loaders = loaders.ToDictionary(l => l.Kind);
         NewMemoryMb = settings.Current.DefaultMaxMemoryMb;
     }
@@ -163,6 +164,18 @@ public sealed partial class LibraryViewModel : ViewModelBase
 
     [RelayCommand]
     private void CancelCreate() => IsCreating = false;
+
+    [RelayCommand]
+    private Task ImportModpack() => _ui.RunAsync(async () =>
+    {
+        var file = await _ui.PickFileAsync("Modrinth modpack", "*.mrpack");
+        if (file is null) return;
+        GameInstance? created = null;
+        await _jobs.Run($"Import {Path.GetFileName(file)}", async (progress, ct) => created = await _modpacks.InstallFromFileAsync(file, progress, ct));
+        await OnShownAsync();
+        Selected = Instances.FirstOrDefault(i => i.Id == created!.Id);
+        _ui.Info($"Imported '{created!.Name}'.");
+    });
 
     [RelayCommand]
     private Task Create() => _ui.RunAsync(async () =>

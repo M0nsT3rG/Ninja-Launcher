@@ -21,7 +21,7 @@ Pre-release (v0.1.0 development). See [docs/ROADMAP.md](docs/ROADMAP.md) for eac
 | Fabric, Quilt | Complete (install verified live) |
 | Forge, NeoForge (official installers run headless) | Partially complete: version lists verified live, installer run not yet verified end to end |
 | Modrinth search and install with dependencies | Complete (verified live) |
-| Modpacks (.mrpack) | Not started |
+| Modpacks (.mrpack install from Modrinth or file) | Complete (validation verified on a live pack); export not started |
 | Bedrock (Windows detect and launch, mcpelauncher detection elsewhere) | Partially complete |
 | Installers, signing, auto-update | Not started |
 

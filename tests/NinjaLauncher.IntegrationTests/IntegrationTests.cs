@@ -98,6 +98,21 @@ public sealed class NetworkTests : IDisposable
     }
 
     [Fact]
+    public async Task A_real_modrinth_modpack_passes_validation()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var client = new ModrinthClient(_downloads);
+        var pack = (await client.SearchAsync("fabulously optimized", ProjectKind.Modpack, null, ModLoaderKind.None, 0, 1, ct)).Hits[0];
+        var version = (await client.GetVersionsAsync(pack.ProjectId, null, ModLoaderKind.None, ct)).OrderByDescending(v => v.DatePublished).First();
+        var file = version.Files.First(f => f.Filename.EndsWith(".mrpack"));
+        var local = Path.Combine(_home, "pack.mrpack");
+        await _downloads.DownloadAsync([new DownloadItem(new Uri(file.Url), local, file.Hashes["sha1"], file.Size)], null, ct);
+        var index = MrpackImporter.ReadIndex(local);
+        Assert.NotEmpty(index.Files);
+        Assert.NotEqual(ModLoaderKind.None, index.Loader.Kind);
+    }
+
+    [Fact]
     public async Task Mojang_publishes_a_runtime_index_entry_for_this_platform()
     {
         var json = await _downloads.GetStringAsync(JavaRuntimeManager.RuntimeIndexUrl, TestContext.Current.CancellationToken);

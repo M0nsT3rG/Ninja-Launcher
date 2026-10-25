@@ -29,7 +29,8 @@ All seven research documents are written in `docs/research/`, each with sources,
 - Fabric, Quilt: COMPLETE (verified live)
 - Forge 1.12.2+, NeoForge 1.20.2+: PARTIALLY COMPLETE (version lists verified live; installer run not yet verified end to end)
 - Modrinth search (mods, shaders, resource packs), compatibility filters, install with required dependencies, enable and disable: COMPLETE (verified live)
-- Mod updates, dependency and compatibility warnings UI, .mrpack import and export, modpack browsing: NOT STARTED
+- Modpacks: browse on Discover, install from Modrinth, import a local .mrpack (host allow-list, sha1 + sha512, path containment, overrides): COMPLETE
+- Mod updates, dependency and compatibility warnings UI, .mrpack export: NOT STARTED
 
 ## Phase 6: Bedrock (v0.7.0). PARTIALLY COMPLETE
 - Windows detection and launch, data folder: implemented. **Not verified on a machine with Bedrock installed**

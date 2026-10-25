@@ -57,6 +57,8 @@ public static class AppServices
         s.AddSingleton<JavaLaunchService>();
         s.AddSingleton<BedrockProvider>();
         s.AddSingleton<ModrinthClient>();
+        s.AddSingleton<MrpackImporter>();
+        s.AddSingleton<ModpackInstaller>();
         s.AddSingleton<ILoaderProvider>(sp => MetaProfileLoaderProvider.Fabric(sp.GetRequiredService<IDownloadService>(), sp.GetRequiredService<VersionCatalog>()));
         s.AddSingleton<ILoaderProvider>(sp => MetaProfileLoaderProvider.Quilt(sp.GetRequiredService<IDownloadService>(), sp.GetRequiredService<VersionCatalog>()));
         foreach (var kind in new[] { ModLoaderKind.Forge, ModLoaderKind.NeoForge })

@@ -10,14 +10,15 @@ using NinjaLauncher.Mods.Modrinth;
 
 namespace NinjaLauncher.Desktop.ViewModels;
 
-public sealed partial class DiscoverViewModel(UiContext ui, ModrinthClient modrinth, InstanceService instances, JobQueue jobs, IUrlLauncher shell) : ViewModelBase
+public sealed partial class DiscoverViewModel(UiContext ui, ModrinthClient modrinth, ModpackInstaller modpacks, InstanceService instances, JobQueue jobs, IUrlLauncher shell) : ViewModelBase
 {
     private const int PageSize = 20;
     private CancellationTokenSource? _searchCts;
 
     public ObservableCollection<ModrinthHit> Results { get; } = [];
     public ObservableCollection<GameInstance> Instances { get; } = [];
-    public IReadOnlyList<ProjectKind> Kinds { get; } = [ProjectKind.Mod, ProjectKind.Shader, ProjectKind.ResourcePack];
+    public IReadOnlyList<ProjectKind> Kinds { get; } = [ProjectKind.Mod, ProjectKind.Modpack, ProjectKind.Shader, ProjectKind.ResourcePack];
+    public bool NeedsTarget => Kind != ProjectKind.Modpack;
 
     [ObservableProperty] public partial string Query { get; set; } = "";
     [ObservableProperty] public partial ProjectKind Kind { get; set; } = ProjectKind.Mod;
@@ -39,7 +40,11 @@ public sealed partial class DiscoverViewModel(UiContext ui, ModrinthClient modri
         if (Results.Count == 0) await SearchAsync();
     }
 
-    partial void OnKindChanged(ProjectKind value) => _ = ui.RunAsync(() => { Offset = 0; return SearchAsync(); });
+    partial void OnKindChanged(ProjectKind value)
+    {
+        OnPropertyChanged(nameof(NeedsTarget));
+        _ = ui.RunAsync(() => { Offset = 0; return SearchAsync(); });
+    }
     partial void OnTargetChanged(GameInstance? value) { if (FilterByInstance) _ = ui.RunAsync(() => { Offset = 0; return SearchAsync(); }); }
     partial void OnFilterByInstanceChanged(bool value) => _ = ui.RunAsync(() => { Offset = 0; return SearchAsync(); });
 
@@ -62,7 +67,7 @@ public sealed partial class DiscoverViewModel(UiContext ui, ModrinthClient modri
         IsBusy = true;
         try
         {
-            var filter = FilterByInstance ? Target : null;
+            var filter = FilterByInstance && NeedsTarget ? Target : null;
             var result = await modrinth.SearchAsync(Query, Kind, filter?.MinecraftVersion, filter?.Loader ?? ModLoaderKind.None, Offset, PageSize, ct);
             if (ct.IsCancellationRequested) return;
             Results.Clear();
@@ -76,6 +81,14 @@ public sealed partial class DiscoverViewModel(UiContext ui, ModrinthClient modri
     [RelayCommand]
     private Task Install(ModrinthHit hit) => ui.RunAsync(async () =>
     {
+        if (Kind == ProjectKind.Modpack)
+        {
+            if (!await ui.ConfirmAsync($"Create a new instance from the modpack '{hit.Title}'? Its mods, loader and settings are downloaded from Modrinth.\n\n{Warning}")) return;
+            GameInstance? created = null;
+            await jobs.Run($"Install modpack {hit.Title}", async (progress, ct) => created = await modpacks.InstallFromModrinthAsync(hit, progress, ct));
+            ui.Info($"Created instance '{created!.Name}'. Find it in the Library.");
+            return;
+        }
         var target = Target ?? throw new InvalidOperationException("Create or select an instance to install into.");
         if (!await ui.ConfirmAsync($"Install '{hit.Title}' and its required dependencies into '{target.Name}'?\n\n{Warning}")) return;
         IReadOnlyList<InstalledContent> installed = [];

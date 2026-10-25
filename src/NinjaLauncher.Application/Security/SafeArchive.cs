@@ -16,8 +16,9 @@ public static class SafeArchive
         Extract(archive, destination, filter, maxTotalBytes, maxEntries, overwrite);
     }
 
+    /// <param name="rename">Optional mapping from entry name to relative target path; null skips the entry.</param>
     public static void Extract(ZipArchive archive, string destination, Func<string, bool>? filter = null,
-        long maxTotalBytes = DefaultMaxTotalBytes, int maxEntries = DefaultMaxEntries, bool overwrite = true)
+        long maxTotalBytes = DefaultMaxTotalBytes, int maxEntries = DefaultMaxEntries, bool overwrite = true, Func<string, string?>? rename = null)
     {
         if (archive.Entries.Count > maxEntries) throw new InvalidDataException($"Archive has too many entries ({archive.Entries.Count}).");
         Directory.CreateDirectory(destination);
@@ -25,7 +26,9 @@ public static class SafeArchive
         foreach (var entry in archive.Entries)
         {
             if (filter is not null && !filter(entry.FullName)) continue;
-            var target = SafePath.Combine(destination, entry.FullName.Replace('\\', '/'));
+            var relative = rename is null ? entry.FullName : rename(entry.FullName);
+            if (string.IsNullOrEmpty(relative)) continue;
+            var target = SafePath.Combine(destination, relative.Replace('\\', '/'));
             if (entry.FullName.EndsWith('/'))
             {
                 Directory.CreateDirectory(target);
