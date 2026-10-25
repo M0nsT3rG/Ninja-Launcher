@@ -12,7 +12,7 @@ All seven research documents are written in `docs/research/`, each with sources,
 
 ## Phase 2: Authentication (v0.2.0). BLOCKED (external)
 - PKCE loopback flow, state validation, Xbox, XSTS with error mapping, Minecraft profile, refresh with rotation, multiple accounts, switching and removal: implemented and unit-tested
-- Real sign-in: **BLOCKED** until Mojang approves an Azure app ID (see `.ai/BLOCKERS.md` B-01)
+- Real sign-in: **BLOCKED** until Mojang approves an Azure app ID (see `.ai/BLOCKERS.md` B-01). Verified live up to that point: browser PKCE, token exchange, Xbox Live and XSTS succeed, and Minecraft returns the expected 403
 - Offline profiles (custom name, Prism-style): COMPLETE (unit-tested). Locked until a Microsoft account that owns Java Edition has signed in on this launcher, then stay unlocked. They use the vanilla offline UUID and the `legacy` user type, and never contact Microsoft. In practice they are unusable until B-01 is resolved
 
 ## Phase 3: Playable Java Edition (v0.3.0). PARTIALLY COMPLETE
