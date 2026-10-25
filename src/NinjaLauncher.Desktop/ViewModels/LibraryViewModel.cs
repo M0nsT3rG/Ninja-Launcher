@@ -6,6 +6,7 @@ using NinjaLauncher.Application.Security;
 using NinjaLauncher.Application.Services;
 using NinjaLauncher.Desktop.Services;
 using NinjaLauncher.Domain;
+using NinjaLauncher.Minecraft.Java.Diagnostics;
 using NinjaLauncher.Minecraft.Java.Metadata;
 using NinjaLauncher.Mods.Loaders;
 using NinjaLauncher.Mods.Modrinth;
@@ -34,13 +35,14 @@ public sealed partial class LibraryViewModel : ViewModelBase
     private readonly SettingsHolder _settings;
     private readonly ModpackInstaller _modpacks;
     private readonly ModrinthClient _modrinth;
+    private readonly ModCompatibilityChecker _checker;
     private readonly List<GameInstance> _all = [];
     private IReadOnlyList<ManifestVersion> _manifestVersions = [];
 
     public LibraryViewModel(UiContext ui, InstanceService instances, VersionCatalog catalog, IEnumerable<ILoaderProvider> loaders,
-        GameSessionService game, JobQueue jobs, IUrlLauncher shell, SettingsHolder settings, ModpackInstaller modpacks, ModrinthClient modrinth)
+        GameSessionService game, JobQueue jobs, IUrlLauncher shell, SettingsHolder settings, ModpackInstaller modpacks, ModrinthClient modrinth, ModCompatibilityChecker checker)
     {
-        (_ui, _instances, _catalog, _game, _jobs, _shell, _settings, _modpacks, _modrinth) = (ui, instances, catalog, game, jobs, shell, settings, modpacks, modrinth);
+        (_ui, _instances, _catalog, _game, _jobs, _shell, _settings, _modpacks, _modrinth, _checker) = (ui, instances, catalog, game, jobs, shell, settings, modpacks, modrinth, checker);
         _loaders = loaders.ToDictionary(l => l.Kind);
         NewMemoryMb = settings.Current.DefaultMaxMemoryMb;
     }
@@ -51,6 +53,8 @@ public sealed partial class LibraryViewModel : ViewModelBase
     public ObservableCollection<ModEntry> Mods { get; } = [];
     public ObservableCollection<string> Worlds { get; } = [];
     public ObservableCollection<string> Backups { get; } = [];
+    public ObservableCollection<ModIssue> Issues { get; } = [];
+    public ObservableCollection<CrashFile> CrashFiles { get; } = [];
     public IReadOnlyList<ModLoaderKind> LoaderKinds { get; } = Enum.GetValues<ModLoaderKind>();
 
     [ObservableProperty] public partial string Search { get; set; } = "";
@@ -77,6 +81,13 @@ public sealed partial class LibraryViewModel : ViewModelBase
     [ObservableProperty] public partial string? SelectedWorld { get; set; }
     [ObservableProperty] public partial string? SelectedBackup { get; set; }
     [ObservableProperty] public partial bool CheckingUpdates { get; set; }
+    [ObservableProperty] public partial bool CheckingCompatibility { get; set; }
+    [ObservableProperty] public partial string CompatibilityStatus { get; set; } = "";
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(HasCrash))] public partial CrashFile? SelectedCrash { get; set; }
+    [ObservableProperty] public partial CrashSummary? Crash { get; set; }
+    [ObservableProperty] public partial string CrashText { get; set; } = "";
+    public bool HasCrash => SelectedCrash is not null;
+    public bool HasMissingDependencies => Issues.Any(i => i.MissingProjectId is not null);
 
     private IReadOnlyList<ModUpdate> _updates = [];
     public int UpdateCount => _updates.Count;
@@ -149,6 +160,9 @@ public sealed partial class LibraryViewModel : ViewModelBase
     partial void OnSelectedChanged(GameInstance? value)
     {
         _updates = [];
+        Issues.Clear();
+        CompatibilityStatus = "";
+        OnPropertyChanged(nameof(HasMissingDependencies));
         Mods.Clear(); Worlds.Clear(); Backups.Clear();
         DiskUsage = "";
         if (value is null) return;
@@ -173,6 +187,10 @@ public sealed partial class LibraryViewModel : ViewModelBase
         OnPropertyChanged(nameof(UpdateCount));
         foreach (var w in _instances.ListWorlds(instance)) Worlds.Add(w);
         foreach (var b in _instances.ListBackups(instance)) Backups.Add(b);
+        var keep = SelectedCrash?.Path;
+        CrashFiles.Clear();
+        foreach (var c in CrashReports.List(_instances.GetGameDirectory(instance)).Take(30)) CrashFiles.Add(c);
+        SelectedCrash = CrashFiles.FirstOrDefault(c => c.Path == keep) ?? CrashFiles.FirstOrDefault();
     }
 
     [RelayCommand]
@@ -270,6 +288,7 @@ public sealed partial class LibraryViewModel : ViewModelBase
         if (Selected is null) return;
         if (Selected.Loader != ModLoaderKind.None && Selected.LaunchVersionId is null)
             throw new InvalidOperationException($"{Selected.Loader} is not installed for this instance yet. Use Repair to install it.");
+        if (!await HomeViewModel.ConfirmModIssuesAsync(_ui, _game, Selected)) return;
         _ui.Info($"Preparing {Selected.Name}… progress is on the Downloads page.");
         await _game.PlayAsync(Selected);
     });
@@ -369,6 +388,65 @@ public sealed partial class LibraryViewModel : ViewModelBase
         _updates = [];
         if (Selected?.Id == instance.Id) RefreshContent(instance);
         _ui.Info(skipped == 0 ? "Mods updated." : $"Mods updated; {skipped} skipped because they changed since the check.");
+    });
+
+    partial void OnSelectedCrashChanged(CrashFile? value)
+    {
+        Crash = null;
+        CrashText = "";
+        if (value is null) return;
+        _ = _ui.RunAsync(async () =>
+        {
+            var text = await Task.Run(() => CrashReports.ReadText(value));
+            if (SelectedCrash != value) return;
+            CrashText = text;
+            Crash = CrashReports.Summarize(text, value.IsJvmCrash);
+        });
+    }
+
+    [RelayCommand]
+    private void OpenCrashFolder()
+    {
+        if (Selected is null) return;
+        var dir = Path.Combine(_instances.GetGameDirectory(Selected), "crash-reports");
+        _shell.OpenDirectory(Directory.Exists(dir) ? dir : _instances.GetGameDirectory(Selected));
+    }
+
+    [RelayCommand]
+    private Task CheckCompatibility() => _ui.RunAsync(async () =>
+    {
+        if (Selected is not { } instance) return;
+        CheckingCompatibility = true;
+        try
+        {
+            var issues = await _checker.AnalyzeAsync(instance, _instances.GetGameDirectory(instance), CancellationToken.None);
+            if (Selected?.Id != instance.Id) return;
+            Issues.Clear();
+            foreach (var i in issues) Issues.Add(i);
+            var errors = issues.Count(i => i.Severity == IssueSeverity.Error);
+            CompatibilityStatus = issues.Count == 0 ? "No problems found." : $"{errors} error(s), {issues.Count - errors} other note(s).";
+            OnPropertyChanged(nameof(HasMissingDependencies));
+        }
+        finally { CheckingCompatibility = false; }
+    });
+
+    [RelayCommand]
+    private Task InstallMissingDependencies() => _ui.RunAsync(async () =>
+    {
+        if (Selected is not { } instance) return;
+        _game.EnsureNotRunning(instance, "install mods");
+        var missing = Issues.Where(i => i.MissingProjectId is not null).Select(i => i.MissingProjectId!).ToList();
+        if (missing.Count == 0) return;
+        IReadOnlyList<InstalledContent> added = [];
+        await _jobs.Run($"Install {missing.Count} missing dependenc{(missing.Count == 1 ? "y" : "ies")} for {instance.Name}", async (progress, ct) =>
+        {
+            progress.Report(new("Resolving dependencies", 10, 0));
+            added = await _modrinth.InstallProjectsAsync(missing, instance, _instances.GetGameDirectory(instance), ct);
+        });
+        _updates = [];
+        RefreshContent(instance);
+        _ui.Info(added.Count == 0 ? "Nothing to install." : $"Installed {string.Join(", ", added.Select(a => a.FileName))}.");
+        await CheckCompatibility();
     });
 
     [RelayCommand]

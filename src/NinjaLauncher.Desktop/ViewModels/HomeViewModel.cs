@@ -99,10 +99,20 @@ public sealed partial class HomeViewModel : ViewModelBase
             await _activity.AddAsync("Launched Minecraft Bedrock Edition");
             return;
         }
+        if (!await ConfirmModIssuesAsync(_ui, _game, SelectedInstance!)) return;
         _ui.Info($"Preparing {SelectedInstance!.Name}… progress is on the Downloads page.");
         await _game.PlayAsync(SelectedInstance);
         await OnShownAsync();
     });
+
+    /// <summary>Shared by Home and Library: warns about blocking mod problems and lets the user launch anyway.</summary>
+    internal static async Task<bool> ConfirmModIssuesAsync(UiContext ui, GameSessionService game, GameInstance instance)
+    {
+        var errors = await game.CheckModsBeforeLaunchAsync(instance);
+        if (errors.Count == 0) return true;
+        var list = string.Join("\n", errors.Take(5).Select(e => "• " + e.Message)) + (errors.Count > 5 ? $"\n• …and {errors.Count - 5} more" : "");
+        return await ui.ConfirmAsync($"'{instance.Name}' has mod problems that will probably stop it from starting:\n\n{list}\n\nYou can fix them in Library → Check compatibility. Launch anyway?");
+    }
 
     [RelayCommand]
     private void OpenBedrockData() { if (_bedrockStatus?.DataDirectory is { } d) _shell.OpenDirectory(d); }

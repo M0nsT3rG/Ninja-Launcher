@@ -45,4 +45,8 @@ public static class Converters
     public static readonly IValueConverter LocalTime = new FuncValueConverter<DateTimeOffset, string>(t => t.LocalDateTime.ToString("g", CultureInfo.CurrentCulture));
 
     public static readonly IValueConverter FileName = new FuncValueConverter<string, string?>(Path.GetFileName);
+
+    public static readonly IValueConverter IsError = new FuncValueConverter<NinjaLauncher.Mods.Modrinth.IssueSeverity, bool>(s => s == NinjaLauncher.Mods.Modrinth.IssueSeverity.Error);
+
+    public static readonly IValueConverter JoinLines = new FuncValueConverter<IReadOnlyList<string>, string>(l => l is null ? "" : string.Join(", ", l));
 }

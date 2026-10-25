@@ -261,7 +261,36 @@ public sealed class ModrinthClient(IDownloadService downloads)
         return newName;
     }
 
-    private static string Sha1Of(string path)
+    /// <summary>Maps SHA-1 hashes of local files to the Modrinth versions they belong to (unknown files are absent).</summary>
+    public async Task<Dictionary<string, ModrinthVersion>> IdentifyFilesAsync(IReadOnlyCollection<string> sha1s, CancellationToken ct) =>
+        sha1s.Count == 0 ? new() : new(await PostAsync<Dictionary<string, ModrinthVersion>>("/version_files", new { hashes = sha1s, algorithm = "sha1" }, ct),
+            StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Project id → display title (one batched request).</summary>
+    public async Task<Dictionary<string, string>> GetProjectTitlesAsync(IReadOnlyCollection<string> projectIds, CancellationToken ct)
+    {
+        if (projectIds.Count == 0) return new();
+        var url = $"{ApiBase}/projects?ids={Uri.EscapeDataString(JsonSerializer.Serialize(projectIds))}";
+        using var doc = JsonDocument.Parse(await GetCachedAsync(url, ct));
+        return doc.RootElement.EnumerateArray().ToDictionary(p => p.GetProperty("id").GetString()!, p => p.GetProperty("title").GetString()!);
+    }
+
+    /// <summary>Installs projects (e.g. missing dependencies) into the instance, skipping ones already installed.</summary>
+    public async Task<IReadOnlyList<InstalledContent>> InstallProjectsAsync(IEnumerable<string> projectIds, GameInstance instance, string gameDirectory, CancellationToken ct)
+    {
+        var ledger = await LoadLedgerAsync(gameDirectory, ct);
+        var visited = new HashSet<string>();
+        var installed = new List<InstalledContent>();
+        try
+        {
+            foreach (var id in projectIds.Distinct())
+                await InstallRecursiveAsync(id, id, null, isRoot: false, ProjectKind.Mod, instance.Loader, instance.MinecraftVersion, gameDirectory, ledger, visited, installed, ct);
+        }
+        finally { await SaveLedgerAsync(gameDirectory, ledger, CancellationToken.None); }
+        return installed;
+    }
+
+    internal static string Sha1Of(string path)
     {
         using var s = File.OpenRead(path);
         return Convert.ToHexString(System.Security.Cryptography.SHA1.HashData(s)).ToLowerInvariant();

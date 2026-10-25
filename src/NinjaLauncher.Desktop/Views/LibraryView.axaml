@@ -3,6 +3,8 @@
              xmlns:vm="using:NinjaLauncher.Desktop.ViewModels"
              xmlns:d="using:NinjaLauncher.Domain"
              xmlns:v="using:NinjaLauncher.Desktop.Views"
+             xmlns:m="using:NinjaLauncher.Mods.Modrinth"
+             xmlns:diag="using:NinjaLauncher.Minecraft.Java.Diagnostics"
              x:Class="NinjaLauncher.Desktop.Views.LibraryView"
              x:DataType="vm:LibraryViewModel" Classes="page">
   <Grid RowDefinitions="Auto,*" ColumnDefinitions="340,*">
@@ -127,6 +129,56 @@
                 </DataTemplate>
               </ItemsControl.ItemTemplate>
             </ItemsControl>
+
+            <DockPanel>
+              <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8">
+                <ProgressBar IsIndeterminate="True" Width="60" IsVisible="{Binding CheckingCompatibility}" />
+                <Button Content="Check compatibility" Command="{Binding CheckCompatibilityCommand}" IsVisible="{Binding Mods.Count}" />
+                <Button Classes="accent" Content="Install missing dependencies" Command="{Binding InstallMissingDependenciesCommand}" IsVisible="{Binding HasMissingDependencies}" />
+              </StackPanel>
+              <TextBlock Text="Compatibility" FontWeight="SemiBold" VerticalAlignment="Center" />
+            </DockPanel>
+            <TextBlock Classes="muted" Text="{Binding CompatibilityStatus}" IsVisible="{Binding CompatibilityStatus.Length}" />
+            <ItemsControl ItemsSource="{Binding Issues}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate DataType="m:ModIssue">
+                  <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,2">
+                    <TextBlock Text="{Binding Severity}" FontWeight="SemiBold" Width="64" Classes.error="{Binding Severity, Converter={x:Static v:Converters.IsError}}" />
+                    <TextBlock Text="{Binding Message}" TextWrapping="Wrap" MaxWidth="640" />
+                  </StackPanel>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+              <ItemsControl.Styles>
+                <Style Selector="TextBlock.error"><Setter Property="Foreground" Value="{DynamicResource NinjaDanger}" /></Style>
+              </ItemsControl.Styles>
+            </ItemsControl>
+
+            <DockPanel>
+              <Button DockPanel.Dock="Right" Content="Open crash folder" Command="{Binding OpenCrashFolderCommand}" IsVisible="{Binding CrashFiles.Count}" />
+              <TextBlock Text="Crash reports" FontWeight="SemiBold" VerticalAlignment="Center" />
+            </DockPanel>
+            <TextBlock Classes="muted" Text="No crashes recorded for this instance." IsVisible="{Binding !CrashFiles.Count}" />
+            <ComboBox ItemsSource="{Binding CrashFiles}" SelectedItem="{Binding SelectedCrash}" MinWidth="360" IsVisible="{Binding CrashFiles.Count}">
+              <ComboBox.ItemTemplate>
+                <DataTemplate DataType="diag:CrashFile">
+                  <TextBlock Text="{Binding Name}" />
+                </DataTemplate>
+              </ComboBox.ItemTemplate>
+            </ComboBox>
+            <Border Classes="card" Padding="12" IsVisible="{Binding Crash, Converter={x:Static ObjectConverters.IsNotNull}}" Background="{DynamicResource NinjaSurfaceRaised}">
+              <StackPanel Spacing="4">
+                <TextBlock Text="{Binding Crash.Title, FallbackValue=''}" FontWeight="SemiBold" Foreground="{DynamicResource NinjaDanger}" TextWrapping="Wrap" />
+                <SelectableTextBlock Text="{Binding Crash.Exception, FallbackValue=''}" TextWrapping="Wrap" FontSize="12" />
+                <SelectableTextBlock Text="{Binding Crash.RootCause, StringFormat='Root cause: {0}', FallbackValue=''}" TextWrapping="Wrap" FontSize="12"
+                                     IsVisible="{Binding Crash.RootCause, Converter={x:Static ObjectConverters.IsNotNull}, FallbackValue=False}" />
+                <TextBlock Text="{Binding Crash.SuspectedMods, Converter={x:Static v:Converters.JoinLines}, StringFormat='Suspected mods: {0}', FallbackValue=''}"
+                           TextWrapping="Wrap" FontSize="12" IsVisible="{Binding Crash.SuspectedMods.Count, FallbackValue=False}" />
+                <TextBlock Text="{Binding Crash.Hint, FallbackValue=''}" TextWrapping="Wrap" Foreground="{DynamicResource NinjaAccentBrush}"
+                           IsVisible="{Binding Crash.Hint, Converter={x:Static ObjectConverters.IsNotNull}, FallbackValue=False}" />
+              </StackPanel>
+            </Border>
+            <TextBox Text="{Binding CrashText}" IsReadOnly="True" AcceptsReturn="True" TextWrapping="NoWrap" Height="220"
+                     FontFamily="Cascadia Mono, Consolas, Menlo, monospace" FontSize="11" IsVisible="{Binding HasCrash}" />
 
             <TextBlock Text="World backups" FontWeight="SemiBold" />
             <StackPanel Orientation="Horizontal" Spacing="8">

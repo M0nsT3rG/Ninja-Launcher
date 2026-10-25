@@ -5,14 +5,16 @@ using NinjaLauncher.Application.Services;
 using NinjaLauncher.Domain;
 using NinjaLauncher.Infrastructure.Downloads;
 using NinjaLauncher.Minecraft.Java;
+using NinjaLauncher.Minecraft.Java.Diagnostics;
 using NinjaLauncher.Minecraft.Java.Launch;
+using NinjaLauncher.Mods.Modrinth;
 
 namespace NinjaLauncher.Desktop.Services;
 
 /// <summary>Play/repair workflows shared by Home and Library. Owns the live game log.</summary>
 public sealed class GameSessionService(
     JavaLaunchService launcher, InstanceService instances, AccountService accounts, JobQueue jobs,
-    HttpDownloadService downloader, IActivityLog activity)
+    HttpDownloadService downloader, IActivityLog activity, ModCompatibilityChecker checker)
 {
     private const int MaxLogLines = 3000;
     private readonly HashSet<Guid> _running = [];
@@ -42,11 +44,12 @@ public sealed class GameSessionService(
                 var current = await instances.GetAsync(instance.Id, ct) ?? throw new InvalidOperationException($"'{instance.Name}' no longer exists.");
                 await instances.MarkPlayedAsync(current.Id, ct);
                 await activity.AddAsync($"Launched '{current.Name}' as {session.Username}", ct);
+                var started = DateTime.UtcNow.AddSeconds(-5);
                 var exit = await launcher.LaunchAsync(current, instances.GetGameDirectory(current),
                     new LaunchSession(session.Username, session.ProfileId, session.MinecraftAccessToken, session.Xuid, session.Offline ? "legacy" : "msa"),
                     progress, AppendLog, ct);
                 await activity.AddAsync($"'{current.Name}' exited with status {exit}", ct);
-                if (exit != 0) throw new InvalidOperationException($"Minecraft exited with status {exit}. Check the game log for the crash reason.");
+                if (exit != 0) throw new InvalidOperationException(DescribeCrash(instances.GetGameDirectory(current), started, exit));
             }
             finally
             {
@@ -54,6 +57,35 @@ public sealed class GameSessionService(
                 RunningChanged?.Invoke();
             }
         });
+    }
+
+    /// <summary>
+    /// Pre-launch mod check: returns blocking (error) issues, or none when the instance has no mods, the check fails
+    /// or Modrinth is unreachable within a few seconds. It never stops a launch on its own; callers ask the user.
+    /// </summary>
+    public async Task<IReadOnlyList<ModIssue>> CheckModsBeforeLaunchAsync(GameInstance instance)
+    {
+        if (instance.Loader == ModLoaderKind.None) return [];
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(8));
+        try
+        {
+            var issues = await checker.AnalyzeAsync(instance, instances.GetGameDirectory(instance), timeout.Token);
+            return issues.Where(i => i.Severity == IssueSeverity.Error).ToList();
+        }
+        catch (Exception e) when (e is not OutOfMemoryException)
+        {
+            return []; // offline or slow: don't block playing
+        }
+    }
+
+    /// <summary>Turns a failed exit into a readable reason using the crash report the game just wrote, if any.</summary>
+    private static string DescribeCrash(string gameDirectory, DateTime startedUtc, int exit)
+    {
+        var crash = CrashReports.List(gameDirectory).FirstOrDefault(f => f.WrittenUtc >= startedUtc);
+        if (crash is null) return $"Minecraft exited with status {exit}. Check the game output on Home for the reason.";
+        var summary = CrashReports.Summarize(CrashReports.ReadText(crash), crash.IsJvmCrash);
+        var cause = summary.RootCause ?? summary.Exception;
+        return $"{summary.Title}{(cause is null ? "" : $" ({cause})")}. {summary.Hint ?? "See Library → Crash reports for details."}";
     }
 
     /// <summary>Throws when an action would touch files a running game holds open.</summary>

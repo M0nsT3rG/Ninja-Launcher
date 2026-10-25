@@ -124,6 +124,26 @@ public sealed class NetworkTests : IDisposable
     }
 
     [Fact]
+    public async Task Missing_dependency_is_detected_and_installed()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var client = new ModrinthClient(_downloads);
+        var iris = (await client.GetVersionsAsync("YL57xq9U", "1.21.1", ModLoaderKind.Fabric, ct)) // Iris requires Sodium
+            .Where(v => v.VersionType == "release").OrderByDescending(v => v.DatePublished).First();
+        var file = iris.Files.First(f => f.Primary);
+        var game = Path.Combine(_home, "compat");
+        await _downloads.DownloadAsync([new DownloadItem(new Uri(file.Url), Path.Combine(game, "mods", file.Filename), file.Hashes["sha1"], file.Size)], null, ct);
+
+        var instance = new GameInstance { Id = Guid.NewGuid(), Name = "c", MinecraftVersion = "1.21.1", Loader = ModLoaderKind.Fabric, LoaderVersion = "x" };
+        var checker = new ModCompatibilityChecker(client);
+        var missing = (await checker.AnalyzeAsync(instance, game, ct)).Where(i => i.MissingProjectId is not null).ToList();
+        Assert.Contains(missing, i => i.MissingProjectId == "AANobbMI" && i.Message.Contains("Sodium"));
+
+        await client.InstallProjectsAsync(missing.Select(i => i.MissingProjectId!), instance, game, ct);
+        Assert.DoesNotContain(await checker.AnalyzeAsync(instance, game, ct), i => i.Severity == IssueSeverity.Error);
+    }
+
+    [Fact]
     public async Task A_real_modrinth_modpack_passes_validation()
     {
         var ct = TestContext.Current.CancellationToken;
