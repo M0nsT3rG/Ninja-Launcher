@@ -11,4 +11,6 @@
 - Fabric and Quilt installs. Forge and NeoForge through their official installers.
 - Modrinth search and install with required dependencies. Enable and disable mods.
 - Bedrock detect-and-launch on Windows.
+- Modrinth mod update checks, Velopack packaging and a signed, opt-in self-update feed.
+- Offline profiles with a custom name, unlocked after an owning Microsoft account signs in.
 - CI for Windows, Linux, macOS arm64 and macOS x64.

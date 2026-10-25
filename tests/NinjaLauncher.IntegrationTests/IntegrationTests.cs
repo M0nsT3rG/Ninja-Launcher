@@ -290,6 +290,10 @@ public sealed class SqliteTests : IDisposable
         var settings = new SqliteSettingsStore(db);
         await settings.SaveAsync(new LauncherSettings { Theme = ThemeMode.Light, DownloadConcurrency = 4 }, TestContext.Current.CancellationToken);
         Assert.Equal(ThemeMode.Light, (await settings.LoadAsync(TestContext.Current.CancellationToken)).Theme);
+        await settings.SetValueAsync("ownership-verified-utc", "2026-10-25", TestContext.Current.CancellationToken);
+        await settings.SaveAsync(new LauncherSettings(), TestContext.Current.CancellationToken); // a settings save must not clobber values
+        Assert.Equal("2026-10-25", await settings.GetValueAsync("ownership-verified-utc", TestContext.Current.CancellationToken));
+        Assert.Null(await settings.GetValueAsync("missing", TestContext.Current.CancellationToken));
 
         var activity = new SqliteActivityLog(db);
         for (var i = 0; i < 3; i++) await activity.AddAsync($"event {i}", TestContext.Current.CancellationToken);

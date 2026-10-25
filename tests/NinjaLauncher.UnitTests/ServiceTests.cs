@@ -32,6 +32,16 @@ internal sealed class MemoryAccounts : IAccountRepository
     }
 }
 
+internal sealed class MemorySettings : ISettingsStore
+{
+    public readonly Dictionary<string, string> Values = new();
+    public LauncherSettings Settings = new();
+    public Task<LauncherSettings> LoadAsync(CancellationToken ct = default) => Task.FromResult(Settings);
+    public Task SaveAsync(LauncherSettings settings, CancellationToken ct = default) { Settings = settings; return Task.CompletedTask; }
+    public Task<string?> GetValueAsync(string key, CancellationToken ct = default) => Task.FromResult(Values.GetValueOrDefault(key));
+    public Task SetValueAsync(string key, string value, CancellationToken ct = default) { Values[key] = value; return Task.CompletedTask; }
+}
+
 internal sealed class NullActivity : IActivityLog
 {
     public Task AddAsync(string message, CancellationToken ct = default) => Task.CompletedTask;
@@ -183,7 +193,7 @@ public sealed class AccountServiceTests
     {
         var secrets = new SessionOnlySecretStore();
         var repo = new MemoryAccounts();
-        var service = new AccountService(repo, secrets, new FakeAuth(), new NullActivity());
+        var service = new AccountService(repo, secrets, new FakeAuth(), new NullActivity(), new MemorySettings());
         var account = await service.SignInAsync();
         Assert.True(repo.Items["abc"].IsActive);
         Assert.Equal("refresh-1", await secrets.GetAsync("msa-refresh:abc"));
@@ -197,18 +207,18 @@ public sealed class AccountServiceTests
         var secrets = new SessionOnlySecretStore();
         var auth = new FakeAuth();
         var repo = new MemoryAccounts();
-        var service = new AccountService(repo, secrets, auth, new NullActivity());
+        var service = new AccountService(repo, secrets, auth, new NullActivity(), new MemorySettings());
         var account = await service.SignInAsync();
         await service.GetSessionAsync(account);
         Assert.Equal(0, auth.Refreshes);
 
-        var fresh = new AccountService(repo, secrets, auth, new NullActivity()); // new process: no cached session
+        var fresh = new AccountService(repo, secrets, auth, new NullActivity(), new MemorySettings()); // new process: no cached session
         var s = await fresh.GetSessionAsync(account);
         Assert.Equal("mc-token-2", s.MinecraftAccessToken);
         Assert.Equal("refresh-1-rotated", await secrets.GetAsync("msa-refresh:abc"));
 
         auth.Profile = "someone-else";
-        var third = new AccountService(repo, secrets, auth, new NullActivity());
+        var third = new AccountService(repo, secrets, auth, new NullActivity(), new MemorySettings());
         await Assert.ThrowsAsync<AuthenticationException>(() => third.GetSessionAsync(account));
     }
 
@@ -217,12 +227,108 @@ public sealed class AccountServiceTests
     {
         var secrets = new SessionOnlySecretStore();
         var repo = new MemoryAccounts();
-        var service = new AccountService(repo, secrets, new FakeAuth(), new NullActivity());
+        var service = new AccountService(repo, secrets, new FakeAuth(), new NullActivity(), new MemorySettings());
         var account = await service.SignInAsync();
         await service.RemoveAsync(account.ProfileId);
         Assert.Null(await secrets.GetAsync("msa-refresh:abc"));
         Assert.Empty(repo.Items);
-        await Assert.ThrowsAsync<AuthenticationException>(() => new AccountService(repo, secrets, new FakeAuth(), new NullActivity()).GetSessionAsync(account));
+        await Assert.ThrowsAsync<AuthenticationException>(() => new AccountService(repo, secrets, new FakeAuth(), new NullActivity(), new MemorySettings()).GetSessionAsync(account));
+    }
+}
+
+public sealed class OfflineProfileTests
+{
+    private sealed class CountingAuth : IMinecraftAuthenticator
+    {
+        public int Calls;
+        public bool IsConfigured => true;
+        public Task<MinecraftSignIn> SignInInteractiveAsync(CancellationToken ct)
+        {
+            Calls++;
+            return Task.FromResult(new MinecraftSignIn("owner", "Owner", "1", "t", DateTimeOffset.UtcNow.AddHours(1), "r"));
+        }
+        public Task<MinecraftSignIn> RefreshAsync(string refresh, CancellationToken ct) { Calls++; throw new InvalidOperationException("must not be called"); }
+    }
+
+    private static (AccountService Service, MemoryAccounts Repo, CountingAuth Auth, MemorySettings Settings) Create()
+    {
+        var repo = new MemoryAccounts();
+        var auth = new CountingAuth();
+        var settings = new MemorySettings();
+        return (new AccountService(repo, new SessionOnlySecretStore(), auth, new NullActivity(), settings), repo, auth, settings);
+    }
+
+    [Fact]
+    public async Task Offline_profiles_are_locked_until_an_owning_account_signs_in()
+    {
+        var (service, repo, _, _) = Create();
+        Assert.False(await service.CanUseOfflineAsync());
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.AddOfflineAsync("Steve"));
+        Assert.Empty(repo.Items);
+
+        await service.SignInAsync();
+        Assert.True(await service.CanUseOfflineAsync());
+        var offline = await service.AddOfflineAsync("Steve");
+        Assert.Equal(AccountKind.Offline, offline.Kind);
+        Assert.True(repo.Items[offline.ProfileId].IsActive);
+    }
+
+    [Fact]
+    public async Task Unlock_survives_removing_the_microsoft_account()
+    {
+        var (service, _, _, _) = Create();
+        var owner = await service.SignInAsync();
+        await service.RemoveAsync(owner.ProfileId);
+        Assert.True(await service.CanUseOfflineAsync());
+    }
+
+    [Theory]
+    [InlineData("ab")]
+    [InlineData("seventeen_chars_x")]
+    [InlineData("bad name")]
+    [InlineData("nämé")]
+    public async Task Invalid_offline_names_are_rejected(string name)
+    {
+        var (service, _, _, _) = Create();
+        await service.SignInAsync();
+        await Assert.ThrowsAsync<ArgumentException>(() => service.AddOfflineAsync(name));
+    }
+
+    [Fact]
+    public async Task Duplicate_offline_names_are_rejected()
+    {
+        var (service, _, _, _) = Create();
+        await service.SignInAsync();
+        await service.AddOfflineAsync("Alex");
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.AddOfflineAsync("Alex"));
+    }
+
+    [Fact]
+    public void Offline_uuid_matches_vanilla_server_assignment() =>
+        // java.util.UUID.nameUUIDFromBytes("OfflinePlayer:Notch") = b50ad385-829d-3141-a216-7e7d7539ba7f
+        Assert.Equal("b50ad385829d3141a2167e7d7539ba7f", AccountService.OfflineUuid("Notch"));
+
+    [Fact]
+    public async Task Offline_session_never_contacts_microsoft()
+    {
+        var (service, _, auth, _) = Create();
+        await service.SignInAsync();
+        var offline = await service.AddOfflineAsync("Steve");
+        var calls = auth.Calls;
+        var session = await service.GetSessionAsync(offline);
+        Assert.True(session.Offline);
+        Assert.Equal("Steve", session.Username);
+        Assert.Equal(offline.ProfileId, session.ProfileId);
+        Assert.Equal(calls, auth.Calls);
+    }
+
+    [Fact]
+    public async Task Offline_session_is_refused_when_unlock_is_missing()
+    {
+        var (service, _, _, settings) = Create();
+        var forged = new MinecraftAccount { Kind = AccountKind.Offline, ProfileId = AccountService.OfflineUuid("Steve"), Username = "Steve" };
+        await Assert.ThrowsAsync<AuthenticationException>(() => service.GetSessionAsync(forged));
+        Assert.Empty(settings.Values);
     }
 }
 

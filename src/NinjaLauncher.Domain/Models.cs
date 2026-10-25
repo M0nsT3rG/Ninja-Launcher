@@ -26,9 +26,13 @@ public sealed record GameInstance
     public DateTimeOffset? LastPlayedUtc { get; init; }
 }
 
+public enum AccountKind { Microsoft, Offline }
+
 /// <summary>A signed-in Minecraft profile. Secrets are never stored on this record.</summary>
 public sealed record MinecraftAccount
 {
+    /// <summary>Offline profiles exist only after a Microsoft account that owns the game has signed in on this launcher.</summary>
+    public AccountKind Kind { get; init; } = AccountKind.Microsoft;
     /// <summary>Minecraft profile UUID without dashes.</summary>
     public required string ProfileId { get; init; }
     public required string Username { get; init; }

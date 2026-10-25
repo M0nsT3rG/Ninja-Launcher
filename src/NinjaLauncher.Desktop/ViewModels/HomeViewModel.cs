@@ -53,7 +53,8 @@ public sealed partial class HomeViewModel : ViewModelBase
     public override async Task OnShownAsync()
     {
         var active = await _accounts.GetActiveAsync();
-        AccountText = active is null ? "Not signed in" : $"Signed in as {active.Username}";
+        AccountText = active is null ? "Not signed in"
+            : active.Kind == AccountKind.Offline ? $"Offline as {active.Username}" : $"Signed in as {active.Username}";
         var list = await _instances.ListAsync();
         var selectedId = SelectedInstance?.Id ?? _settings.Current.SelectedInstanceId;
         Instances.Clear();

@@ -35,6 +35,9 @@ public interface ISettingsStore
 {
     Task<LauncherSettings> LoadAsync(CancellationToken ct = default);
     Task SaveAsync(LauncherSettings settings, CancellationToken ct = default);
+    /// <summary>Single launcher-owned values kept apart from user settings (so a settings save can't clobber them).</summary>
+    Task<string?> GetValueAsync(string key, CancellationToken ct = default);
+    Task SetValueAsync(string key, string value, CancellationToken ct = default);
 }
 
 public interface IActivityLog

@@ -43,7 +43,7 @@ public sealed class GameSessionService(
                 await instances.MarkPlayedAsync(current.Id, ct);
                 await activity.AddAsync($"Launched '{current.Name}' as {session.Username}", ct);
                 var exit = await launcher.LaunchAsync(current, instances.GetGameDirectory(current),
-                    new LaunchSession(session.Username, session.ProfileId, session.MinecraftAccessToken, session.Xuid),
+                    new LaunchSession(session.Username, session.ProfileId, session.MinecraftAccessToken, session.Xuid, session.Offline ? "legacy" : "msa"),
                     progress, AppendLog, ct);
                 await activity.AddAsync($"'{current.Name}' exited with status {exit}", ct);
                 if (exit != 0) throw new InvalidOperationException($"Minecraft exited with status {exit}. Check the game log for the crash reason.");

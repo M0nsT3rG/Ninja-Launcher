@@ -117,6 +117,11 @@ public sealed partial class AccountsViewModel(UiContext ui, AccountService accou
     public ObservableCollection<MinecraftAccount> Accounts { get; } = [];
     [ObservableProperty] public partial bool IsSigningIn { get; set; }
     [ObservableProperty] public partial string Status { get; set; } = "";
+    [ObservableProperty] public partial bool CanUseOffline { get; set; }
+    [ObservableProperty] public partial string OfflineName { get; set; } = "";
+
+    public string OfflineLockedText => "Offline profiles unlock after you sign in once with a Microsoft account that owns Minecraft: Java Edition.";
+    public string OfflineInfoText => "Offline profiles play singleplayer, LAN and offline-mode servers under any name. Online servers and Realms need your Microsoft account.";
 
     public bool CanSignIn => accounts.CanSignIn;
     public string SignInUnavailableReason => "Microsoft sign-in needs an Azure application ID approved by Mojang. Enter it under Settings → Accounts. Until then, sign-in is disabled (see docs/research/AUTHENTICATION.md).";
@@ -127,6 +132,7 @@ public sealed partial class AccountsViewModel(UiContext ui, AccountService accou
     public override async Task OnShownAsync()
     {
         OnPropertyChanged(nameof(CanSignIn));
+        CanUseOffline = await accounts.CanUseOfflineAsync();
         Accounts.Clear();
         foreach (var a in await accounts.ListAsync()) Accounts.Add(a);
         Status = Accounts.Count == 0 ? "No accounts yet." : $"{Accounts.Count} account(s).";
@@ -147,6 +153,15 @@ public sealed partial class AccountsViewModel(UiContext ui, AccountService accou
             IsSigningIn = false;
             await OnShownAsync();
         }
+    });
+
+    [RelayCommand]
+    private Task AddOffline() => ui.RunAsync(async () =>
+    {
+        var account = await accounts.AddOfflineAsync(OfflineName);
+        OfflineName = "";
+        await OnShownAsync();
+        ui.Info($"Offline profile {account.Username} added and selected.");
     });
 
     [RelayCommand]

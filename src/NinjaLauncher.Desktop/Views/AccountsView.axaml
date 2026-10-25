@@ -22,6 +22,20 @@
       </StackPanel>
     </Border>
 
+    <Border Classes="card">
+      <StackPanel Spacing="10">
+        <TextBlock Classes="h2" Text="Offline profile" />
+        <TextBlock Classes="muted" Text="{Binding OfflineLockedText}" IsVisible="{Binding !CanUseOffline}" />
+        <StackPanel Spacing="10" IsVisible="{Binding CanUseOffline}">
+          <TextBlock Classes="muted" Text="{Binding OfflineInfoText}" />
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <TextBox Text="{Binding OfflineName}" PlaceholderText="Player name" MaxLength="16" Width="220" />
+            <Button Content="Add offline profile" Command="{Binding AddOfflineCommand}" />
+          </StackPanel>
+        </StackPanel>
+      </StackPanel>
+    </Border>
+
     <ItemsControl ItemsSource="{Binding Accounts}">
       <ItemsControl.ItemTemplate>
         <DataTemplate DataType="d:MinecraftAccount">
@@ -39,7 +53,10 @@
                 </Border>
                 <StackPanel VerticalAlignment="Center">
                   <TextBlock Text="{Binding Username}" FontWeight="SemiBold" />
-                  <TextBlock Classes="muted" FontSize="12" Text="Active" IsVisible="{Binding IsActive}" Foreground="{DynamicResource NinjaAccentBrush}" />
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBlock Classes="muted" FontSize="12" Text="{Binding Kind}" />
+                    <TextBlock Classes="muted" FontSize="12" Text="Active" IsVisible="{Binding IsActive}" Foreground="{DynamicResource NinjaAccentBrush}" />
+                  </StackPanel>
                 </StackPanel>
               </StackPanel>
             </DockPanel>

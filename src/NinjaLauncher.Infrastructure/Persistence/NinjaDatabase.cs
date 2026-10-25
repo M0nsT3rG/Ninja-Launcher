@@ -144,11 +144,21 @@ public sealed class SqliteSettingsStore(NinjaDatabase db) : ISettingsStore
         catch (JsonException) { return new LauncherSettings(); }
     }, ct);
 
-    public Task SaveAsync(LauncherSettings settings, CancellationToken ct = default) => Task.Run(() =>
+    public Task SaveAsync(LauncherSettings settings, CancellationToken ct = default) => SetRowAsync(Key, JsonSerializer.Serialize(settings, NinjaDatabase.Json), ct);
+
+    // "value:" prefix keeps launcher-owned values apart from the "launcher" settings row.
+    public Task<string?> GetValueAsync(string key, CancellationToken ct = default) => Task.Run(() =>
     {
         using var c = db.Open();
-        NinjaDatabase.Exec(c, "INSERT INTO settings(key,value) VALUES($k,$v) ON CONFLICT(key) DO UPDATE SET value=$v",
-            ("$k", Key), ("$v", JsonSerializer.Serialize(settings, NinjaDatabase.Json)));
+        return NinjaDatabase.Scalar(c, "SELECT value FROM settings WHERE key=$k", ("$k", "value:" + key)) as string;
+    }, ct);
+
+    public Task SetValueAsync(string key, string value, CancellationToken ct = default) => SetRowAsync("value:" + key, value, ct);
+
+    private Task SetRowAsync(string key, string value, CancellationToken ct) => Task.Run(() =>
+    {
+        using var c = db.Open();
+        NinjaDatabase.Exec(c, "INSERT INTO settings(key,value) VALUES($k,$v) ON CONFLICT(key) DO UPDATE SET value=$v", ("$k", key), ("$v", value));
     }, ct);
 }
 

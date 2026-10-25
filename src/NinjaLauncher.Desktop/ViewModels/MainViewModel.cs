@@ -10,7 +10,10 @@ public abstract class ViewModelBase : ObservableObject
     public virtual Task OnShownAsync() => Task.CompletedTask;
 }
 
-public sealed record NavItem(string Title, string Icon, ViewModelBase Page);
+public sealed record NavItem(string Title, string Icon, ViewModelBase Page)
+{
+    public override string ToString() => Title; // what screen readers announce for the list item
+}
 
 /// <summary>Shell: navigation, toast messages and the confirmation dialog shared by all pages.</summary>
 public sealed partial class MainViewModel : ObservableObject
