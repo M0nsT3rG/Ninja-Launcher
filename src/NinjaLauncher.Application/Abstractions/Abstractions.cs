@@ -64,7 +64,8 @@ public interface IUrlLauncher
     void OpenDirectory(string path);
 }
 
-public sealed record DownloadItem(Uri Url, string DestinationPath, string? Sha1, long? Size);
+/// <param name="VerifyExisting">Re-hash an existing file instead of trusting a matching size.</param>
+public sealed record DownloadItem(Uri Url, string DestinationPath, string? Sha1, long? Size, bool VerifyExisting = false);
 
 public sealed record DownloadProgress(int CompletedFiles, int TotalFiles, long BytesDownloaded, long? TotalBytes, double BytesPerSecond);
 

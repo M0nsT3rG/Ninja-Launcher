@@ -34,6 +34,7 @@ All seven research documents are written in `docs/research/`, each with sources,
 - Modpacks: browse on Discover, install from Modrinth, import a local .mrpack (host allow-list, sha1 + sha512, path containment, overrides): COMPLETE
 - Mod updates (hash lookup via `/version_files/update`, works for hand-added jars, keeps the disabled state, release-only unless already on a pre-release): COMPLETE (verified live)
 - Compatibility checks (Library + before Play: missing/disabled dependencies, incompatibilities, duplicates, wrong loader/version; one-click install of missing dependencies): COMPLETE (verified live and in the UI)
+- CurseForge (search mods, modpacks, shaders and resource packs; install with dependencies; CurseForge modpack zips; author-blocked files sent to manual download): PARTIALLY COMPLETE. Implemented and unit-tested; live use needs the owner's API key (B-06)
 - .mrpack export: NOT STARTED
 
 ## Phase 6: Bedrock (v0.7.0). PARTIALLY COMPLETE

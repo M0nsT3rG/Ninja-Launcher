@@ -49,7 +49,8 @@ public sealed partial class DiscoverViewModel(UiContext ui, ModrinthClient modri
         Instances.Clear();
         foreach (var i in await instances.ListAsync()) Instances.Add(i);
         Target = Instances.FirstOrDefault(i => i.Id == keep) ?? Instances.FirstOrDefault(i => i.Loader != ModLoaderKind.None) ?? Instances.FirstOrDefault();
-        if (Results.Count == 0) await SearchAsync();
+        // CurseForge data may not be kept around (API terms §3.1), so its results are always re-queried.
+        if (Results.Count == 0 || Source == ContentSource.CurseForge) await SearchAsync();
     }
 
     partial void OnKindChanged(ProjectKind value)
@@ -154,13 +155,15 @@ public sealed partial class DiscoverViewModel(UiContext ui, ModrinthClient modri
     internal static async Task OfferManualDownloadsAsync(UiContext ui, IUrlLauncher shell, IReadOnlyList<BlockedFile> blocked, string gameDirectory)
     {
         if (blocked.Count == 0) return;
-        var list = string.Join("\n", blocked.Take(8).Select(b => $"• {b.ModName} → {b.FileName} (into {b.TargetFolder}/)")) +
-                   (blocked.Count > 8 ? $"\n• …and {blocked.Count - 8} more" : "");
-        if (!await ui.ConfirmAsync($"{blocked.Count} file(s) can only be downloaded on the CurseForge website because their authors don't allow other apps to download them:\n\n{list}\n\nOpen their download pages and the instance folder now?")) return;
+        // The full list is always saved, so nothing is lost when only the first pages are opened automatically.
+        var report = Path.Combine(gameDirectory, "manual-downloads.txt");
+        await File.WriteAllLinesAsync(report, ["Download each file from its page and put it in the folder shown:", "",
+            .. blocked.Select(b => $"{b.ModName}: {b.FileName}\n  page:   {b.PageUrl}\n  folder: {b.TargetFolder}/\n")]);
+        var list = string.Join("\n", blocked.Select(b => $"• {b.ModName} → {b.FileName} (into {b.TargetFolder}/)"));
+        if (!await ui.ConfirmAsync($"{blocked.Count} file(s) can only be downloaded on the CurseForge website because their authors don't allow other apps to download them:\n\n{list}\n\nThe full list with links is saved in manual-downloads.txt in the instance folder. Open the first {Math.Min(8, blocked.Count)} download page(s) and the instance folder now?")) return;
         foreach (var b in blocked.Take(8)) shell.Open(new Uri(b.PageUrl));
-        var folder = Path.Combine(gameDirectory, blocked[0].TargetFolder);
-        Directory.CreateDirectory(folder);
-        shell.OpenDirectory(folder);
+        Directory.CreateDirectory(gameDirectory);
+        shell.OpenDirectory(gameDirectory);
     }
 
     [RelayCommand]

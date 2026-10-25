@@ -19,7 +19,9 @@ public sealed record CurseForgeFile(
     string? DownloadUrl, bool IsAvailable, IReadOnlyList<CurseForgeHash> Hashes, IReadOnlyList<string> GameVersions,
     IReadOnlyList<CurseForgeDependency> Dependencies)
 {
-    public string? Sha1 => Hashes.FirstOrDefault(h => h.Algo == 1)?.Value;
+    public string? Sha1 => Hashes.FirstOrDefault(h => h.Algo == 1 && IsSha1(h.Value))?.Value;
+
+    private static bool IsSha1(string? v) => v is { Length: 40 } && v.All(Uri.IsHexDigit);
 }
 
 public sealed record CurseForgeMod(
@@ -120,6 +122,8 @@ public sealed class CurseForgeClient(HttpClient http, Func<CancellationToken, Ta
         if (kind == ProjectKind.Mod && instance.Loader == ModLoaderKind.None)
             throw new InvalidOperationException("This instance has no mod loader. Create a Fabric, Quilt, Forge or NeoForge instance to install mods.");
         var shaders = kind == ProjectKind.Shader ? await ShadersClassIdAsync(ct) : 0;
+        // Re-read the project right before installing: distribution permission may have changed since the search.
+        mod = (await GetModsAsync([mod.Id], ct)).FirstOrDefault() ?? throw new InvalidOperationException($"'{mod.Name}' is no longer on CurseForge.");
         var installed = new List<InstalledContent>();
         var blocked = new List<BlockedFile>();
         var visited = new HashSet<long>();
@@ -130,7 +134,8 @@ public sealed class CurseForgeClient(HttpClient http, Func<CancellationToken, Ta
     private async Task InstallRecursiveAsync(CurseForgeMod mod, ProjectKind kind, GameInstance instance, string gameDir, int shadersClass,
         HashSet<long> visited, List<InstalledContent> installed, List<BlockedFile> blocked, CancellationToken ct)
     {
-        if (!visited.Add(mod.Id) || visited.Count > 64) return;
+        if (!visited.Add(mod.Id)) return;
+        if (visited.Count > 64) throw new InvalidOperationException($"'{mod.Name}' pulls in more than 64 required projects; install them individually.");
         var loader = kind == ProjectKind.Mod ? instance.Loader : ModLoaderKind.None;
         var files = (await GetFilesAsync(mod.Id, instance.MinecraftVersion, loader, ct)).Where(f => f.IsAvailable).OrderByDescending(f => f.FileDate).ToList();
         var file = files.FirstOrDefault(f => f.ReleaseType == 1) ?? files.FirstOrDefault()
@@ -140,8 +145,12 @@ public sealed class CurseForgeClient(HttpClient http, Func<CancellationToken, Ta
         if (block is not null) blocked.Add(block);
         else installed.Add(new InstalledContent(Path.GetFileName(path!), mod.Name, file.DisplayName));
 
-        var required = file.Dependencies.Where(d => d.RelationType == 3).Select(d => d.ModId).Where(id => !visited.Contains(id)).ToList();
-        foreach (var dep in await GetModsAsync(required, ct))
+        var required = file.Dependencies.Where(d => d.RelationType == 3).Select(d => d.ModId).Where(id => !visited.Contains(id)).Distinct().ToList();
+        var found = await GetModsAsync(required, ct);
+        var missing = required.Except(found.Select(m => m.Id)).ToList();
+        if (missing.Count > 0)
+            throw new InvalidOperationException($"'{mod.Name}' requires CurseForge project(s) {string.Join(", ", missing)}, which are no longer available. Nothing further was installed.");
+        foreach (var dep in found)
             await InstallRecursiveAsync(dep, ProjectKind.Mod, instance, gameDir, shadersClass, visited, installed, blocked, ct);
     }
 
@@ -154,11 +163,12 @@ public sealed class CurseForgeClient(HttpClient http, Func<CancellationToken, Ta
         var url = new Uri(file.DownloadUrl);
         if (url.Scheme != Uri.UriSchemeHttps || !IsCurseForgeCdn(url.Host))
             throw new InvalidOperationException($"Refusing CurseForge download from unexpected host {url.Host}.");
-        await downloads.DownloadAsync([new DownloadItem(url, target, file.Sha1, file.FileLength)], null, ct);
+        var sha1 = file.Sha1 ?? throw new InvalidOperationException($"CurseForge published no SHA-1 for {file.FileName}; refusing to install an unverifiable file.");
+        await downloads.DownloadAsync([new DownloadItem(url, target, sha1, file.FileLength, VerifyExisting: true)], null, ct);
         return (target, null);
     }
 
-    internal static bool IsCurseForgeCdn(string host) => host == "forgecdn.net" || host.EndsWith(".forgecdn.net", StringComparison.OrdinalIgnoreCase);
+    public static bool IsCurseForgeCdn(string host) => host == "forgecdn.net" || host.EndsWith(".forgecdn.net", StringComparison.OrdinalIgnoreCase);
 
     // Per the API terms nothing here is cached: every call goes to the API.
     private async Task<JsonDocument> GetAsync(string url, CancellationToken ct)

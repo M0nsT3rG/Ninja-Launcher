@@ -60,9 +60,12 @@ public static class AppServices
         s.AddSingleton<MrpackImporter>();
         s.AddSingleton<ModpackInstaller>();
         s.AddSingleton<ModCompatibilityChecker>();
-        s.AddSingleton(sp => new NinjaLauncher.Mods.CurseForge.CurseForgeClient(sp.GetRequiredService<HttpClient>(),
+        // Separate clients so the API key can never follow a redirect off api.curseforge.com, and CDN redirects stay on *.forgecdn.net.
+        s.AddSingleton(sp => new NinjaLauncher.Mods.CurseForge.CurseForgeClient(
+            RedirectGuardHandler.CreateClient(u => u.Host == "api.curseforge.com"),
             ct => sp.GetRequiredService<ISecretStore>().GetAsync(NinjaLauncher.Desktop.ViewModels.SettingsViewModel.CurseForgeSecretKey, ct),
-            sp.GetRequiredService<IDownloadService>()));
+            new HttpDownloadService(RedirectGuardHandler.CreateClient(u => NinjaLauncher.Mods.CurseForge.CurseForgeClient.IsCurseForgeCdn(u.Host)),
+                () => settingsHolder.Current.DownloadConcurrency, sp.GetRequiredService<ILogger<HttpDownloadService>>())));
         s.AddSingleton<NinjaLauncher.Mods.CurseForge.CurseForgeModpackInstaller>();
         s.AddSingleton<ILoaderProvider>(sp => MetaProfileLoaderProvider.Fabric(sp.GetRequiredService<IDownloadService>(), sp.GetRequiredService<VersionCatalog>()));
         s.AddSingleton<ILoaderProvider>(sp => MetaProfileLoaderProvider.Quilt(sp.GetRequiredService<IDownloadService>(), sp.GetRequiredService<VersionCatalog>()));

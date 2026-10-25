@@ -38,7 +38,17 @@ public sealed class CurseForgeTests
     {
         var deps = string.Join(",", requiredDeps.Select(d => "{\"modId\":" + d + ",\"relationType\":3}"));
         var download = url is null ? "null" : "\"" + url + "\"";
-        return $$$"""{"id":{{{id}}},"modId":{{{modId}}},"displayName":"f{{{id}}}","fileName":"mod-{{{id}}}.jar","releaseType":1,"fileDate":"2026-01-0{{{id % 9 + 1}}}T00:00:00Z","fileLength":10,"downloadUrl":{{{download}}},"isAvailable":true,"hashes":[{"value":"abc{{{id}}}","algo":1}],"gameVersions":["1.21.1"],"dependencies":[{{{deps}}}]}""";
+        return $$$"""{"id":{{{id}}},"modId":{{{modId}}},"displayName":"f{{{id}}}","fileName":"mod-{{{id}}}.jar","releaseType":1,"fileDate":"2026-01-0{{{id % 9 + 1}}}T00:00:00Z","fileLength":10,"downloadUrl":{{{download}}},"isAvailable":true,"hashes":[{"value":"{{{Sha(id)}}}","algo":1}],"gameVersions":["1.21.1"],"dependencies":[{{{deps}}}]}""";
+    }
+
+    private static string Sha(long id) => id.ToString("D40");
+
+    /// <summary>POST /v1/mods answers with the requested ids from this catalogue.</summary>
+    private static string? Mods(HttpRequestMessage r, params (long Id, string Json)[] catalogue)
+    {
+        var body = r.Content!.ReadAsStringAsync().Result;
+        var ids = System.Text.Json.JsonDocument.Parse(body).RootElement.GetProperty("modIds").EnumerateArray().Select(e => e.GetInt64()).ToHashSet();
+        return "{\"data\":[" + string.Join(",", catalogue.Where(c => ids.Contains(c.Id)).Select(c => c.Json)) + "]}";
     }
 
     private static (CurseForgeClient Client, FakeApi Api, FakeDownloads Downloads) Create(Func<HttpRequestMessage, string?> respond, string? key = "test-key-000000000000")
@@ -80,14 +90,15 @@ public sealed class CurseForgeTests
         {
             "/v1/mods/1/files" => $$"""{"data":[{{File(10, 1, "https://edge.forgecdn.net/files/1/10/mod-10.jar", 2)}}]}""",
             "/v1/mods/2/files" => $$"""{"data":[{{File(20, 2, "https://mediafilez.forgecdn.net/files/2/20/mod-20.jar")}}]}""",
-            "/v1/mods" => $$"""{"data":[{{Mod(2, "Api")}}]}""",
+            "/v1/mods" => Mods(r, (1, Mod(1, "Main")), (2, Mod(2, "Api"))),
             _ => null,
         });
         var result = await client.InstallAsync(System.Text.Json.JsonSerializer.Deserialize<CurseForgeMod>(Mod(1, "Main"), new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web))!,
             ProjectKind.Mod, Fabric, Path.Combine(Path.GetTempPath(), "cf-game"), TestContext.Current.CancellationToken);
         Assert.Equal(["mod-10.jar", "mod-20.jar"], result.Installed.Select(i => i.FileName));
         Assert.Empty(result.Blocked);
-        Assert.Equal(["abc10", "abc20"], downloads.Items.Select(i => i.Sha1));
+        Assert.Equal([Sha(10), Sha(20)], downloads.Items.Select(i => i.Sha1));
+        Assert.All(downloads.Items, i => Assert.True(i.VerifyExisting)); // existing files are re-hashed, not trusted by size
         Assert.All(downloads.Items, i => Assert.Contains($"{Path.DirectorySeparatorChar}mods{Path.DirectorySeparatorChar}", i.DestinationPath));
     }
 
@@ -96,8 +107,14 @@ public sealed class CurseForgeTests
     [InlineData(true, null)]                                               // no download URL published
     public async Task Blocked_files_are_never_downloaded(bool allow, string? url)
     {
-        var (client, _, downloads) = Create(r => r.RequestUri!.AbsolutePath == "/v1/mods/1/files" ? $$"""{"data":[{{File(10, 1, url)}}]}""" : null);
-        var mod = System.Text.Json.JsonSerializer.Deserialize<CurseForgeMod>(Mod(1, "Main", allow), new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web))!;
+        var (client, _, downloads) = Create(r => r.RequestUri!.AbsolutePath switch
+        {
+            "/v1/mods/1/files" => $$"""{"data":[{{File(10, 1, url)}}]}""",
+            "/v1/mods" => Mods(r, (1, Mod(1, "Main", allow))),
+            _ => null,
+        });
+        // The search result claims distribution is allowed; the fresh lookup at install time decides.
+        var mod = System.Text.Json.JsonSerializer.Deserialize<CurseForgeMod>(Mod(1, "Main", true), new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web))!;
         var result = await client.InstallAsync(mod, ProjectKind.Mod, Fabric, Path.Combine(Path.GetTempPath(), "cf-game"), TestContext.Current.CancellationToken);
         var blocked = Assert.Single(result.Blocked);
         Assert.Equal("https://www.curseforge.com/minecraft/mc-mods/main/files/10", blocked.PageUrl);
@@ -110,7 +127,41 @@ public sealed class CurseForgeTests
     [InlineData("https://forgecdn.net.evil.example/mod.jar")]
     public async Task Downloads_outside_the_curseforge_cdn_are_refused(string url)
     {
-        var (client, _, downloads) = Create(r => r.RequestUri!.AbsolutePath == "/v1/mods/1/files" ? $$"""{"data":[{{File(10, 1, url)}}]}""" : null);
+        var (client, _, downloads) = Create(r => r.RequestUri!.AbsolutePath switch
+        {
+            "/v1/mods/1/files" => $$"""{"data":[{{File(10, 1, url)}}]}""",
+            "/v1/mods" => Mods(r, (1, Mod(1, "Main"))),
+            _ => null,
+        });
+        var mod = System.Text.Json.JsonSerializer.Deserialize<CurseForgeMod>(Mod(1, "Main"), new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web))!;
+        await Assert.ThrowsAsync<InvalidOperationException>(() => client.InstallAsync(mod, ProjectKind.Mod, Fabric, Path.GetTempPath(), TestContext.Current.CancellationToken));
+        Assert.Empty(downloads.Items);
+    }
+
+    [Fact]
+    public async Task Missing_required_dependency_fails_loudly()
+    {
+        var (client, _, _) = Create(r => r.RequestUri!.AbsolutePath switch
+        {
+            "/v1/mods/1/files" => $$"""{"data":[{{File(10, 1, "https://edge.forgecdn.net/files/1/10/mod-10.jar", 2, 3)}}]}""",
+            "/v1/mods" => Mods(r, (1, Mod(1, "Main")), (2, Mod(2, "Api"))), // project 3 no longer exists
+            _ => null,
+        });
+        var mod = System.Text.Json.JsonSerializer.Deserialize<CurseForgeMod>(Mod(1, "Main"), new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web))!;
+        var e = await Assert.ThrowsAsync<InvalidOperationException>(() => client.InstallAsync(mod, ProjectKind.Mod, Fabric, Path.GetTempPath(), TestContext.Current.CancellationToken));
+        Assert.Contains("3", e.Message);
+    }
+
+    [Fact]
+    public async Task File_without_sha1_is_refused()
+    {
+        var json = File(10, 1, "https://edge.forgecdn.net/files/1/10/mod-10.jar").Replace(Sha(10), "md5only");
+        var (client, _, downloads) = Create(r => r.RequestUri!.AbsolutePath switch
+        {
+            "/v1/mods/1/files" => "{\"data\":[" + json + "]}",
+            "/v1/mods" => Mods(r, (1, Mod(1, "Main"))),
+            _ => null,
+        });
         var mod = System.Text.Json.JsonSerializer.Deserialize<CurseForgeMod>(Mod(1, "Main"), new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web))!;
         await Assert.ThrowsAsync<InvalidOperationException>(() => client.InstallAsync(mod, ProjectKind.Mod, Fabric, Path.GetTempPath(), TestContext.Current.CancellationToken));
         Assert.Empty(downloads.Items);

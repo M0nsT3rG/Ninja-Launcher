@@ -98,7 +98,7 @@ public sealed class HttpDownloadService(HttpClient http, Func<int> concurrency, 
         if (!file.Exists) return false;
         if (item.Size is { } size && file.Length != size) return false;
         if (item.Sha1 is null) return item.Size is not null || file.Length > 0;
-        return !fullVerification && item.Size is not null || HashMatches(file.FullName, item.Sha1);
+        return !fullVerification && !item.VerifyExisting && item.Size is not null || HashMatches(file.FullName, item.Sha1);
     }
 
     internal static bool HashMatches(string path, string sha1)

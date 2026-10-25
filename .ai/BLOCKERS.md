@@ -20,5 +20,11 @@ Apple Developer ID costs US$99 a year. Windows Authenticode certificates also co
 ## B-05: Update signing key (owner action)
 Self-update stays disabled until the owner does three things (see docs/releases/RELEASING.md): generate the key with `tools/NinjaLauncher.FeedSigner keygen`, create the protected `release` environment (owner as required reviewer, `v*` tags only), add the private key there as `NINJA_FEED_SIGNING_KEY`, add a `v*` tag ruleset, and commit `branding/update-signing-key.pub.pem`. The repository is public, so GitHub Releases downloads work without authentication.
 
+## B-06: CurseForge API key (owner action)
+- **What's blocked:** CurseForge search, installs and modpacks only work with a personal API key. The CurseForge 3rd Party API Terms §2.2 make keys "non-transferable and may not be shared with any third party", so Ninja Launcher can't bundle one for everyone.
+- **Owner action:** apply at https://console.curseforge.com (third-party application form). Overwolf reviews applications by hand. Once you have a key, paste it into Settings → CurseForge; it is stored in the OS secret store. Don't use the API through a VPN (§3.1).
+- **To offer CurseForge to every user:** ask Overwolf in writing whether a key may be distributed inside this open-source build, as Prism Launcher has arranged. Until then the feature is bring-your-own-key only.
+- **Still possible meanwhile:** everything is implemented and unit-tested. The live test runs with `NINJA_CURSEFORGE_API_KEY`.
+
 ## B-04: Repository visibility (RESOLVED 2026-10-25)
 https://github.com/M0nsT3rG/Ninja-Launcher was made public on 2026-10-25 at the owner's request. The pre-publication audit found no secrets in the tree or history, no game files, a GPL-3.0 licence and the Mojang disclaimer. The owner chose to keep their Gmail address as the commit author. Publishing a release is still the owner's decision.
