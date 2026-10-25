@@ -275,19 +275,34 @@ public sealed class ModrinthClient(IDownloadService downloads)
         return doc.RootElement.EnumerateArray().ToDictionary(p => p.GetProperty("id").GetString()!, p => p.GetProperty("title").GetString()!);
     }
 
-    /// <summary>Installs projects (e.g. missing dependencies) into the instance, skipping ones already installed.</summary>
-    public async Task<IReadOnlyList<InstalledContent>> InstallProjectsAsync(IEnumerable<string> projectIds, GameInstance instance, string gameDirectory, CancellationToken ct)
+    /// <summary>Version id → version (one batched request); unknown ids are absent.</summary>
+    public async Task<Dictionary<string, ModrinthVersion>> GetVersionsByIdsAsync(IReadOnlyCollection<string> versionIds, CancellationToken ct)
+    {
+        if (versionIds.Count == 0) return new();
+        var url = $"{ApiBase}/versions?ids={Uri.EscapeDataString(JsonSerializer.Serialize(versionIds))}";
+        return JsonSerializer.Deserialize<List<ModrinthVersion>>(await GetCachedAsync(url, ct), Json)!.ToDictionary(v => v.Id);
+    }
+
+    /// <summary>Installs projects (e.g. missing dependencies), using the pinned version when one is given; already installed ones are skipped.</summary>
+    public async Task<IReadOnlyList<InstalledContent>> InstallProjectsAsync(IEnumerable<(string ProjectId, string? VersionId)> projects, GameInstance instance,
+        string gameDirectory, CancellationToken ct)
     {
         var ledger = await LoadLedgerAsync(gameDirectory, ct);
         var visited = new HashSet<string>();
         var installed = new List<InstalledContent>();
         try
         {
-            foreach (var id in projectIds.Distinct())
-                await InstallRecursiveAsync(id, id, null, isRoot: false, ProjectKind.Mod, instance.Loader, instance.MinecraftVersion, gameDirectory, ledger, visited, installed, ct);
+            foreach (var (id, version) in projects.DistinctBy(p => p.ProjectId))
+                await InstallRecursiveAsync(id, id, version, isRoot: false, ProjectKind.Mod, instance.Loader, instance.MinecraftVersion, gameDirectory, ledger, visited, installed, ct);
         }
         finally { await SaveLedgerAsync(gameDirectory, ledger, CancellationToken.None); }
         return installed;
+    }
+
+    internal static async Task<string> Sha1OfAsync(string path, CancellationToken ct)
+    {
+        await using var s = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, 81920, useAsync: true);
+        return Convert.ToHexString(await System.Security.Cryptography.SHA1.HashDataAsync(s, ct)).ToLowerInvariant();
     }
 
     internal static string Sha1Of(string path)

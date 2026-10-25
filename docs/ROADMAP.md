@@ -33,14 +33,16 @@ All seven research documents are written in `docs/research/`, each with sources,
 - Modrinth search (mods, shaders, resource packs), compatibility filters, install with required dependencies, enable and disable: COMPLETE (verified live)
 - Modpacks: browse on Discover, install from Modrinth, import a local .mrpack (host allow-list, sha1 + sha512, path containment, overrides): COMPLETE
 - Mod updates (hash lookup via `/version_files/update`, works for hand-added jars, keeps the disabled state, release-only unless already on a pre-release): COMPLETE (verified live)
-- Dependency and compatibility warnings UI, .mrpack export: NOT STARTED
+- Compatibility checks (Library + before Play: missing/disabled dependencies, incompatibilities, duplicates, wrong loader/version; one-click install of missing dependencies): COMPLETE (verified live and in the UI)
+- .mrpack export: NOT STARTED
 
 ## Phase 6: Bedrock (v0.7.0). PARTIALLY COMPLETE
 - Windows detection and launch, data folder: implemented. **Not verified on a machine with Bedrock installed**
 - Linux and macOS: detect an existing mcpelauncher only (unofficial, never bundled)
 
-## Phase 7: Advanced (v0.8.0). NOT STARTED
-Crash-report viewer, performance benchmarks, localisation, notifications.
+## Phase 7: Advanced (v0.8.0). PARTIALLY COMPLETE
+- Crash-report viewer (crash-reports and JVM hs_err logs, summary with suspected mods and hints; failed exits report the reason): COMPLETE (unit-tested with sample reports, checked in the UI)
+- Performance benchmarks, localisation, notifications: NOT STARTED
 
 ## Phase 8: Distribution (v0.9.0 → v1.0.0). PARTIALLY COMPLETE
 - Velopack packaging (Windows Setup + portable zip, Linux AppImage, macOS .app/.pkg) and a draft-release workflow with SHA256SUMS: COMPLETE (Windows packaging verified locally; other platforms run only in the release workflow, **not yet run**)

@@ -111,6 +111,22 @@ public sealed class CrashReportTests
     }
 
     [Fact]
+    public void Exception_without_message_is_still_found()
+    {
+        var s = CrashReports.Summarize("""
+            ---- Minecraft Crash Report ----
+            Description: Unexpected error
+
+            java.lang.NullPointerException
+            	at a.b(c.java:1)
+
+            -- Head --
+            Thread: Render thread
+            """, false);
+        Assert.Equal("java.lang.NullPointerException", s.Exception);
+    }
+
+    [Fact]
     public void Missing_description_still_gives_a_title() =>
         Assert.Equal("Minecraft crashed", CrashReports.Summarize("garbage", false).Title);
 }

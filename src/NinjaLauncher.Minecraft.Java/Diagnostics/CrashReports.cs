@@ -44,7 +44,10 @@ public static partial class CrashReports
         var lines = text.Split('\n').Select(l => l.TrimEnd('\r')).ToList();
         var description = lines.Select(l => DescriptionLine().Match(l)).FirstOrDefault(m => m.Success)?.Groups[1].Value.Trim();
         var descIndex = lines.FindIndex(l => l.StartsWith("Description:", StringComparison.Ordinal));
-        var exception = lines.Skip(descIndex + 1).FirstOrDefault(l => l.Length > 0 && !char.IsWhiteSpace(l[0]) && l.Contains(':'))?.Trim();
+        // The exception is the first non-blank line after "Description:" (a message after ':' is optional).
+        var exception = descIndex < 0 ? null : lines.Skip(descIndex + 1).Where(l => l.Trim().Length > 0).Select(l => l.Trim()).FirstOrDefault();
+        if (exception is not null && (exception.StartsWith("A detailed walkthrough", StringComparison.Ordinal) || exception.StartsWith("--", StringComparison.Ordinal)))
+            exception = null;
         var rootCause = lines.LastOrDefault(l => l.StartsWith("Caused by: ", StringComparison.Ordinal))?["Caused by: ".Length..].Trim();
 
         var suspects = new List<string>();

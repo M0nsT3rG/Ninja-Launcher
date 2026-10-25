@@ -73,6 +73,42 @@ public sealed class CompatibilityTests
         Assert.Equal(IssueSeverity.Warning, Assert.Single(neo).Severity);
     }
 
+    private static ModrinthVersion Pinned(string project, string versionId, string number) => V(project) with { Id = versionId, VersionNumber = number };
+
+    [Fact]
+    public void Version_only_dependency_is_resolved_and_pinned_install_is_offered()
+    {
+        var pins = new Dictionary<string, ModrinthVersion> { ["v-sod-05"] = Pinned("sodium", "v-sod-05", "0.5.0") };
+        var issue = Assert.Single(ModCompatibilityChecker.Analyze(Fabric121,
+            [new LocalMod("iris.jar", true, V("iris", deps: new ModrinthDependency("v-sod-05", null, "required")))], Titles, pins));
+        Assert.Equal(("sodium", "v-sod-05"), (issue.MissingProjectId, issue.MissingVersionId));
+        Assert.Contains("Sodium 0.5.0", issue.Message);
+    }
+
+    [Fact]
+    public void Different_version_of_a_pinned_dependency_only_warns()
+    {
+        var pins = new Dictionary<string, ModrinthVersion> { ["v-sod-05"] = Pinned("sodium", "v-sod-05", "0.5.0") };
+        var issue = Assert.Single(ModCompatibilityChecker.Analyze(Fabric121,
+        [
+            new LocalMod("iris.jar", true, V("iris", deps: new ModrinthDependency("v-sod-05", "sodium", "required"))),
+            new LocalMod("sodium.jar", true, Pinned("sodium", "v-sod-06", "0.6.0")),
+        ], Titles, pins));
+        Assert.Equal(IssueSeverity.Warning, issue.Severity);
+        Assert.Contains("0.6.0 is installed", issue.Message);
+    }
+
+    [Fact]
+    public void Incompatibility_with_a_specific_version_ignores_other_versions()
+    {
+        var pins = new Dictionary<string, ModrinthVersion> { ["v-of-1"] = Pinned("of", "v-of-1", "1.0") };
+        var dep = new ModrinthDependency("v-of-1", "of", "incompatible");
+        Assert.Empty(ModCompatibilityChecker.Analyze(Fabric121,
+            [new LocalMod("sodium.jar", true, V("sodium", deps: dep)), new LocalMod("of.jar", true, Pinned("of", "v-of-2", "2.0"))], Titles, pins));
+        Assert.Single(ModCompatibilityChecker.Analyze(Fabric121,
+            [new LocalMod("sodium.jar", true, V("sodium", deps: dep)), new LocalMod("of.jar", true, Pinned("of", "v-of-1", "1.0"))], Titles, pins));
+    }
+
     [Fact]
     public void Same_missing_dependency_is_suggested_once_and_unknown_mods_are_summarised()
     {

@@ -81,11 +81,19 @@ public sealed class GameSessionService(
     /// <summary>Turns a failed exit into a readable reason using the crash report the game just wrote, if any.</summary>
     private static string DescribeCrash(string gameDirectory, DateTime startedUtc, int exit)
     {
-        var crash = CrashReports.List(gameDirectory).FirstOrDefault(f => f.WrittenUtc >= startedUtc);
-        if (crash is null) return $"Minecraft exited with status {exit}. Check the game output on Home for the reason.";
-        var summary = CrashReports.Summarize(CrashReports.ReadText(crash), crash.IsJvmCrash);
-        var cause = summary.RootCause ?? summary.Exception;
-        return $"{summary.Title}{(cause is null ? "" : $" ({cause})")}. {summary.Hint ?? "See Library → Crash reports for details."}";
+        var fallback = $"Minecraft exited with status {exit}. Check the game output on Home for the reason.";
+        try
+        {
+            var crash = CrashReports.List(gameDirectory).FirstOrDefault(f => f.WrittenUtc >= startedUtc);
+            if (crash is null) return fallback;
+            var summary = CrashReports.Summarize(CrashReports.ReadText(crash), crash.IsJvmCrash);
+            var cause = summary.RootCause ?? summary.Exception;
+            return $"{summary.Title}{(cause is null ? "" : $" ({cause})")}. {summary.Hint ?? "See Library → Crash reports for details."}";
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            return fallback; // reading the report is best effort; never hide the real failure
+        }
     }
 
     /// <summary>Throws when an action would touch files a running game holds open.</summary>

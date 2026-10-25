@@ -99,9 +99,10 @@ public sealed partial class HomeViewModel : ViewModelBase
             await _activity.AddAsync("Launched Minecraft Bedrock Edition");
             return;
         }
-        if (!await ConfirmModIssuesAsync(_ui, _game, SelectedInstance!)) return;
-        _ui.Info($"Preparing {SelectedInstance!.Name}… progress is on the Downloads page.");
-        await _game.PlayAsync(SelectedInstance);
+        if (SelectedInstance is not { } instance) return; // captured: the selection may change while checking
+        if (!await ConfirmModIssuesAsync(_ui, _game, instance)) return;
+        _ui.Info($"Preparing {instance.Name}… progress is on the Downloads page.");
+        await _game.PlayAsync(instance);
         await OnShownAsync();
     });
 

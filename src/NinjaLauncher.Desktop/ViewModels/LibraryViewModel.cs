@@ -285,12 +285,12 @@ public sealed partial class LibraryViewModel : ViewModelBase
     [RelayCommand]
     private Task Launch() => _ui.RunAsync(async () =>
     {
-        if (Selected is null) return;
-        if (Selected.Loader != ModLoaderKind.None && Selected.LaunchVersionId is null)
-            throw new InvalidOperationException($"{Selected.Loader} is not installed for this instance yet. Use Repair to install it.");
-        if (!await HomeViewModel.ConfirmModIssuesAsync(_ui, _game, Selected)) return;
-        _ui.Info($"Preparing {Selected.Name}… progress is on the Downloads page.");
-        await _game.PlayAsync(Selected);
+        if (Selected is not { } instance) return; // captured: the selection may change while checking
+        if (instance.Loader != ModLoaderKind.None && instance.LaunchVersionId is null)
+            throw new InvalidOperationException($"{instance.Loader} is not installed for this instance yet. Use Repair to install it.");
+        if (!await HomeViewModel.ConfirmModIssuesAsync(_ui, _game, instance)) return;
+        _ui.Info($"Preparing {instance.Name}… progress is on the Downloads page.");
+        await _game.PlayAsync(instance);
     });
 
     [RelayCommand]
@@ -349,6 +349,7 @@ public sealed partial class LibraryViewModel : ViewModelBase
         {
             ModrinthClient.SetModEnabled(_instances.GetGameDirectory(Selected), mod.FileName, !mod.Enabled);
             _updates = []; // file names changed; re-check before updating
+            ClearIssues();
             RefreshContent(Selected);
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException) { _ui.Error(e.Message); }
@@ -386,7 +387,7 @@ public sealed partial class LibraryViewModel : ViewModelBase
             }
         });
         _updates = [];
-        if (Selected?.Id == instance.Id) RefreshContent(instance);
+        if (Selected?.Id == instance.Id) { RefreshContent(instance); ClearIssues(); }
         _ui.Info(skipped == 0 ? "Mods updated." : $"Mods updated; {skipped} skipped because they changed since the check.");
     });
 
@@ -412,15 +413,26 @@ public sealed partial class LibraryViewModel : ViewModelBase
         _shell.OpenDirectory(Directory.Exists(dir) ? dir : _instances.GetGameDirectory(Selected));
     }
 
+    private int _contentRevision; // bumped on every mod change so in-flight results for older content are dropped
+
+    private void ClearIssues()
+    {
+        _contentRevision++;
+        Issues.Clear();
+        CompatibilityStatus = "";
+        OnPropertyChanged(nameof(HasMissingDependencies));
+    }
+
     [RelayCommand]
     private Task CheckCompatibility() => _ui.RunAsync(async () =>
     {
         if (Selected is not { } instance) return;
+        var revision = _contentRevision;
         CheckingCompatibility = true;
         try
         {
             var issues = await _checker.AnalyzeAsync(instance, _instances.GetGameDirectory(instance), CancellationToken.None);
-            if (Selected?.Id != instance.Id) return;
+            if (Selected?.Id != instance.Id || revision != _contentRevision) return;
             Issues.Clear();
             foreach (var i in issues) Issues.Add(i);
             var errors = issues.Count(i => i.Severity == IssueSeverity.Error);
@@ -435,17 +447,22 @@ public sealed partial class LibraryViewModel : ViewModelBase
     {
         if (Selected is not { } instance) return;
         _game.EnsureNotRunning(instance, "install mods");
-        var missing = Issues.Where(i => i.MissingProjectId is not null).Select(i => i.MissingProjectId!).ToList();
-        if (missing.Count == 0) return;
+        var gameDir = _instances.GetGameDirectory(instance);
         IReadOnlyList<InstalledContent> added = [];
-        await _jobs.Run($"Install {missing.Count} missing dependenc{(missing.Count == 1 ? "y" : "ies")} for {instance.Name}", async (progress, ct) =>
+        await _jobs.Run($"Install missing dependencies for {instance.Name}", async (progress, ct) =>
         {
-            progress.Report(new("Resolving dependencies", 10, 0));
-            added = await _modrinth.InstallProjectsAsync(missing, instance, _instances.GetGameDirectory(instance), ct);
+            // Re-check first: the mods may have changed since the list on screen was produced.
+            progress.Report(new("Checking dependencies", 5, 0));
+            var missing = (await _checker.AnalyzeAsync(instance, gameDir, ct))
+                .Where(i => i.MissingProjectId is not null).Select(i => (i.MissingProjectId!, i.MissingVersionId)).ToList();
+            progress.Report(new($"Installing {missing.Count} dependenc{(missing.Count == 1 ? "y" : "ies")}", 20, 0));
+            if (missing.Count > 0) added = await _modrinth.InstallProjectsAsync(missing, instance, gameDir, ct);
         });
         _updates = [];
-        RefreshContent(instance);
         _ui.Info(added.Count == 0 ? "Nothing to install." : $"Installed {string.Join(", ", added.Select(a => a.FileName))}.");
+        if (Selected?.Id != instance.Id) return; // the user moved on; don't repaint another instance
+        RefreshContent(instance);
+        ClearIssues();
         await CheckCompatibility();
     });
 

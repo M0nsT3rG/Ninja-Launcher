@@ -139,7 +139,7 @@ public sealed class NetworkTests : IDisposable
         var missing = (await checker.AnalyzeAsync(instance, game, ct)).Where(i => i.MissingProjectId is not null).ToList();
         Assert.Contains(missing, i => i.MissingProjectId == "AANobbMI" && i.Message.Contains("Sodium"));
 
-        await client.InstallProjectsAsync(missing.Select(i => i.MissingProjectId!), instance, game, ct);
+        await client.InstallProjectsAsync(missing.Select(i => (i.MissingProjectId!, i.MissingVersionId)), instance, game, ct);
         Assert.DoesNotContain(await checker.AnalyzeAsync(instance, game, ct), i => i.Severity == IssueSeverity.Error);
     }
 
