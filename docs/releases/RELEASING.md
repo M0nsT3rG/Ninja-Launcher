@@ -35,7 +35,7 @@ dotnet run --project tools/NinjaLauncher.FeedSigner -- keygen ninja-feed.key.pem
 4. Commit `branding/update-signing-key.pub.pem`. From then on, every build embeds it.
 
 Why steps 2 and 3 matter: without them, anyone with write access to the repository (or a stolen token) could get a malicious build signed. With them, the private key is only exposed to the small `sign` job, and only after you approve that specific tagged run. The signer is compiled before the secret is set, and the release workflow can't be started by hand.
-4. Self-update downloads from `https://github.com/M0nsT3rG/Ninja-Launcher/releases/latest/download/`. A private repository needs authentication to download, so updates only work once the repository is public.
+4. Self-update downloads from `https://github.com/M0nsT3rG/Ninja-Launcher/releases/latest/download/`. The repository is public (since 2026-10-25), so these downloads need no authentication.
 
 If you lose the private key, users can't receive updates until they reinstall a build that has the new public key. Keep a backup.
 

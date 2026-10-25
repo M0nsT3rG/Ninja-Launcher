@@ -44,5 +44,5 @@ Crash-report viewer, performance benchmarks, localisation, notifications.
 
 ## Phase 8: Distribution (v0.9.0 → v1.0.0). PARTIALLY COMPLETE
 - Velopack packaging (Windows Setup + portable zip, Linux AppImage, macOS .app/.pkg) and a draft-release workflow with SHA256SUMS: COMPLETE (Windows packaging verified locally; other platforms run only in the release workflow, **not yet run**)
-- Signed update feed + in-app updater (opt-in install, startup check toggle): COMPLETE (unit-tested). BLOCKED for real use by B-05 (owner key) and the private repository
+- Signed update feed + in-app updater (opt-in install, startup check toggle): COMPLETE (unit-tested). BLOCKED for real use by B-05 (owner key)
 - Linux .deb/Flatpak: NOT STARTED. Code signing and notarisation: optional, owner credentials (B-03)
