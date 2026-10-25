@@ -165,6 +165,36 @@ public sealed class InstanceServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task Instance_icons_are_validated_stored_and_cleared()
+    {
+        var a = await _service.CreateAsync("A", "1.21.1");
+        Assert.Null(_service.GetIconPath(a));
+        var png = Path.Combine(_home, "icon.png");
+        await File.WriteAllBytesAsync(png, [0x89, 0x50, 0x4E, 0x47]);
+        var withIcon = await _service.SetIconAsync(a.Id, png);
+        Assert.Equal("instance-icon.png", withIcon.IconKey);
+        Assert.True(File.Exists(_service.GetIconPath(withIcon)));
+
+        var big = Path.Combine(_home, "big.png");
+        await File.WriteAllBytesAsync(big, new byte[InstanceService.MaxIconBytes + 1]);
+        await Assert.ThrowsAsync<ArgumentException>(() => _service.SetIconAsync(a.Id, big));
+        await Assert.ThrowsAsync<ArgumentException>(() => _service.SetIconAsync(a.Id, Path.Combine(_home, "x.exe")));
+
+        var cleared = await _service.ClearIconAsync(a.Id);
+        Assert.Null(cleared.IconKey);
+        Assert.False(File.Exists(Path.Combine(_service.GetGameDirectory(a), "instance-icon.png")));
+    }
+
+    [Fact]
+    public async Task Tampered_icon_key_cannot_escape_the_instance()
+    {
+        var a = await _service.CreateAsync("A", "1.21.1");
+        await _repo.UpsertAsync(a with { IconKey = "../../secret.txt" });
+        var tampered = (await _repo.GetAsync(a.Id))!;
+        Assert.Throws<NinjaLauncher.Application.Security.UnsafePathException>(() => _service.GetIconPath(tampered));
+    }
+
+    [Fact]
     public async Task Restore_refuses_files_outside_backups_directory()
     {
         var a = await _service.CreateAsync("A", "1.21.1");

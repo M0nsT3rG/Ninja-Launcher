@@ -4,6 +4,7 @@
              xmlns:d="using:NinjaLauncher.Domain"
              xmlns:v="using:NinjaLauncher.Desktop.Views"
              xmlns:m="using:NinjaLauncher.Mods.Modrinth"
+             xmlns:c="using:NinjaLauncher.Desktop.Controls"
              xmlns:diag="using:NinjaLauncher.Minecraft.Java.Diagnostics"
              x:Class="NinjaLauncher.Desktop.Views.LibraryView"
              x:DataType="vm:LibraryViewModel" Classes="page">
@@ -27,7 +28,11 @@
         <ListBox ItemsSource="{Binding Instances}" SelectedItem="{Binding Selected}" Background="Transparent">
           <ListBox.ItemTemplate>
             <DataTemplate DataType="d:GameInstance">
-              <StackPanel Margin="2,4">
+              <DockPanel Margin="2,4">
+                <Border DockPanel.Dock="Left" Width="38" Height="38" CornerRadius="8" ClipToBounds="True" Margin="0,0,10,0" Background="{DynamicResource NinjaSurfaceRaised}">
+                  <Image c:RemoteImage.Url="{Binding Converter={x:Static v:Converters.InstanceIcon}}" Stretch="UniformToFill" />
+                </Border>
+              <StackPanel>
                 <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
                 <StackPanel Orientation="Horizontal" Spacing="6">
                   <TextBlock Classes="muted" FontSize="12" Text="{Binding MinecraftVersion}" />
@@ -35,6 +40,7 @@
                   <TextBlock Classes="muted" FontSize="12" Text="{Binding LoaderVersion}" />
                 </StackPanel>
               </StackPanel>
+              </DockPanel>
             </DataTemplate>
           </ListBox.ItemTemplate>
         </ListBox>
@@ -88,6 +94,8 @@
               <Button Content="Clone" Command="{Binding CloneCommand}" Margin="0,0,8,8" />
               <Button Content="Open folder" Command="{Binding OpenFolderCommand}" Margin="0,0,8,8" />
               <Button Content="Export config" Command="{Binding ExportConfigCommand}" Margin="0,0,8,8" />
+              <Button Content="Change icon" Command="{Binding ChangeIconCommand}" Margin="0,0,8,8" />
+              <Button Content="Reset icon" Command="{Binding ResetIconCommand}" Margin="0,0,8,8" IsVisible="{Binding Selected.IconKey, Converter={x:Static ObjectConverters.IsNotNull}, FallbackValue=False}" />
               <Button Classes="danger" Content="Delete" Command="{Binding DeleteCommand}" Margin="0,0,8,8" />
             </WrapPanel>
 
@@ -124,6 +132,9 @@
                                   Command="{Binding $parent[UserControl].((vm:LibraryViewModel)DataContext).ToggleModCommand}" CommandParameter="{Binding}" />
                     <TextBlock DockPanel.Dock="Right" Text="{Binding UpdateText}" IsVisible="{Binding HasUpdate}" Foreground="{DynamicResource NinjaAccentBrush}"
                                FontSize="12" VerticalAlignment="Center" Margin="0,0,12,0" />
+                    <Border DockPanel.Dock="Left" Width="28" Height="28" CornerRadius="6" ClipToBounds="True" Margin="0,0,10,0" Background="{DynamicResource NinjaSurfaceRaised}">
+                      <Image c:RemoteImage.Url="{Binding IconUrl}" Stretch="UniformToFill" />
+                    </Border>
                     <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
                   </DockPanel>
                 </DataTemplate>

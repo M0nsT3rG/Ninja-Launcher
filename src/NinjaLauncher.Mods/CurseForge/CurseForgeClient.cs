@@ -24,9 +24,11 @@ public sealed record CurseForgeFile(
     private static bool IsSha1(string? v) => v is { Length: 40 } && v.All(Uri.IsHexDigit);
 }
 
+public sealed record CurseForgeLogo(string? ThumbnailUrl, string? Url);
+
 public sealed record CurseForgeMod(
     long Id, string Name, string Slug, string Summary, long DownloadCount, int ClassId, bool? AllowModDistribution,
-    CurseForgeLinks? Links, IReadOnlyList<CurseForgeAuthor> Authors)
+    CurseForgeLinks? Links, IReadOnlyList<CurseForgeAuthor> Authors, CurseForgeLogo? Logo = null)
 {
     public string PageUrl => Links?.WebsiteUrl ?? $"https://www.curseforge.com/minecraft/mc-mods/{Slug}";
 }

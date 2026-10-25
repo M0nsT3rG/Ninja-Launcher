@@ -2,7 +2,8 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:NinjaLauncher.Desktop.ViewModels"
              xmlns:d="using:NinjaLauncher.Domain"
-                          x:Class="NinjaLauncher.Desktop.Views.DiscoverView"
+                          xmlns:c="using:NinjaLauncher.Desktop.Controls"
+             x:Class="NinjaLauncher.Desktop.Views.DiscoverView"
              x:DataType="vm:DiscoverViewModel" Classes="page">
   <DockPanel>
     <StackPanel DockPanel.Dock="Top" Margin="0,0,0,14">
@@ -57,6 +58,10 @@
                   <Button Content="Details" Command="{Binding $parent[UserControl].((vm:DiscoverViewModel)DataContext).OpenPageCommand}" CommandParameter="{Binding}" />
                   <Button Classes="accent" Content="Install" Command="{Binding $parent[UserControl].((vm:DiscoverViewModel)DataContext).InstallCommand}" CommandParameter="{Binding}" />
                 </StackPanel>
+                <Border DockPanel.Dock="Left" Width="56" Height="56" CornerRadius="10" ClipToBounds="True" Margin="0,0,14,0"
+                        Background="{DynamicResource NinjaSurfaceRaised}" VerticalAlignment="Top">
+                  <Image c:RemoteImage.Url="{Binding IconUrl}" Stretch="UniformToFill" RenderOptions.BitmapInterpolationMode="HighQuality" />
+                </Border>
                 <StackPanel Spacing="3" Margin="0,0,12,0">
                   <StackPanel Orientation="Horizontal" Spacing="8">
                     <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="15" />

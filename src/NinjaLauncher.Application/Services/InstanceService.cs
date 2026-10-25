@@ -125,6 +125,50 @@ public sealed class InstanceService(IInstanceRepository repository, IAppPaths pa
         }
     }
 
+    public const long MaxIconBytes = 2 * 1024 * 1024;
+    private static readonly string[] IconExtensions = [".png", ".jpg", ".jpeg", ".webp", ".gif"];
+
+    /// <summary>Full path of the instance's custom icon, or null when it uses the default.</summary>
+    public string? GetIconPath(GameInstance instance)
+    {
+        if (instance.IconKey is not { } key) return null;
+        var path = SafePath.Combine(GetGameDirectory(instance), key);
+        return File.Exists(path) ? path : null;
+    }
+
+    /// <summary>Copies an image (PNG/JPG/WebP/GIF, at most 2 MB) into the instance folder and uses it as the icon.</summary>
+    public async Task<GameInstance> SetIconAsync(Guid id, string imagePath, CancellationToken ct = default)
+    {
+        var ext = Path.GetExtension(imagePath).ToLowerInvariant();
+        if (!IconExtensions.Contains(ext)) throw new ArgumentException("Pick a PNG, JPG, WebP or GIF image.");
+        if (new FileInfo(imagePath).Length > MaxIconBytes) throw new ArgumentException("Icons must be 2 MB or smaller.");
+        return await SetIconBytesAsync(id, await File.ReadAllBytesAsync(imagePath, ct), ext, ct);
+    }
+
+    public async Task<GameInstance> SetIconBytesAsync(Guid id, byte[] image, string extension, CancellationToken ct = default)
+    {
+        if (image.Length > MaxIconBytes) throw new ArgumentException("Icons must be 2 MB or smaller.");
+        if (!IconExtensions.Contains(extension)) extension = ".png";
+        var current = await GetRequiredAsync(id, ct);
+        var dir = GetGameDirectory(current);
+        Directory.CreateDirectory(dir);
+        foreach (var old in IconExtensions) File.Delete(Path.Combine(dir, "instance-icon" + old));
+        var key = "instance-icon" + extension;
+        await File.WriteAllBytesAsync(Path.Combine(dir, key), image, ct);
+        var updated = current with { IconKey = key };
+        await repository.UpsertAsync(updated, ct);
+        return updated;
+    }
+
+    public async Task<GameInstance> ClearIconAsync(Guid id, CancellationToken ct = default)
+    {
+        var current = await GetRequiredAsync(id, ct);
+        if (GetIconPath(current) is { } path) File.Delete(path);
+        var updated = current with { IconKey = null };
+        await repository.UpsertAsync(updated, ct);
+        return updated;
+    }
+
     /// <summary>Records the installed loader profile without overwriting other fields edited meanwhile.</summary>
     public async Task<GameInstance> SetLaunchVersionAsync(Guid id, string launchVersionId, string? loaderVersion = null, CancellationToken ct = default)
     {

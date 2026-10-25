@@ -4,6 +4,7 @@
              xmlns:d="using:NinjaLauncher.Domain"
              xmlns:l="using:NinjaLauncher.Minecraft.Java.Launch"
              xmlns:v="using:NinjaLauncher.Desktop.Views"
+             xmlns:c="using:NinjaLauncher.Desktop.Controls"
              x:Class="NinjaLauncher.Desktop.Views.HomeView"
              x:DataType="vm:HomeViewModel" Classes="page">
   <Grid RowDefinitions="Auto,Auto,*" ColumnDefinitions="*,320">
@@ -40,7 +41,10 @@
             <ComboBox ItemsSource="{Binding Instances}" SelectedItem="{Binding SelectedInstance}" MinWidth="320" PlaceholderText="No instances yet">
               <ComboBox.ItemTemplate>
                 <DataTemplate DataType="d:GameInstance">
-                  <TextBlock Text="{Binding Name}" />
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <Image Width="20" Height="20" c:RemoteImage.Url="{Binding Converter={x:Static v:Converters.InstanceIcon}}" />
+                    <TextBlock Text="{Binding Name}" VerticalAlignment="Center" />
+                  </StackPanel>
                 </DataTemplate>
               </ComboBox.ItemTemplate>
             </ComboBox>
@@ -50,6 +54,9 @@
             <TextBlock Text="MINECRAFT BEDROCK" FontSize="11" FontWeight="Bold" LetterSpacing="2" Foreground="#E9D5FF" />
             <TextBlock Text="{Binding BedrockText}" Foreground="#F3E8FF" TextWrapping="Wrap" />
             <Button Content="Open Bedrock data folder" Command="{Binding OpenBedrockDataCommand}" IsVisible="{Binding HasBedrockData}" />
+            <Button Classes="accent" Content="Get Minecraft for Windows (Microsoft Store)" Command="{Binding GetBedrockCommand}" IsVisible="{Binding CanGetBedrock}" />
+            <TextBlock Foreground="#E9D5FF" FontSize="12" TextWrapping="Wrap" IsVisible="{Binding CanGetBedrock}"
+                       Text="Bedrock is sold and installed by Microsoft through the Store or the Xbox app; its files are protected, so launchers can't download it. After installing it there, come back and press Play." />
           </StackPanel>
         </StackPanel>
         <Button Grid.Column="1" Classes="play" Content="PLAY" Command="{Binding PlayCommand}" VerticalAlignment="Center" />

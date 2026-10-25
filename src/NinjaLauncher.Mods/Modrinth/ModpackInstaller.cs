@@ -39,6 +39,22 @@ public sealed class ModpackInstaller(InstanceService instances, IEnumerable<ILoa
         }
     }
 
+    /// <summary>Uses the pack's Modrinth icon for the new instance. Cosmetic: any failure keeps the default icon.</summary>
+    private async Task<GameInstance> TryAdoptIconAsync(GameInstance instance, string? iconUrl, CancellationToken ct)
+    {
+        if (!Uri.TryCreate(iconUrl, UriKind.Absolute, out var uri) || uri.Scheme != Uri.UriSchemeHttps || uri.Host != "cdn.modrinth.com") return instance;
+        try
+        {
+            var temp = Path.Combine(paths.CacheDirectory, "modpacks", $"icon-{instance.Id:N}");
+            await downloads.DownloadAsync([new DownloadItem(uri, temp, null, null)], null, ct);
+            if (new FileInfo(temp).Length > InstanceService.MaxIconBytes) return instance;
+            var bytes = await File.ReadAllBytesAsync(temp, ct);
+            File.Delete(temp);
+            return await instances.SetIconBytesAsync(instance.Id, bytes, Path.GetExtension(uri.AbsolutePath).ToLowerInvariant(), ct);
+        }
+        catch (Exception e) when (e is IOException or HttpRequestException or InvalidOperationException) { return instance; }
+    }
+
     public async Task<GameInstance> InstallFromModrinthAsync(ModrinthHit pack, IProgress<InstallProgress>? progress, CancellationToken ct)
     {
         progress?.Report(new InstallProgress($"Finding the latest {pack.Title} release", 0, 0));
@@ -51,6 +67,7 @@ public sealed class ModpackInstaller(InstanceService instances, IEnumerable<ILoa
         if (url.Host != "cdn.modrinth.com") throw new InvalidOperationException($"Refusing download from unexpected host {url.Host}.");
         var local = Path.Combine(paths.CacheDirectory, "modpacks", version.Id + ".mrpack");
         await downloads.DownloadAsync([new DownloadItem(url, local, file.Hashes.GetValueOrDefault("sha1"), file.Size)], null, ct);
-        return await InstallFromFileAsync(local, progress, ct);
+        var instance = await InstallFromFileAsync(local, progress, ct);
+        return await TryAdoptIconAsync(instance, pack.IconUrl, ct);
     }
 }

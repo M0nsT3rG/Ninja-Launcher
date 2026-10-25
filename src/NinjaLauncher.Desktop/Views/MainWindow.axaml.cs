@@ -46,6 +46,14 @@ public static class Converters
 
     public static readonly IValueConverter FileName = new FuncValueConverter<string, string?>(Path.GetFileName);
 
+    public const string DefaultInstanceIcon = "avares://NinjaLauncher/Assets/ninja-launcher.png";
+
+    /// <summary>Set at startup: instance → custom icon path (or null).</summary>
+    public static Func<NinjaLauncher.Domain.GameInstance, string?>? InstanceIconResolver { get; set; }
+
+    public static readonly IValueConverter InstanceIcon = new FuncValueConverter<NinjaLauncher.Domain.GameInstance?, string?>(i =>
+        i is null ? null : InstanceIconResolver?.Invoke(i) ?? DefaultInstanceIcon);
+
     public static readonly IValueConverter IsError = new FuncValueConverter<NinjaLauncher.Mods.Modrinth.IssueSeverity, bool>(s => s == NinjaLauncher.Mods.Modrinth.IssueSeverity.Error);
 
     public static readonly IValueConverter JoinLines = new FuncValueConverter<IReadOnlyList<string>, string>(l => l is null ? "" : string.Join(", ", l));

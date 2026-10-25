@@ -13,10 +13,13 @@ namespace NinjaLauncher.Desktop.ViewModels;
 public enum ContentSource { Modrinth, CurseForge }
 
 /// <summary>One search result from either catalogue.</summary>
-public sealed record ContentHit(string Title, string Description, string Author, long Downloads, string PageUrl, ModrinthHit? Modrinth, CurseForgeMod? CurseForge)
+public sealed record ContentHit(string Title, string Description, string Author, long Downloads, string PageUrl, string? IconUrl,
+    ModrinthHit? Modrinth, CurseForgeMod? CurseForge)
 {
-    public static ContentHit From(ModrinthHit h) => new(h.Title, h.Description, h.Author, h.Downloads, $"https://modrinth.com/{h.ProjectType}/{Uri.EscapeDataString(h.Slug)}", h, null);
-    public static ContentHit From(CurseForgeMod m) => new(m.Name, m.Summary, string.Join(", ", m.Authors.Select(a => a.Name)), m.DownloadCount, m.PageUrl, null, m);
+    public static ContentHit From(ModrinthHit h) =>
+        new(h.Title, h.Description, h.Author, h.Downloads, $"https://modrinth.com/{h.ProjectType}/{Uri.EscapeDataString(h.Slug)}", h.IconUrl, h, null);
+    public static ContentHit From(CurseForgeMod m) =>
+        new(m.Name, m.Summary, string.Join(", ", m.Authors.Select(a => a.Name)), m.DownloadCount, m.PageUrl, m.Logo?.ThumbnailUrl ?? m.Logo?.Url, null, m);
 }
 
 public sealed partial class DiscoverViewModel(UiContext ui, ModrinthClient modrinth, ModpackInstaller modpacks, CurseForgeClient curseForge,

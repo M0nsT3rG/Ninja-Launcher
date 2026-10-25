@@ -44,6 +44,10 @@ public sealed partial class HomeViewModel : ViewModelBase
     [ObservableProperty] public partial string AccountText { get; set; } = "Not signed in";
     [ObservableProperty] public partial string BedrockText { get; set; } = "";
     [ObservableProperty] public partial bool HasBedrockData { get; set; }
+    [ObservableProperty] public partial bool CanGetBedrock { get; set; }
+
+    /// <summary>Microsoft's official store page for Minecraft for Windows (product 9NBLGGH2JHXJ).</summary>
+    public const string BedrockStoreUrl = "https://www.xbox.com/games/store/minecraft-for-windows/9nblggh2jhxj";
 
     public string SelectedSummary => SelectedInstance is { } i
         ? $"Minecraft {i.MinecraftVersion}{(i.Loader == ModLoaderKind.None ? "" : $" · {i.Loader} {i.LoaderVersion}")} · {i.MaxMemoryMb} MB" +
@@ -83,6 +87,7 @@ public sealed partial class HomeViewModel : ViewModelBase
         _bedrockStatus = await _bedrock.DetectAsync();
         BedrockText = _bedrockStatus.Message + (_bedrockStatus.Version is { } v ? $" (version {v})" : "");
         HasBedrockData = _bedrockStatus.DataDirectory is not null;
+        CanGetBedrock = OperatingSystem.IsWindows() && _bedrockStatus.Support == BedrockSupport.NotInstalled;
         PlayCommand.NotifyCanExecuteChanged();
     }
 
@@ -114,6 +119,10 @@ public sealed partial class HomeViewModel : ViewModelBase
         var list = string.Join("\n", errors.Take(5).Select(e => "• " + e.Message)) + (errors.Count > 5 ? $"\n• …and {errors.Count - 5} more" : "");
         return await ui.ConfirmAsync($"'{instance.Name}' has mod problems that will probably stop it from starting:\n\n{list}\n\nYou can fix them in Library → Check compatibility. Launch anyway?");
     }
+
+    // Bedrock is licensed and installed by Microsoft (Store / Xbox app); we only send the user there.
+    [RelayCommand]
+    private void GetBedrock() => _shell.Open(new Uri(BedrockStoreUrl));
 
     [RelayCommand]
     private void OpenBedrockData() { if (_bedrockStatus?.DataDirectory is { } d) _shell.OpenDirectory(d); }

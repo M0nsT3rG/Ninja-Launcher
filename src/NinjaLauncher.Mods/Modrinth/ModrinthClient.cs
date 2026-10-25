@@ -267,12 +267,23 @@ public sealed class ModrinthClient(IDownloadService downloads)
             StringComparer.OrdinalIgnoreCase);
 
     /// <summary>Project id → display title (one batched request).</summary>
-    public async Task<Dictionary<string, string>> GetProjectTitlesAsync(IReadOnlyCollection<string> projectIds, CancellationToken ct)
+    public async Task<Dictionary<string, string>> GetProjectTitlesAsync(IReadOnlyCollection<string> projectIds, CancellationToken ct) =>
+        (await GetProjectInfoAsync(projectIds, ct)).ToDictionary(p => p.Key, p => p.Value.Title);
+
+    /// <summary>Project id → (title, icon URL) in one batched request.</summary>
+    public async Task<Dictionary<string, (string Title, string? IconUrl)>> GetProjectInfoAsync(IReadOnlyCollection<string> projectIds, CancellationToken ct)
     {
         if (projectIds.Count == 0) return new();
-        var url = $"{ApiBase}/projects?ids={Uri.EscapeDataString(JsonSerializer.Serialize(projectIds))}";
-        using var doc = JsonDocument.Parse(await GetCachedAsync(url, ct));
-        return doc.RootElement.EnumerateArray().ToDictionary(p => p.GetProperty("id").GetString()!, p => p.GetProperty("title").GetString()!);
+        var result = new Dictionary<string, (string, string?)>();
+        foreach (var chunk in projectIds.Chunk(100)) // keep URLs a sane length
+        {
+            var url = $"{ApiBase}/projects?ids={Uri.EscapeDataString(JsonSerializer.Serialize(chunk))}";
+            using var doc = JsonDocument.Parse(await GetCachedAsync(url, ct));
+            foreach (var p in doc.RootElement.EnumerateArray())
+                result[p.GetProperty("id").GetString()!] = (p.GetProperty("title").GetString()!,
+                    p.TryGetProperty("icon_url", out var icon) && icon.ValueKind == JsonValueKind.String ? icon.GetString() : null);
+        }
+        return result;
     }
 
     /// <summary>Version id → version (one batched request); unknown ids are absent.</summary>
@@ -299,7 +310,7 @@ public sealed class ModrinthClient(IDownloadService downloads)
         return installed;
     }
 
-    internal static async Task<string> Sha1OfAsync(string path, CancellationToken ct)
+    public static async Task<string> Sha1OfAsync(string path, CancellationToken ct)
     {
         await using var s = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, 81920, useAsync: true);
         return Convert.ToHexString(await System.Security.Cryptography.SHA1.HashDataAsync(s, ct)).ToLowerInvariant();

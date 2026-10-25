@@ -17,7 +17,9 @@ public sealed partial class ModEntry(string fileName, bool enabled, ModUpdate? u
 {
     public string FileName { get; } = fileName;
     [ObservableProperty] public partial bool Enabled { get; set; } = enabled;
-    public string DisplayName => FileName.Replace(".disabled", "");
+    [ObservableProperty] public partial string? IconUrl { get; set; }
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(DisplayName))] public partial string? ProjectTitle { get; set; }
+    public string DisplayName => ProjectTitle is null ? FileName.Replace(".disabled", "") : $"{ProjectTitle}  ·  {FileName.Replace(".disabled", "")}";
     public ModUpdate? Update { get; } = update;
     public bool HasUpdate => Update is not null;
     public string UpdateText => Update is null ? "" : $"Update: {Update.CurrentVersion ?? "?"} → {Update.Latest.VersionNumber}";
@@ -187,6 +189,7 @@ public sealed partial class LibraryViewModel : ViewModelBase
         Mods.Clear(); Worlds.Clear(); Backups.Clear();
         foreach (var (file, enabled) in ModrinthClient.ListMods(_instances.GetGameDirectory(instance)))
             Mods.Add(new ModEntry(file, enabled, _updates.FirstOrDefault(u => u.FileName == file)));
+        _ = LoadModIconsAsync(instance, Mods.ToList());
         OnPropertyChanged(nameof(UpdateCount));
         foreach (var w in _instances.ListWorlds(instance)) Worlds.Add(w);
         foreach (var b in _instances.ListBackups(instance)) Backups.Add(b);
@@ -205,6 +208,26 @@ public sealed partial class LibraryViewModel : ViewModelBase
 
     [RelayCommand]
     private void CancelCreate() => IsCreating = false;
+
+    [RelayCommand]
+    private Task ChangeIcon() => _ui.RunAsync(async () =>
+    {
+        if (Selected is not { } instance) return;
+        var file = await _ui.PickFileAsync("Instance icon", "*.png;*.jpg;*.jpeg;*.webp;*.gif");
+        if (file is null) return;
+        await _instances.SetIconAsync(instance.Id, file);
+        await OnShownAsync();
+        Selected = Instances.FirstOrDefault(i => i.Id == instance.Id);
+    });
+
+    [RelayCommand]
+    private Task ResetIcon() => _ui.RunAsync(async () =>
+    {
+        if (Selected is not { } instance) return;
+        await _instances.ClearIconAsync(instance.Id);
+        await OnShownAsync();
+        Selected = Instances.FirstOrDefault(i => i.Id == instance.Id);
+    });
 
     [RelayCommand]
     private Task ExportConfig() => _ui.RunAsync(async () =>
@@ -420,6 +443,29 @@ public sealed partial class LibraryViewModel : ViewModelBase
         if (Selected is null) return;
         var dir = Path.Combine(_instances.GetGameDirectory(Selected), "crash-reports");
         _shell.OpenDirectory(Directory.Exists(dir) ? dir : _instances.GetGameDirectory(Selected));
+    }
+
+    private CancellationTokenSource? _iconsCts;
+
+    /// <summary>Identifies installed mods on Modrinth (by hash) to show their logo and name. Cosmetic: failures are ignored.</summary>
+    private async Task LoadModIconsAsync(GameInstance instance, IReadOnlyList<ModEntry> entries)
+    {
+        _iconsCts?.Cancel();
+        if (entries.Count == 0) return;
+        var cts = _iconsCts = new CancellationTokenSource();
+        try
+        {
+            var dir = Path.Combine(_instances.GetGameDirectory(instance), "mods");
+            var hashes = new Dictionary<ModEntry, string>();
+            foreach (var e in entries) hashes[e] = await ModrinthClient.Sha1OfAsync(Path.Combine(dir, e.FileName), cts.Token);
+            var versions = await _modrinth.IdentifyFilesAsync(hashes.Values.Distinct().ToList(), cts.Token);
+            var info = await _modrinth.GetProjectInfoAsync(versions.Values.Select(v => v.ProjectId).Distinct().ToList(), cts.Token);
+            if (cts.IsCancellationRequested || Selected?.Id != instance.Id) return;
+            foreach (var (entry, hash) in hashes)
+                if (versions.TryGetValue(hash, out var v) && info.TryGetValue(v.ProjectId, out var p))
+                    (entry.ProjectTitle, entry.IconUrl) = (p.Title, p.IconUrl);
+        }
+        catch (Exception e) when (e is OperationCanceledException or HttpRequestException or IOException or System.Text.Json.JsonException or TimeoutException) { }
     }
 
     private int _contentRevision; // bumped on every mod change so in-flight results for older content are dropped
