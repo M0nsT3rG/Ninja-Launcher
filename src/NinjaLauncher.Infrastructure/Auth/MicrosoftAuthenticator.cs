@@ -8,6 +8,7 @@ using System.Text.Json.Nodes;
 using System.Web;
 using Microsoft.Extensions.Logging;
 using NinjaLauncher.Application.Abstractions;
+using NinjaLauncher.Application.Security;
 using NinjaLauncher.Application.Services;
 
 namespace NinjaLauncher.Infrastructure.Auth;
@@ -168,14 +169,19 @@ public sealed class MicrosoftAuthenticator(HttpClient http, IUrlLauncher browser
 
     private async Task<JsonNode> PostJsonAsync(string url, object payload, string? bearer, CancellationToken ct)
     {
-        using var request = new HttpRequestMessage(HttpMethod.Post, url) { Content = JsonContent.Create(payload) };
+        // Xbox endpoints require the exact PascalCase names (RelyingParty, Properties…); JsonContent's default is camelCase.
+        using var request = new HttpRequestMessage(HttpMethod.Post, url) { Content = JsonContent.Create(payload, options: ExactNames) };
         request.Headers.Accept.ParseAdd("application/json");
         if (bearer is not null) request.Headers.Authorization = new("Bearer", bearer);
         using var response = await http.SendAsync(request, ct);
         var text = await response.Content.ReadAsStringAsync(ct);
         if (response.IsSuccessStatusCode) return JsonNode.Parse(text) ?? new JsonObject();
+        logger.LogWarning("Sign-in step {Host} returned {Status}: {Body}", new Uri(url).Host, (int)response.StatusCode,
+            SecretRedactor.Redact(text.Length > 600 ? text[..600] : text));
         throw MapError(url, response.StatusCode, text);
     }
+
+    private static readonly JsonSerializerOptions ExactNames = new() { PropertyNamingPolicy = null };
 
     internal static AuthenticationException MapError(string url, HttpStatusCode status, string body)
     {
