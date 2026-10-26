@@ -8,16 +8,39 @@
              xmlns:m="using:NinjaLauncher.Mods.Modrinth"
              x:Class="NinjaLauncher.Desktop.Views.DiscoverView"
              x:DataType="vm:DiscoverViewModel" Classes="page">
+  <UserControl.Styles>
+    <Style Selector="TabStrip.kinds TabStripItem" x:DataType="m:ProjectKind">
+      <!-- The content is a panel now, so give each tab its name for screen readers. -->
+      <Setter Property="AutomationProperties.Name" Value="{Binding Converter={x:Static v:Converters.KindName}}" />
+      <Setter Property="FontSize" Value="15" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Padding" Value="12,6,12,0" />
+      <Setter Property="MinHeight" Value="0" />
+    </Style>
+    <Style Selector="TabStrip.kinds Border.pipe">
+      <Setter Property="Opacity" Value="0" />
+    </Style>
+    <Style Selector="TabStrip.kinds TabStripItem:selected Border.pipe">
+      <Setter Property="Opacity" Value="1" />
+    </Style>
+    <!-- Own underline, a little below the text (the theme's pipe hugs it). -->
+    <Style Selector="TabStrip.kinds TabStripItem /template/ Border#PART_SelectedPipe">
+      <Setter Property="IsVisible" Value="False" />
+    </Style>
+  </UserControl.Styles>
   <DockPanel>
-    <StackPanel DockPanel.Dock="Top" Margin="0,0,0,14">
+    <StackPanel DockPanel.Dock="Top" Margin="0,0,0,10">
       <TextBlock Classes="h1" Text="{l:T 'Discover'}" />
       <TextBlock Classes="muted" Text="{l:T 'Mods, modpacks, resource packs, data packs and shaders from Modrinth and CurseForge.'}" />
     </StackPanel>
 
-    <TabStrip DockPanel.Dock="Top" ItemsSource="{Binding Kinds}" SelectedItem="{Binding Kind}" Margin="0,0,0,10">
+    <TabStrip DockPanel.Dock="Top" Classes="kinds" ItemsSource="{Binding Kinds}" SelectedItem="{Binding Kind}" Margin="0,0,0,10">
       <TabStrip.ItemTemplate>
         <DataTemplate DataType="m:ProjectKind">
-          <TextBlock Text="{Binding Converter={x:Static v:Converters.KindName}}" />
+          <StackPanel Spacing="8">
+            <TextBlock Text="{Binding Converter={x:Static v:Converters.KindName}}" HorizontalAlignment="Center" />
+            <Border Classes="pipe" Height="2" CornerRadius="1" Background="{DynamicResource NinjaAccentBrush}" />
+          </StackPanel>
         </DataTemplate>
       </TabStrip.ItemTemplate>
     </TabStrip>
@@ -25,31 +48,27 @@
     <Border DockPanel.Dock="Top" Classes="card" Padding="14" Margin="0,0,0,12">
       <StackPanel Spacing="10">
         <DockPanel>
+          <ComboBox DockPanel.Dock="Left" ItemsSource="{Binding Sources}" SelectedItem="{Binding Source}" MinWidth="140" Margin="0,0,10,0" VerticalAlignment="Stretch" />
           <Button DockPanel.Dock="Right" Classes="accent" Content="{l:T 'Search'}" Command="{Binding SearchCommand}" Margin="10,0,0,0" IsDefault="True" />
           <TextBox Text="{Binding Query}" PlaceholderText="{l:T 'Search…'}" />
         </DockPanel>
-        <WrapPanel>
-          <ComboBox ItemsSource="{Binding Sources}" SelectedItem="{Binding Source}" MinWidth="140" Margin="0,0,8,0" />
-          <StackPanel Orientation="Horizontal" IsVisible="{Binding NeedsTarget}">
-            <TextBlock Text="{l:T 'Install into'}" VerticalAlignment="Center" Margin="0,0,8,0" />
-            <ComboBox ItemsSource="{Binding Instances}" SelectedItem="{Binding Target}" MinWidth="220" PlaceholderText="{l:T 'No instances'}" Margin="0,0,12,0">
-              <ComboBox.ItemTemplate>
-                <DataTemplate DataType="d:GameInstance">
-                  <TextBlock Text="{Binding Name}" />
-                </DataTemplate>
-              </ComboBox.ItemTemplate>
-            </ComboBox>
-            <StackPanel Orientation="Horizontal" IsVisible="{Binding IsDataPack}" Margin="0,0,12,0">
-              <TextBlock Text="{l:T 'World'}" VerticalAlignment="Center" Margin="0,0,8,0" />
-              <ComboBox ItemsSource="{Binding Worlds}" SelectedItem="{Binding TargetWorld}" MinWidth="180" PlaceholderText="{l:T 'No worlds'}" />
-            </StackPanel>
-            <CheckBox Content="{l:T 'Only compatible with this instance'}" IsChecked="{Binding FilterByInstance}" />
+        <WrapPanel IsVisible="{Binding NeedsTarget}">
+          <TextBlock Text="{l:T 'Install into'}" VerticalAlignment="Center" Margin="0,0,8,0" />
+          <ComboBox ItemsSource="{Binding Instances}" SelectedItem="{Binding Target}" MinWidth="220" PlaceholderText="{l:T 'No instances'}" Margin="0,0,16,0">
+            <ComboBox.ItemTemplate>
+              <DataTemplate DataType="d:GameInstance">
+                <TextBlock Text="{Binding Name}" />
+              </DataTemplate>
+            </ComboBox.ItemTemplate>
+          </ComboBox>
+          <StackPanel Orientation="Horizontal" IsVisible="{Binding IsDataPack}" Margin="0,0,16,0">
+            <TextBlock Text="{l:T 'World'}" VerticalAlignment="Center" Margin="0,0,8,0" />
+            <ComboBox ItemsSource="{Binding Worlds}" SelectedItem="{Binding TargetWorld}" MinWidth="180" PlaceholderText="{l:T 'No worlds'}" />
           </StackPanel>
-          <TextBlock Classes="muted" Text="{l:T 'Installing a modpack creates a new instance.'}" VerticalAlignment="Center" IsVisible="{Binding !NeedsTarget}" />
           <TextBlock Classes="muted" Text="{l:T 'Data packs are added to one world. This instance has no worlds yet: play it once and create a world.'}"
                      VerticalAlignment="Center" TextWrapping="Wrap" IsVisible="{Binding HasNoWorlds}" />
         </WrapPanel>
-        <TextBlock Classes="muted" FontSize="12" Text="{Binding Warning}" />
+        <TextBlock Classes="muted" Text="{l:T 'Installing a modpack creates a new instance.'}" IsVisible="{Binding !NeedsTarget}" />
       </StackPanel>
     </Border>
 
@@ -68,22 +87,22 @@
       <ItemsControl ItemsSource="{Binding Results}">
         <ItemsControl.ItemTemplate>
           <DataTemplate DataType="vm:ContentHit">
-            <Border Classes="card" Padding="14" Margin="0,0,0,8">
+            <Border Classes="card" Padding="12" Margin="0,0,0,8">
               <DockPanel>
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                   <Button Content="{l:T 'Details'}" Command="{Binding $parent[UserControl].((vm:DiscoverViewModel)DataContext).OpenPageCommand}" CommandParameter="{Binding}" />
                   <Button Classes="accent" Content="{l:T 'Install'}" Command="{Binding $parent[UserControl].((vm:DiscoverViewModel)DataContext).InstallCommand}" CommandParameter="{Binding}" />
                 </StackPanel>
                 <Border DockPanel.Dock="Left" Width="56" Height="56" CornerRadius="10" ClipToBounds="True" Margin="0,0,14,0"
-                        Background="{DynamicResource NinjaSurfaceRaised}" VerticalAlignment="Top">
+                        Background="{DynamicResource NinjaSurfaceRaised}" VerticalAlignment="Center">
                   <Image c:RemoteImage.Url="{Binding IconUrl}" Stretch="UniformToFill" RenderOptions.BitmapInterpolationMode="HighQuality" />
                 </Border>
-                <StackPanel Spacing="3" Margin="0,0,12,0">
+                <StackPanel Spacing="2" Margin="0,0,12,0" VerticalAlignment="Center">
                   <StackPanel Orientation="Horizontal" Spacing="8">
                     <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="15" />
                     <TextBlock Classes="muted" FontSize="12" Text="{Binding Author, Converter={x:Static v:Converters.Localize}, ConverterParameter='by {0}'}" VerticalAlignment="Bottom" />
                   </StackPanel>
-                  <TextBlock Classes="muted" Text="{Binding Description}" TextTrimming="CharacterEllipsis" MaxLines="2" />
+                  <TextBlock Classes="muted" Text="{Binding Description}" TextTrimming="CharacterEllipsis" MaxLines="1" />
                   <TextBlock FontSize="11" Foreground="{DynamicResource NinjaAccentBrush}" Text="{Binding Downloads, Converter={x:Static v:Converters.Localize}, ConverterParameter='{}{0:N0} downloads'}" />
                 </StackPanel>
               </DockPanel>

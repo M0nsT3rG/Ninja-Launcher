@@ -134,8 +134,11 @@ public sealed partial class DiscoverViewModel(UiContext ui, ModrinthClient modri
             Results.Clear();
             foreach (var hit in hits) Results.Add(hit);
             Total = total;
-            Summary = Total == 0 ? L.T("No results.") : L.F("{0}–{1} of {2:N0} on {3}", offset + 1, offset + Results.Count, Total, source) +
-                (filter is null ? "" : L.F(", compatible with {0} {1}", filter.MinecraftVersion, kind == ProjectKind.Mod ? filter.Loader.ToString() : ""));
+            var (page, pages) = (offset / PageSize + 1, Math.Max(1, (Total + PageSize - 1) / PageSize));
+            Summary = Total == 0 ? L.T("No results.")
+                : filter is null ? L.F("{0:N0} results on {1} · page {2} of {3}", Total, source, page, pages)
+                : L.F("{0:N0} results for {1} (Minecraft {2} · {3} · {4} MB RAM) · page {5} of {6}", Total, filter.Name, filter.MinecraftVersion,
+                    filter.Loader == ModLoaderKind.None ? L.T("Vanilla") : filter.Loader.ToString(), filter.MaxMemoryMb, page, pages);
         }
         finally { IsBusy = false; }
     }
