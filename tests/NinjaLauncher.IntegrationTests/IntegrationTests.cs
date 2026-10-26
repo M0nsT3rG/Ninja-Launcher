@@ -144,6 +144,44 @@ public sealed class NetworkTests : IDisposable
     }
 
     [Fact]
+    public async Task Mrpack_export_round_trips_through_import()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var client = new ModrinthClient(_downloads);
+        var sodium = (await client.GetVersionsAsync("AANobbMI", "1.21.1", ModLoaderKind.Fabric, ct)).First(v => v.VersionType == "release");
+        var sf = sodium.Files.First(f => f.Primary);
+        var game = Path.Combine(_home, "export-src");
+        await _downloads.DownloadAsync([new DownloadItem(new Uri(sf.Url), Path.Combine(game, "mods", sf.Filename), sf.Hashes["sha1"], sf.Size)], null, ct);
+        Directory.CreateDirectory(Path.Combine(game, "config"));
+        File.WriteAllText(Path.Combine(game, "mods", "homemade.jar"), "not on modrinth");
+        File.WriteAllText(Path.Combine(game, "config", "sodium-options.json"), "{}");
+        Directory.CreateDirectory(Path.Combine(game, "saves", "World"));
+        File.WriteAllText(Path.Combine(game, "saves", "World", "level.dat"), "personal");
+        File.WriteAllText(Path.Combine(game, "options.txt"), "personal");
+
+        var instance = new GameInstance { Id = Guid.NewGuid(), Name = "Export test", MinecraftVersion = "1.21.1", Loader = ModLoaderKind.Fabric, LoaderVersion = "0.16.5" };
+        var pack = Path.Combine(_home, "export.mrpack");
+        var result = await new MrpackExporter(client).ExportAsync(instance, game, pack, "1.0.0", null, ct);
+        Assert.Equal(1, result.ModrinthFiles);
+
+        var index = MrpackImporter.ReadIndex(pack);
+        Assert.Equal(("1.21.1", "0.16.5"), (index.MinecraftVersion, index.Dependencies["fabric-loader"]));
+        Assert.Equal($"mods/{sf.Filename}", Assert.Single(index.Files).Path);
+        using (var zip = System.IO.Compression.ZipFile.OpenRead(pack))
+        {
+            var names = zip.Entries.Select(e => e.FullName).ToList();
+            Assert.Contains("overrides/mods/homemade.jar", names);
+            Assert.Contains("overrides/config/sodium-options.json", names);
+            Assert.DoesNotContain(names, n => n.Contains("saves") || n.EndsWith("options.txt"));
+        }
+
+        var target = Path.Combine(_home, "export-dst");
+        await new MrpackImporter(_downloads).InstallContentAsync(pack, index, target, null, ct);
+        Assert.True(File.Exists(Path.Combine(target, "mods", sf.Filename)));
+        Assert.True(File.Exists(Path.Combine(target, "mods", "homemade.jar")));
+    }
+
+    [Fact]
     public async Task A_real_modrinth_modpack_passes_validation()
     {
         var ct = TestContext.Current.CancellationToken;

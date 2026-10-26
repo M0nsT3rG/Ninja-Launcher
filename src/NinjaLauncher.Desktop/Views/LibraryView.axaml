@@ -94,6 +94,8 @@
               <Button Content="Clone" Command="{Binding CloneCommand}" Margin="0,0,8,8" />
               <Button Content="Open folder" Command="{Binding OpenFolderCommand}" Margin="0,0,8,8" />
               <Button Content="Export config" Command="{Binding ExportConfigCommand}" Margin="0,0,8,8" />
+              <Button Content="Export for Modrinth" Command="{Binding ExportModpackCommand}" Margin="0,0,8,8" ToolTip.Tip="Share this instance as a Modrinth modpack (.mrpack). Worlds and personal settings are not included." />
+              <Button Content="Export for CurseForge" Command="{Binding ExportCurseForgeCommand}" Margin="0,0,8,8" ToolTip.Tip="Share this instance as a CurseForge modpack (.zip). Worlds and personal settings are not included." />
               <Button Content="Change icon" Command="{Binding ChangeIconCommand}" Margin="0,0,8,8" />
               <Button Content="Reset icon" Command="{Binding ResetIconCommand}" Margin="0,0,8,8" IsVisible="{Binding Selected.IconKey, Converter={x:Static ObjectConverters.IsNotNull}, FallbackValue=False}" />
               <Button Classes="danger" Content="Delete" Command="{Binding DeleteCommand}" Margin="0,0,8,8" />

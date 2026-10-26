@@ -39,6 +39,17 @@ public sealed class MrpackTests : IDisposable
     public void Unsafe_or_incomplete_files_are_rejected(string file) =>
         Assert.ThrowsAny<Exception>(() => MrpackImporter.ReadIndex(Pack($"[{file}]")));
 
+    [Theory]
+    [InlineData(ModLoaderKind.Forge, "1.20.1-47.2.0", "forge", "47.2.0")]
+    [InlineData(ModLoaderKind.NeoForge, "21.1.65", "neoforge", "21.1.65")]
+    [InlineData(ModLoaderKind.Fabric, "0.16.5", "fabric-loader", "0.16.5")]
+    [InlineData(ModLoaderKind.Quilt, "0.26.0", "quilt-loader", "0.26.0")]
+    public void Export_maps_loader_to_pack_dependency(ModLoaderKind kind, string version, string key, string value)
+    {
+        var instance = new GameInstance { Id = Guid.NewGuid(), Name = "x", MinecraftVersion = "1.20.1", Loader = kind, LoaderVersion = version };
+        Assert.Equal(new KeyValuePair<string, string>(key, value), MrpackExporter.LoaderDependency(instance));
+    }
+
     [Fact]
     public void Missing_minecraft_dependency_is_rejected() =>
         Assert.Throws<InvalidDataException>(() => MrpackImporter.ReadIndex(Pack("[]", """{"fabric-loader":"1"}""")));

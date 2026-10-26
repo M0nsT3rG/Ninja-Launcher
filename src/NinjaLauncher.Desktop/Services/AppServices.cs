@@ -60,6 +60,8 @@ public static class AppServices
         s.AddSingleton<MrpackImporter>();
         s.AddSingleton<ModpackInstaller>();
         s.AddSingleton<ModCompatibilityChecker>();
+        s.AddSingleton<MrpackExporter>();
+        s.AddSingleton<NinjaLauncher.Mods.CurseForge.CurseForgeExporter>();
         // Separate clients so the API key can never follow a redirect off api.curseforge.com, and CDN redirects stay on *.forgecdn.net.
         s.AddSingleton(sp => new NinjaLauncher.Mods.CurseForge.CurseForgeClient(
             RedirectGuardHandler.CreateClient(u => u.Host == "api.curseforge.com"),

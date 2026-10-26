@@ -38,14 +38,18 @@ public sealed partial class LibraryViewModel : ViewModelBase
     private readonly ModpackInstaller _modpacks;
     private readonly ModrinthClient _modrinth;
     private readonly ModCompatibilityChecker _checker;
+    private readonly MrpackExporter _exporter;
+    private readonly NinjaLauncher.Mods.CurseForge.CurseForgeExporter _curseForgeExporter;
     private readonly NinjaLauncher.Mods.CurseForge.CurseForgeModpackInstaller _curseForgePacks;
     private readonly List<GameInstance> _all = [];
     private IReadOnlyList<ManifestVersion> _manifestVersions = [];
 
     public LibraryViewModel(UiContext ui, InstanceService instances, VersionCatalog catalog, IEnumerable<ILoaderProvider> loaders,
         GameSessionService game, JobQueue jobs, IUrlLauncher shell, SettingsHolder settings, ModpackInstaller modpacks, ModrinthClient modrinth, ModCompatibilityChecker checker,
-        NinjaLauncher.Mods.CurseForge.CurseForgeModpackInstaller curseForgePacks)
+        NinjaLauncher.Mods.CurseForge.CurseForgeModpackInstaller curseForgePacks, MrpackExporter exporter,
+        NinjaLauncher.Mods.CurseForge.CurseForgeExporter curseForgeExporter)
     {
+        (_exporter, _curseForgeExporter) = (exporter, curseForgeExporter);
         (_ui, _instances, _catalog, _game, _jobs, _shell, _settings, _modpacks, _modrinth, _checker) = (ui, instances, catalog, game, jobs, shell, settings, modpacks, modrinth, checker);
         _curseForgePacks = curseForgePacks;
         _loaders = loaders.ToDictionary(l => l.Kind);
@@ -208,6 +212,39 @@ public sealed partial class LibraryViewModel : ViewModelBase
 
     [RelayCommand]
     private void CancelCreate() => IsCreating = false;
+
+    [RelayCommand]
+    private Task ExportModpack() => _ui.RunAsync(async () =>
+    {
+        if (Selected is not { } instance) return;
+        _game.EnsureNotRunning(instance, "export it");
+        var file = await _ui.SaveFileAsync("Modrinth modpack", $"{SafePath.SanitizeName(instance.Name)}.mrpack");
+        if (file is null) return;
+        if (!file.EndsWith(".mrpack", StringComparison.OrdinalIgnoreCase)) file += ".mrpack";
+        MrpackExportResult? result = null;
+        await _jobs.Run($"Export {instance.Name} as .mrpack", async (progress, ct) =>
+            result = await _exporter.ExportAsync(instance, _instances.GetGameDirectory(instance), file, "1.0.0",
+                new Progress<double>(p => progress.Report(new("Packing", p, 0))), ct));
+        _ui.Info($"Exported {Path.GetFileName(file)}: {result!.ModrinthFiles} file(s) linked from Modrinth, {result.OverrideFiles} bundled" +
+                 (result.SkippedDisabled > 0 ? $", {result.SkippedDisabled} disabled mod(s) left out." : ". Worlds and personal settings are not included."));
+    });
+
+    [RelayCommand]
+    private Task ExportCurseForge() => _ui.RunAsync(async () =>
+    {
+        if (Selected is not { } instance) return;
+        _game.EnsureNotRunning(instance, "export it");
+        var file = await _ui.SaveFileAsync("CurseForge modpack", $"{SafePath.SanitizeName(instance.Name)}-curseforge.zip");
+        if (file is null) return;
+        if (!file.EndsWith(".zip", StringComparison.OrdinalIgnoreCase)) file += ".zip";
+        NinjaLauncher.Mods.CurseForge.CurseForgeExportResult? result = null;
+        await _jobs.Run($"Export {instance.Name} for CurseForge", async (progress, ct) =>
+            result = await _curseForgeExporter.ExportAsync(instance, _instances.GetGameDirectory(instance), file, "1.0.0",
+                new Progress<double>(p => progress.Report(new("Packing", p, 0))), ct));
+        _ui.Info(result!.CurseForgeChecked
+            ? $"Exported {Path.GetFileName(file)}: {result.LinkedFiles} file(s) linked from CurseForge, {result.OverrideFiles} bundled."
+            : $"Exported {Path.GetFileName(file)} with all {result.OverrideFiles} file(s) bundled: add a CurseForge API key in Settings so mods can be linked instead.");
+    });
 
     [RelayCommand]
     private Task ChangeIcon() => _ui.RunAsync(async () =>

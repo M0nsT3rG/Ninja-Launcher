@@ -101,6 +101,23 @@ public sealed class CurseForgeClient(HttpClient http, Func<CancellationToken, Ta
         return doc.RootElement.GetProperty("data").Deserialize<List<CurseForgeFile>>(Json)!;
     }
 
+    /// <summary>Fingerprint → matching CurseForge file (exact matches only).</summary>
+    public async Task<Dictionary<uint, CurseForgeFile>> MatchFingerprintsAsync(IReadOnlyCollection<uint> fingerprints, CancellationToken ct)
+    {
+        var result = new Dictionary<uint, CurseForgeFile>();
+        foreach (var chunk in fingerprints.Chunk(500))
+        {
+            using var doc = await PostAsync($"{ApiBase}/v1/fingerprints/{MinecraftGameId}", new { fingerprints = chunk }, ct);
+            if (!doc.RootElement.GetProperty("data").TryGetProperty("exactMatches", out var matches)) continue;
+            foreach (var match in matches.EnumerateArray())
+            {
+                var file = match.GetProperty("file").Deserialize<CurseForgeFile>(Json)!;
+                if (match.GetProperty("file").TryGetProperty("fileFingerprint", out var fp) && fp.TryGetUInt32(out var value)) result[value] = file;
+            }
+        }
+        return result;
+    }
+
     /// <summary>The shaders class has no confirmed fixed id, so it is looked up by slug (0 if absent).</summary>
     public async Task<int> ShadersClassIdAsync(CancellationToken ct)
     {

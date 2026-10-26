@@ -194,6 +194,53 @@ public sealed class CurseForgeTests
         finally { System.IO.File.Delete(zip); }
     }
 
+    [Fact]
+    public void Fingerprint_is_murmur2_seed_1_over_non_whitespace_bytes()
+    {
+        // MurmurHash2 reference vectors (Austin Appleby's 32-bit variant).
+        Assert.Equal(0x5BD15E36u, CurseForgeFingerprint.MurmurHash2(""u8, 1));
+        Assert.Equal(CurseForgeFingerprint.Compute("ab"u8), CurseForgeFingerprint.Compute(" a\tb\r\n "u8)); // whitespace ignored
+        Assert.NotEqual(CurseForgeFingerprint.Compute("ab"u8), CurseForgeFingerprint.Compute("ba"u8));
+    }
+
+    [Theory]
+    [InlineData(ModLoaderKind.Forge, "1.20.1-47.2.0", "forge-47.2.0")]
+    [InlineData(ModLoaderKind.NeoForge, "21.1.65", "neoforge-21.1.65")]
+    [InlineData(ModLoaderKind.Fabric, "0.16.5", "fabric-0.16.5")]
+    public void Export_loader_ids_match_the_import_mapping(ModLoaderKind kind, string version, string id)
+    {
+        var instance = new GameInstance { Id = Guid.NewGuid(), Name = "x", MinecraftVersion = "1.20.1", Loader = kind, LoaderVersion = version };
+        Assert.Equal(id, CurseForgeExporter.LoaderId(instance));
+        Assert.Equal((kind, version), CurseForgeModpackInstaller.MapLoader(new CurseForgeManifest(new("1.20.1", [new(id, true)]), "x", "1", [], null)));
+    }
+
+    [Fact]
+    public async Task Export_without_key_bundles_everything_and_passes_import_validation()
+    {
+        var game = Directory.CreateTempSubdirectory("cf-export-").FullName;
+        try
+        {
+            Directory.CreateDirectory(Path.Combine(game, "mods"));
+            Directory.CreateDirectory(Path.Combine(game, "saves", "W"));
+            System.IO.File.WriteAllText(Path.Combine(game, "mods", "a.jar"), "jar");
+            System.IO.File.WriteAllText(Path.Combine(game, "mods", "b.jar.disabled"), "jar");
+            System.IO.File.WriteAllText(Path.Combine(game, "saves", "W", "level.dat"), "x");
+            var (client, api, _) = Create(_ => null, key: null);
+            var instance = new GameInstance { Id = Guid.NewGuid(), Name = "Pack", MinecraftVersion = "1.20.1", Loader = ModLoaderKind.Forge, LoaderVersion = "1.20.1-47.2.0" };
+            var output = Path.Combine(game, "out.zip");
+            var r = await new CurseForgeExporter(client).ExportAsync(instance, game, output, "1.0.0", null, TestContext.Current.CancellationToken);
+            Assert.False(r.CurseForgeChecked);
+            Assert.Equal((0, 1, 1), (r.LinkedFiles, r.OverrideFiles, r.SkippedDisabled));
+            Assert.Empty(api.Requests);
+            var manifest = CurseForgeModpackInstaller.ReadManifest(output);
+            Assert.Equal("forge-47.2.0", manifest.Minecraft.ModLoaders[0].Id);
+            using var zip = ZipFile.OpenRead(output);
+            Assert.Contains(zip.Entries, e => e.FullName == "overrides/mods/a.jar");
+            Assert.DoesNotContain(zip.Entries, e => e.FullName.Contains("saves") || e.FullName.Contains("b.jar"));
+        }
+        finally { Directory.Delete(game, true); }
+    }
+
     [Theory]
     [InlineData("edge.forgecdn.net", true)]
     [InlineData("mediafilez.forgecdn.net", true)]
