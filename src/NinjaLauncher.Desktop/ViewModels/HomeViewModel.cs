@@ -122,9 +122,28 @@ public sealed partial class HomeViewModel : ViewModelBase
         return await ui.ConfirmAsync(L.F("'{0}' has mod problems that will probably stop it from starting:", instance.Name) + "\n\n" + list + "\n\n" + L.T("You can fix them in Library → Check compatibility. Launch anyway?"));
     }
 
-    // Bedrock is licensed and installed by Microsoft (Store / Xbox app); we only send the user there.
-    [RelayCommand]
-    private void GetBedrock() => _shell.Open(new Uri(BedrockStoreUrl));
+    private CancellationTokenSource? _bedrockWatch;
+
+    // Bedrock is licensed and installed by Microsoft: we open its Store page, then notice when the install lands.
+    [RelayCommand(AllowConcurrentExecutions = true)] // pressing again reopens the Store and restarts the watch
+    private Task GetBedrock() => _ui.RunAsync(async () =>
+    {
+        if (!_bedrock.OpenStoreApp()) _shell.Open(new Uri(BedrockStoreUrl));
+        _bedrockWatch?.Cancel();
+        var watch = _bedrockWatch = new CancellationTokenSource(TimeSpan.FromMinutes(30));
+        _ui.Info(L.T("Press Install in the Microsoft Store. Ninja Launcher will notice when it's done."));
+        try
+        {
+            while (true)
+            {
+                await Task.Delay(TimeSpan.FromSeconds(10), watch.Token);
+                if (!IsBedrock) continue;
+                await RefreshBedrockAsync();
+                if (_bedrockStatus?.Support == BedrockSupport.Supported) { _ui.Info(L.T("Minecraft for Windows is installed. Press Play.")); return; }
+            }
+        }
+        catch (OperationCanceledException) { } // gave up after 30 minutes, or the button was pressed again
+    });
 
     [RelayCommand]
     private void OpenBedrockData() { if (_bedrockStatus?.DataDirectory is { } d) _shell.OpenDirectory(d); }

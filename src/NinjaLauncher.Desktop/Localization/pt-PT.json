@@ -137,8 +137,6 @@
  "No instances yet": "Ainda não há instâncias",
  "MINECRAFT BEDROCK": "MINECRAFT BEDROCK",
  "Open Bedrock data folder": "Abrir pasta de dados da Bedrock",
- "Get Minecraft for Windows (Microsoft Store)": "Obter o Minecraft para Windows (Microsoft Store)",
- "Bedrock is sold and installed by Microsoft through the Store or the Xbox app; its files are protected, so launchers can’t download it. After installing it there, come back and press Play.": "A Bedrock é vendida e instalada pela Microsoft através da Store ou da aplicação Xbox; os ficheiros são protegidos, por isso os launchers não a podem transferir. Depois de a instalares lá, volta aqui e carrega em Jogar.",
  "PLAY": "JOGAR",
  "Game output": "Saída do jogo",
  "Recent activity": "Atividade recente",
@@ -251,5 +249,9 @@
  "Pick a PNG, JPG, WebP or GIF image up to 4096×4096 pixels and 2 MB.": "Escolhe uma imagem PNG, JPG, WebP ou GIF com até 4096×4096 píxeis e 2 MB.",
  "Unofficial mcpelauncher found (community project, not affiliated with Mojang).": "mcpelauncher não oficial encontrado (projeto da comunidade, sem ligação à Mojang).",
  "Bedrock Edition has no official release for this OS. The community project mcpelauncher (requires owning the Android version on Google Play) can be installed separately; Ninja Launcher will then launch it. It is unofficial and not bundled.": "A Bedrock Edition não tem versão oficial para este sistema. O projeto da comunidade mcpelauncher (requer ter a versão Android na Google Play) pode ser instalado à parte; depois o Ninja Launcher abre-o. Não é oficial nem vem incluído.",
- "{0} file(s) that looked private (logins, caches) were left out; check the pack before sharing.": "{0} ficheiro(s) que pareciam privados (sessões, caches) foram deixados de fora; revê o pacote antes de o partilhares."
+ "{0} file(s) that looked private (logins, caches) were left out; check the pack before sharing.": "{0} ficheiro(s) que pareciam privados (sessões, caches) foram deixados de fora; revê o pacote antes de o partilhares.",
+ "Install Minecraft for Windows": "Instalar o Minecraft para Windows",
+ "Minecraft for Windows is installed. Press Play.": "O Minecraft para Windows está instalado. Carrega em Jogar.",
+ "Opens Minecraft in the Microsoft Store, which checks that your account owns it (Java Edition purchases usually include Bedrock for PC). Launchers can’t download Bedrock themselves because its files are protected.": "Abre o Minecraft na Microsoft Store, que confirma que a tua conta o tem (a compra da Java Edition costuma incluir a Bedrock para PC). Os launchers não podem transferir a Bedrock por si próprios porque os ficheiros são protegidos.",
+ "Press Install in the Microsoft Store. Ninja Launcher will notice when it's done.": "Carrega em Instalar na Microsoft Store. O Ninja Launcher vai detetar quando terminar."
 }

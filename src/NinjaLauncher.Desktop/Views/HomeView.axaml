@@ -55,9 +55,9 @@
             <TextBlock Text="{loc:T 'MINECRAFT BEDROCK'}" FontSize="11" FontWeight="Bold" LetterSpacing="2" Foreground="#E9D5FF" />
             <TextBlock Text="{Binding BedrockText}" Foreground="#F3E8FF" TextWrapping="Wrap" />
             <Button Content="{loc:T 'Open Bedrock data folder'}" Command="{Binding OpenBedrockDataCommand}" IsVisible="{Binding HasBedrockData}" />
-            <Button Classes="accent" Content="{loc:T 'Get Minecraft for Windows (Microsoft Store)'}" Command="{Binding GetBedrockCommand}" IsVisible="{Binding CanGetBedrock}" />
+            <Button Classes="accent" Content="{loc:T 'Install Minecraft for Windows'}" Command="{Binding GetBedrockCommand}" IsVisible="{Binding CanGetBedrock}" />
             <TextBlock Foreground="#E9D5FF" FontSize="12" TextWrapping="Wrap" IsVisible="{Binding CanGetBedrock}"
-                       Text="{loc:T 'Bedrock is sold and installed by Microsoft through the Store or the Xbox app; its files are protected, so launchers can’t download it. After installing it there, come back and press Play.'}" />
+                       Text="{loc:T 'Opens Minecraft in the Microsoft Store, which checks that your account owns it (Java Edition purchases usually include Bedrock for PC). Launchers can’t download Bedrock themselves because its files are protected.'}" />
           </StackPanel>
         </StackPanel>
         <Button Grid.Column="1" Classes="play" Content="{loc:T 'PLAY'}" Command="{Binding PlayCommand}" VerticalAlignment="Center" />

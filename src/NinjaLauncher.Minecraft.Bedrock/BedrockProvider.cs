@@ -35,6 +35,23 @@ public sealed class BedrockProvider
             Process.Start(new ProcessStartInfo(status.LaunchTarget) { UseShellExecute = false });
     }
 
+    /// <summary>Store product id of "Minecraft for Windows".</summary>
+    public const string StoreProductId = "9NBLGGH2JHXJ";
+
+    /// <summary>The game's page in the Microsoft Store app, where the user installs it with their own licence.</summary>
+    public static readonly Uri StoreAppPage = new($"ms-windows-store://pdp/?productid={StoreProductId}");
+
+    /// <summary>
+    /// Windows only. Opens the Store app on the game's page (winget's Store catalogue does not list Minecraft for
+    /// Windows, so this is the shortest legitimate path). Returns false if the Store app could not be opened.
+    /// </summary>
+    public bool OpenStoreApp()
+    {
+        if (!OperatingSystem.IsWindows()) return false;
+        try { Process.Start(new ProcessStartInfo(StoreAppPage.AbsoluteUri) { UseShellExecute = true })?.Dispose(); return true; }
+        catch (System.ComponentModel.Win32Exception) { return false; } // Store app removed or blocked by policy
+    }
+
     private static async Task<BedrockStatus> DetectWindowsAsync(CancellationToken ct)
     {
         // Read-only queries; the GDK build keeps the package identity but may use app id "Game" instead of "App".
