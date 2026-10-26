@@ -58,6 +58,8 @@ public sealed partial class LocalizationTests
         // servers.dat parsing: caught internally, never shown
         "Bad NBT array length.", "Bad NBT list length.", "NBT nested too deeply.", "NBT string too long.", "Truncated NBT.", "Unexpected NBT value.",
         "Unknown NBT tag {0}.", "Ninja Launcher added its listed server to servers.dat once; delete this file to offer it again.\n",
+        "Ninja Launcher added its listed server to external_servers.txt once; delete this file to offer it again.\n",
+        "The listed server's name and host must be non-empty without ':' or line breaks.", // build config check, only logged
     ];
 
     /// <summary>

@@ -22,12 +22,13 @@ public sealed partial class HomeViewModel : ViewModelBase
     private readonly IActivityLog _activity;
     private readonly SettingsHolder _settings;
     private readonly IUrlLauncher _shell;
+    private readonly ListedServer _listedServer;
     private BedrockStatus? _bedrockStatus;
 
     public HomeViewModel(UiContext ui, InstanceService instances, AccountService accounts, GameSessionService game,
-        BedrockProvider bedrock, IActivityLog activity, SettingsHolder settings, IUrlLauncher shell)
+        BedrockProvider bedrock, IActivityLog activity, SettingsHolder settings, IUrlLauncher shell, ListedServer listedServer)
     {
-        (_ui, _instances, _accounts, _game, _bedrock, _activity, _settings, _shell) = (ui, instances, accounts, game, bedrock, activity, settings, shell);
+        (_ui, _instances, _accounts, _game, _bedrock, _activity, _settings, _shell, _listedServer) = (ui, instances, accounts, game, bedrock, activity, settings, shell, listedServer);
         IsJava = settings.Current.LastEdition == GameEdition.Java;
         _game.RunningChanged += () => Avalonia.Threading.Dispatcher.UIThread.Post(() => PlayCommand.NotifyCanExecuteChanged());
     }
@@ -102,6 +103,7 @@ public sealed partial class HomeViewModel : ViewModelBase
     {
         if (IsBedrock)
         {
+            _listedServer.EnsureBedrock();
             _bedrock.Launch(_bedrockStatus!);
             await _activity.AddAsync("Launched Minecraft Bedrock Edition");
             return;

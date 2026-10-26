@@ -26,9 +26,9 @@ All seven research documents are written in `docs/research/`, each with sources,
 - Create, rename, clone, delete (with confirmation), memory, JVM arguments, Java path, repair, world backup and restore, disk usage, open folder: COMPLETE
 - Import and export of instance configurations (`.ninja.json`, no machine paths): COMPLETE
 - Custom instance icons (PNG/JPG/WebP/GIF ≤ 2 MB; Modrinth modpacks adopt the pack icon): COMPLETE
-- Pre-list a partner server in Multiplayer (details kept out of the repository, see docs/releases/RELEASING.md): PARTIALLY COMPLETE
+- Pre-list a partner server in Multiplayer (details kept out of the repository, see docs/releases/RELEASING.md): COMPLETE on Windows
   - Java: added once to every instance's `servers.dat` before launch, existing servers kept byte for byte, never re-added after the player deletes it: COMPLETE (unit-tested; inactive until the private config exists; not yet seen in-game because sign-in is blocked by B-01)
-  - Bedrock: NOT STARTED. Its server-list file format couldn't be confirmed without Bedrock installed; do it once it can be inspected
+  - Bedrock (Windows): added once to every existing profile's `minecraftpe/external_servers.txt` before launch (format checked against a file written by 1.26.52), skipped while the game runs, never re-added after deletion: COMPLETE (unit-tested; inactive until the private config exists). A profile the game hasn't created yet gets it on the next launch. Linux/macOS mcpelauncher profiles: NOT STARTED
 
 ## Phase 5: Modded (v0.5.0 / v0.6.0). PARTIALLY COMPLETE
 - Fabric, Quilt: COMPLETE (verified live)
