@@ -1,0 +1,42 @@
+# Flatpak for Ninja Launcher. Installs the prebuilt self-contained linux-x64 publish output; nothing is
+# downloaded or compiled during the build. Make the input first (see packaging/linux/README.md):
+#   packaging/linux/build-packages.sh publish/linux-x64 <version>   -> artifacts/linux/ninja-launcher-linux-x64.tar.gz
+app-id: io.github.m0nst3rg.NinjaLauncher
+runtime: org.freedesktop.Platform
+runtime-version: '26.08'
+sdk: org.freedesktop.Sdk
+command: ninja-launcher
+finish-args:
+  - --share=network
+  # Avalonia 12 renders through X11 only (XWayland on Wayland sessions); X11 needs IPC for shared memory.
+  - --share=ipc
+  - --socket=x11
+  # For the game: newer GLFW builds can use Wayland directly.
+  - --socket=wayland
+  # OpenGL for the game.
+  - --device=dri
+  # Game audio (OpenAL through PulseAudio/PipeWire).
+  - --socket=pulseaudio
+  # No --talk-name=org.freedesktop.secrets: the app stores refresh tokens through the secret-tool CLI, which the
+  # freedesktop runtime does not ship (it is in the SDK's devel split), so sign-ins last one session here.
+  # Instances, Java runtimes and game files live in ~/.var/app/<app-id>/data (XDG_DATA_HOME), where downloaded Java
+  # can be executed; files outside it are reached through the file chooser portal.
+modules:
+  - name: ninja-launcher
+    buildsystem: simple
+    build-options:
+      # Install the binaries exactly as published (stripping would corrupt a single-file .NET apphost).
+      no-debuginfo: true
+      strip: false
+    build-commands:
+      - mkdir -p /app/lib /app/share
+      - cp -a app /app/lib/ninja-launcher
+      - cp -a share/. /app/share/
+      - install -Dm755 ninja-launcher.sh /app/bin/ninja-launcher
+    sources:
+      - type: archive
+        path: ../../artifacts/linux/ninja-launcher-linux-x64.tar.gz
+      - type: script
+        dest-filename: ninja-launcher.sh
+        commands:
+          - exec /app/lib/ninja-launcher/NinjaLauncher "$@"

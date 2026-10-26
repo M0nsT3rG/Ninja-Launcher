@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- @VERSION@ and @DATE@ are filled in by build-packages.sh. -->
+<component type="desktop-application">
+  <id>io.github.m0nst3rg.NinjaLauncher</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <name>Ninja Launcher</name>
+  <summary>Open-source launcher for Minecraft: Java Edition</summary>
+  <developer id="io.github.m0nst3rg">
+    <name>Ninja Launcher contributors</name>
+  </developer>
+  <description>
+    <p>
+      Ninja Launcher installs and launches Minecraft: Java Edition. Each instance lives in its own folder, and the
+      launcher only talks to official services.
+    </p>
+    <ul>
+      <li>Fabric, Quilt, Forge and NeoForge</li>
+      <li>Mods, modpacks, shaders and resource packs from Modrinth, with dependency and compatibility checks</li>
+      <li>Instance backups, repair and a crash-report viewer</li>
+    </ul>
+    <p>
+      You need a Microsoft account that owns Minecraft: Java Edition. NOT AN OFFICIAL MINECRAFT PRODUCT. NOT APPROVED
+      BY OR ASSOCIATED WITH MOJANG OR MICROSOFT.
+    </p>
+  </description>
+  <launchable type="desktop-id">io.github.m0nst3rg.NinjaLauncher.desktop</launchable>
+  <url type="homepage">https://github.com/M0nsT3rG/Ninja-Launcher</url>
+  <url type="bugtracker">https://github.com/M0nsT3rG/Ninja-Launcher/issues</url>
+  <url type="vcs-browser">https://github.com/M0nsT3rG/Ninja-Launcher</url>
+  <categories>
+    <category>Game</category>
+  </categories>
+  <provides>
+    <binary>ninja-launcher</binary>
+  </provides>
+  <content_rating type="oars-1.1"/>
+  <releases>
+    <release version="@VERSION@" date="@DATE@"/>
+  </releases>
+</component>

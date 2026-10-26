@@ -17,3 +17,4 @@
 - Project logos everywhere, custom instance icons, Modrinth and CurseForge modpack export, an Install Minecraft for Windows button that opens the Microsoft Store app and notices when the install finishes, and a Portuguese (Portugal) translation.
 - CurseForge as a second source in Discover, plus CurseForge modpack import. Bring your own API key; files their authors block from other apps go to manual download.
 - CI for Windows, Linux, macOS arm64 and macOS x64.
+- Linux `.deb` and Flatpak packages, built and validated in CI and attached to tagged draft releases (`packaging/linux/README.md`).

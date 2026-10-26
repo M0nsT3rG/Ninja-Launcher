@@ -1,6 +1,7 @@
 name: Release
 
-# Builds Velopack releases for every platform, signs the update feeds, and attaches everything to a DRAFT
+# Builds Velopack releases for every platform, signs the update feeds, builds the Linux .deb and Flatpak bundle
+# (not self-updating; the package manager updates them), and attaches everything to a DRAFT
 # GitHub release. Tag pushes only (no manual dispatch), so a release is always tied to a tagged commit.
 # The signing key lives in the protected "release" environment and is only exposed to the small sign job,
 # which the owner approves (docs/releases/RELEASING.md). Nothing is published automatically.
@@ -78,6 +79,63 @@ jobs:
           path: releases/*
           if-no-files-found: error
 
+  linux-packages:
+    name: Linux .deb (+ Flatpak input)
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - name: Resolve version
+        id: version
+        run: |
+          V="${GITHUB_REF_NAME#v}"
+          [[ "$V" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]] || { echo "::error::Tag '$GITHUB_REF_NAME' is not vMAJOR.MINOR.PATCH[-pre]"; exit 1; }
+          echo "version=$V" >> "$GITHUB_OUTPUT"
+      - name: Install packaging tools
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends imagemagick desktop-file-utils appstream
+      - name: Publish
+        run: dotnet publish src/NinjaLauncher.Desktop -c Release -r linux-x64 --self-contained -p:Version=${{ steps.version.outputs.version }} -o publish
+      # Plain publish output, not the Velopack package: the package manager owns updates, so the in-app updater stays off.
+      - name: Build and validate the .deb and the Flatpak input
+        run: bash packaging/linux/build-packages.sh publish "${{ steps.version.outputs.version }}" artifacts/linux
+      - name: Install the .deb (its Depends must resolve)
+        run: sudo apt-get install -y ./artifacts/linux/ninja-launcher_*.deb && test -x /usr/bin/ninja-launcher
+      - uses: actions/upload-artifact@v4
+        with:
+          name: distro-deb
+          path: artifacts/linux/*.deb
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        with:
+          name: flatpak-input
+          path: artifacts/linux/ninja-launcher-linux-x64.tar.gz
+          if-no-files-found: error
+
+  flatpak:
+    name: Flatpak bundle
+    needs: linux-packages
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/flathub-infra/flatpak-github-actions:freedesktop-26.08
+      options: --privileged
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: flatpak-input
+          path: artifacts/linux
+      - uses: flatpak/flatpak-github-actions/flatpak-builder@v6
+        with:
+          manifest-path: packaging/flatpak/io.github.m0nst3rg.NinjaLauncher.yml
+          bundle: ninja-launcher-${{ needs.linux-packages.outputs.version }}-x86_64.flatpak
+          branch: stable
+          artifact-name: distro-flatpak
+          cache: false
+
   sign:
     name: Sign update feeds
     needs: pack
@@ -112,7 +170,7 @@ jobs:
 
   draft:
     name: Draft GitHub release
-    needs: sign
+    needs: [sign, linux-packages, flatpak]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -121,6 +179,11 @@ jobs:
         with:
           name: signed-release
           path: dist
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: distro-*
+          path: dist
+          merge-multiple: true
       - name: Checksums
         run: cd dist && sha256sum * > SHA256SUMS.txt && cat SHA256SUMS.txt
       - name: Create draft release

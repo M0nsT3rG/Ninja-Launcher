@@ -50,4 +50,5 @@ All seven research documents are written in `docs/research/`, each with sources,
 ## Phase 8: Distribution (v0.9.0 → v1.0.0). PARTIALLY COMPLETE
 - Velopack packaging (Windows Setup + portable zip, Linux AppImage, macOS .app/.pkg) and a draft-release workflow with SHA256SUMS: COMPLETE (Windows packaging verified locally; other platforms run only in the release workflow, **not yet run**)
 - Signed update feed + in-app updater (opt-in install, startup check toggle): COMPLETE (unit-tested). BLOCKED for real use by B-05 (owner key)
-- Linux .deb/Flatpak: NOT STARTED. Code signing and notarisation: optional, owner credentials (B-03)
+- Linux .deb (amd64) and Flatpak (org.freedesktop.Platform 26.08) built from the self-contained publish, validated in CI (`dpkg-deb`, `desktop-file-validate`, `appstreamcli`, test install of the .deb, Flatpak build) and attached to the draft release: PARTIALLY COMPLETE. Not yet run in CI or launched on a Linux desktop. Updates come from the package manager (the in-app updater stays off), and the Flatpak keeps sign-ins for one session only because the runtime has no `secret-tool` (`packaging/linux/README.md`)
+- Code signing and notarisation: optional, owner credentials (B-03)

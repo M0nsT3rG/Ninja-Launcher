@@ -57,3 +57,56 @@ jobs:
           name: NinjaLauncher-${{ matrix.rid }}-unsigned
           path: publish/${{ matrix.rid }}
           retention-days: 7
+
+  linux-packages:
+    name: Linux .deb (+ Flatpak input)
+    runs-on: ubuntu-latest
+    env:
+      DOTNET_NOLOGO: true
+      DOTNET_CLI_TELEMETRY_OPTOUT: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - name: Install packaging tools
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends imagemagick desktop-file-utils appstream
+      - name: Publish (self-contained)
+        run: dotnet publish src/NinjaLauncher.Desktop -c Release -r linux-x64 --self-contained -o publish/linux-x64
+      - name: Build and validate the .deb and the Flatpak input
+        run: bash packaging/linux/build-packages.sh publish/linux-x64 0.0.1-ci artifacts/linux
+      - name: Install the .deb (its Depends must resolve)
+        run: |
+          sudo apt-get install -y ./artifacts/linux/ninja-launcher_*.deb
+          test -x /usr/bin/ninja-launcher && test -x /opt/ninja-launcher/NinjaLauncher
+          sudo apt-get remove -y ninja-launcher
+      - uses: actions/upload-artifact@v4
+        with:
+          name: distro-deb
+          path: artifacts/linux/*.deb
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        with:
+          name: flatpak-input
+          path: artifacts/linux/ninja-launcher-linux-x64.tar.gz
+          retention-days: 1
+
+  flatpak:
+    name: Flatpak
+    needs: linux-packages
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/flathub-infra/flatpak-github-actions:freedesktop-26.08
+      options: --privileged
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: flatpak-input
+          path: artifacts/linux
+      - uses: flatpak/flatpak-github-actions/flatpak-builder@v6
+        with:
+          manifest-path: packaging/flatpak/io.github.m0nst3rg.NinjaLauncher.yml
+          bundle: ninja-launcher-ci-x86_64.flatpak
+          artifact-name: distro-flatpak
+          cache: false

@@ -9,9 +9,10 @@ Releases are built by `.github/workflows/release.yml` with [Velopack](https://ve
 | `win-x64` | `NinjaLauncher-win-x64-Setup.exe` (per-user installer, no admin), `NinjaLauncher-win-x64-Portable.zip`, full `.nupkg`, `releases.win-x64.json` + `.sig` |
 | `linux-x64` | `NinjaLauncher.AppImage` (portable), full `.nupkg`, feed + `.sig` |
 | `osx-arm64`, `osx-x64` | `.app` bundle in a `.pkg` and a portable zip, full `.nupkg`, feed + `.sig` |
+| Linux packages | `ninja-launcher_<version>_amd64.deb`, `ninja-launcher-<version>-x86_64.flatpak` (no self-update; see `packaging/linux/README.md`) |
 | all | `SHA256SUMS.txt` |
 
-Not provided yet: a Linux distribution package (`.deb` or Flatpak), Authenticode signing, and Apple notarisation (see `.ai/BLOCKERS.md` B-03).
+Not provided yet: an apt repository or Flathub listing, Authenticode signing, and Apple notarisation (see `.ai/BLOCKERS.md` B-03).
 
 ## How updates are authenticated
 

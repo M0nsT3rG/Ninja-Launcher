@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Ninja Launcher
+GenericName=Game Launcher
+Comment=Install, manage and launch Minecraft: Java Edition
+Exec=ninja-launcher
+Icon=io.github.m0nst3rg.NinjaLauncher
+Terminal=false
+Categories=Game;
+Keywords=minecraft;launcher;mods;modpacks;fabric;forge;
