@@ -7,7 +7,6 @@ using NinjaLauncher.Infrastructure.Auth;
 using NinjaLauncher.Infrastructure.Downloads;
 using NinjaLauncher.Infrastructure.Logging;
 using NinjaLauncher.Infrastructure.Persistence;
-using NinjaLauncher.Minecraft.Bedrock;
 using NinjaLauncher.Minecraft.Java;
 using NinjaLauncher.Minecraft.Java.Install;
 using NinjaLauncher.Minecraft.Java.Metadata;
@@ -55,7 +54,6 @@ public static class AppServices
         s.AddSingleton<GameInstaller>();
         s.AddSingleton<JavaRuntimeManager>();
         s.AddSingleton<JavaLaunchService>();
-        s.AddSingleton<BedrockProvider>();
         s.AddSingleton<ModrinthClient>();
         s.AddSingleton<MrpackImporter>();
         s.AddSingleton<ModpackInstaller>();

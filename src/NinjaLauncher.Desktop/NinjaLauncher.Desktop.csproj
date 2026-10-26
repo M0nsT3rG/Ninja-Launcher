@@ -34,7 +34,6 @@
     <ProjectReference Include="..\NinjaLauncher.Infrastructure\NinjaLauncher.Infrastructure.csproj" />
     <ProjectReference Include="..\NinjaLauncher.Platform\NinjaLauncher.Platform.csproj" />
     <ProjectReference Include="..\NinjaLauncher.Minecraft.Java\NinjaLauncher.Minecraft.Java.csproj" />
-    <ProjectReference Include="..\NinjaLauncher.Minecraft.Bedrock\NinjaLauncher.Minecraft.Bedrock.csproj" />
     <ProjectReference Include="..\NinjaLauncher.Mods\NinjaLauncher.Mods.csproj" />
   </ItemGroup>
 </Project>

@@ -166,7 +166,7 @@ All findings verified on **2026-10-25**. Licence data for NuGet packages comes f
 - **Technical implications:**
   - "Ninja Launcher" is compliant.
   - "Ninja Minecraft Launcher", which is the repository folder name, puts the brand in the title. Avoid it as the product name.
-  - The tagline "A launcher for Minecraft: Java & Bedrock Edition" is the allowed descriptive use.
+  - The tagline "A launcher for Minecraft: Java Edition" is the allowed descriptive use.
   - The app icon and logo must not use Minecraft's grass block, creeper or the Minecraft font style.
 - **Confidence:** Medium-high (tracked copy plus consistent secondary sources).
 - **Limitations:** As in L8, the official page was not read directly.
@@ -180,7 +180,7 @@ All findings verified on **2026-10-25**. Licence data for NuGet packages comes f
   - https://www.minecraft.net/en-us/usage-guidelines
 - **Verification date:** 2026-10-25
 - **Technical implications:**
-  - Never commit, bundle, mirror or cache-share client jars, assets, libraries, or Bedrock binaries. Our installers contain only our own code.
+  - Never commit, bundle, mirror or cache-share client jars, assets or libraries. Our installers contain only our own code.
   - Files are downloaded at runtime from Mojang's official endpoints (piston-meta, resources.download.minecraft.net) onto the user's machine.
   - Do not host a CDN mirror. Do not offer "offline / cracked" accounts that skip ownership checks.
 - **Confidence:** High.

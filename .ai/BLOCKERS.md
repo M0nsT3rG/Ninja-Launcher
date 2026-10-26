@@ -11,9 +11,6 @@
 - **Also blocked:** real sign-in, account refresh, and the first authenticated Java launch (the acceptance test).
 - **Still possible meanwhile:** everything else. The install engine, loaders, Modrinth, instances and UI are all testable without an account.
 
-## B-02: Bedrock on Windows has not been checked on a real install
-Someone needs to run `Get-AppxPackage Microsoft.MinecraftUWP` and `Get-StartApps` on a PC that has Bedrock installed, to confirm the GDK app ID and launch behaviour.
-
 ## B-03: Code signing and notarisation (optional, owner-controlled, paid)
 Apple Developer ID costs US$99 a year. Windows Authenticode certificates also cost money. Builds stay unsigned until the owner decides. See docs/research/CROSS_PLATFORM.md.
 

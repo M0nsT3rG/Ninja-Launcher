@@ -8,7 +8,6 @@ NinjaLauncher.Desktop            Avalonia 12 UI, view models, composition root (
    ├── NinjaLauncher.Mods         Loader providers (Fabric/Quilt meta profiles, Forge/NeoForge installers), Modrinth client
    │     └── NinjaLauncher.Minecraft.Java   Version catalog, rule evaluator, inheritance merge, installer,
    │                                        Mojang Java runtimes, launch argument builder, game process
-   ├── NinjaLauncher.Minecraft.Bedrock      Capability detection and launching of an installed Bedrock
    ├── NinjaLauncher.Infrastructure         SQLite repositories, HTTP downloader, Serilog, Microsoft auth
    ├── NinjaLauncher.Platform               OS paths, secret stores (DPAPI/Keychain/libsecret), Java discovery, URL/folder opening
    └── NinjaLauncher.Application            Interfaces, InstanceService, AccountService, security helpers

@@ -18,7 +18,7 @@
       </Border>
       <StackPanel>
         <TextBlock Classes="h1" Text="{loc:T 'Welcome back'}" />
-        <TextBlock Classes="muted" Text="{loc:T 'Pick an edition and an instance, then hit Play.'}" />
+        <TextBlock Classes="muted" Text="{loc:T 'Pick an instance, then hit Play.'}" />
       </StackPanel>
     </DockPanel>
 
@@ -33,11 +33,7 @@
       </Border.Background>
       <Grid ColumnDefinitions="*,Auto">
         <StackPanel Spacing="14">
-          <StackPanel Orientation="Horizontal" Spacing="18">
-            <RadioButton GroupName="edition" Content="{loc:T 'Java Edition'}" IsChecked="{Binding IsJava}" Foreground="White" FontWeight="SemiBold" />
-            <RadioButton GroupName="edition" Content="{loc:T 'Bedrock Edition'}" IsChecked="{Binding IsBedrock, Mode=OneWay}" Foreground="White" FontWeight="SemiBold" />
-          </StackPanel>
-          <StackPanel Spacing="6" IsVisible="{Binding IsJava}">
+          <StackPanel Spacing="6">
             <TextBlock Text="{loc:T 'INSTANCE'}" FontSize="11" FontWeight="Bold" LetterSpacing="2" Foreground="#E9D5FF" />
             <ComboBox ItemsSource="{Binding Instances}" SelectedItem="{Binding SelectedInstance}" MinWidth="320" PlaceholderText="{loc:T 'No instances yet'}">
               <ComboBox.ItemTemplate>
@@ -50,14 +46,6 @@
               </ComboBox.ItemTemplate>
             </ComboBox>
             <TextBlock Text="{Binding SelectedSummary}" Foreground="#F3E8FF" TextWrapping="Wrap" />
-          </StackPanel>
-          <StackPanel Spacing="8" IsVisible="{Binding IsBedrock}" MaxWidth="560" HorizontalAlignment="Left">
-            <TextBlock Text="{loc:T 'MINECRAFT BEDROCK'}" FontSize="11" FontWeight="Bold" LetterSpacing="2" Foreground="#E9D5FF" />
-            <TextBlock Text="{Binding BedrockText}" Foreground="#F3E8FF" TextWrapping="Wrap" />
-            <Button Content="{loc:T 'Open Bedrock data folder'}" Command="{Binding OpenBedrockDataCommand}" IsVisible="{Binding HasBedrockData}" />
-            <Button Classes="accent" Content="{loc:T 'Install Minecraft for Windows'}" Command="{Binding GetBedrockCommand}" IsVisible="{Binding CanGetBedrock}" />
-            <TextBlock Foreground="#E9D5FF" FontSize="12" TextWrapping="Wrap" IsVisible="{Binding CanGetBedrock}"
-                       Text="{loc:T 'Opens Minecraft in the Microsoft Store, which checks that your account owns it (Java Edition purchases usually include Bedrock for PC). Launchers can’t download Bedrock themselves because its files are protected.'}" />
           </StackPanel>
         </StackPanel>
         <Button Grid.Column="1" Classes="play" Content="{loc:T 'PLAY'}" Command="{Binding PlayCommand}" VerticalAlignment="Center" />

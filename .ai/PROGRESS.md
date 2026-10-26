@@ -3,7 +3,7 @@
 Last updated: 2026-10-25. See `docs/ROADMAP.md` for the status of each feature.
 
 ## Done in session 1 (2026-10-25)
-- Research: `docs/research/*.md` (auth, Java engine, mod loaders, Bedrock, cross-platform, licensing), written by parallel research agents.
+- Research: `docs/research/*.md` (auth, Java engine, mod loaders, cross-platform, licensing), written by parallel research agents.
 - Full solution scaffolded and building with zero warnings (TreatWarningsAsErrors).
 - Java engine installs and boots 1.21.1 for real (full install + launch smoke tests).
 - UI shell with 6 functional pages. Launched and checked by screenshot on Windows.

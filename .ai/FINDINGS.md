@@ -9,6 +9,5 @@
 - **NeoForge versioning:** `21.1.x` = MC 1.21.1. From 26.1 the first three parts are the MC version. MC 1.20.1 lives under `net.neoforged:forge`. → L-05
 - **Forge installers:** support `--installClient <dir>` from 1.12.2 and need a stub `launcher_profiles.json`. → L-08
 - **Modrinth:** requires a unique User-Agent, allows 300 req/min, and `.mrpack` downloads are limited to an allow-list of hosts. → L-09…L-11
-- **Bedrock on Windows:** a GDK app since 1.21.120. The package name stays `Microsoft.MinecraftUWP`, the app ID may be `Game`, and data lives in `%APPDATA%\Minecraft Bedrock`. → BEDROCK_FEASIBILITY.md
 - **Avalonia 12:** compiled bindings are on by default, `Watermark` became `PlaceholderText`, and the old dialogs are gone (use `StorageProvider`). → CROSS_PLATFORM.md
 - **.NET 10 SDK:** xUnit v3 projects need `global.json` → `"test": {"runner": "Microsoft.Testing.Platform"}`, run as `dotnet test --project …`.

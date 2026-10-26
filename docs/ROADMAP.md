@@ -26,9 +26,8 @@ All seven research documents are written in `docs/research/`, each with sources,
 - Create, rename, clone, delete (with confirmation), memory, JVM arguments, Java path, repair, world backup and restore, disk usage, open folder: COMPLETE
 - Import and export of instance configurations (`.ninja.json`, no machine paths): COMPLETE
 - Custom instance icons (PNG/JPG/WebP/GIF ≤ 2 MB; Modrinth modpacks adopt the pack icon): COMPLETE
-- Pre-list a partner server in Multiplayer (details kept out of the repository, see docs/releases/RELEASING.md): COMPLETE on Windows
+- Pre-list a partner server in Multiplayer (details kept out of the repository, see docs/releases/RELEASING.md): COMPLETE
   - Java: added once to every instance's `servers.dat` before launch, existing servers kept byte for byte, never re-added after the player deletes it: COMPLETE (unit-tested; inactive until the private config exists; not yet seen in-game because sign-in is blocked by B-01)
-  - Bedrock (Windows): added once to every existing profile's `minecraftpe/external_servers.txt` before launch (format checked against a file written by 1.26.52), skipped while the game runs, never re-added after deletion: COMPLETE (unit-tested; inactive until the private config exists). A profile the game hasn't created yet gets it on the next launch. Linux/macOS mcpelauncher profiles: NOT STARTED
 
 ## Phase 5: Modded (v0.5.0 / v0.6.0). PARTIALLY COMPLETE
 - Fabric, Quilt: COMPLETE (verified live)
@@ -41,9 +40,8 @@ All seven research documents are written in `docs/research/`, each with sources,
 - Modpack export: Modrinth `.mrpack` (verified live with a round trip) and CurseForge `.zip` (fingerprint matching is unverified until a key is available; without a key everything is bundled): COMPLETE
 - Project logos in Discover and on installed mods: COMPLETE
 
-## Phase 6: Bedrock (v0.7.0). PARTIALLY COMPLETE
-- Windows detection and launch, data folder: implemented. **Not verified on a machine with Bedrock installed**
-- Linux and macOS: detect an existing mcpelauncher only (unofficial, never bundled)
+## Phase 6: Bedrock (v0.7.0). REMOVED
+- Dropped on 2026-10-26 at the owner's request (D-16). Ninja Launcher is Java Edition only.
 
 ## Phase 7: Advanced (v0.8.0). PARTIALLY COMPLETE
 - Crash-report viewer (crash-reports and JVM hs_err logs, summary with suspected mods and hints; failed exits report the reason): COMPLETE (unit-tested with sample reports, checked in the UI)

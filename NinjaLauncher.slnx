@@ -4,7 +4,6 @@
     <Project Path="src/NinjaLauncher.Desktop/NinjaLauncher.Desktop.csproj" />
     <Project Path="src/NinjaLauncher.Domain/NinjaLauncher.Domain.csproj" />
     <Project Path="src/NinjaLauncher.Infrastructure/NinjaLauncher.Infrastructure.csproj" />
-    <Project Path="src/NinjaLauncher.Minecraft.Bedrock/NinjaLauncher.Minecraft.Bedrock.csproj" />
     <Project Path="src/NinjaLauncher.Minecraft.Java/NinjaLauncher.Minecraft.Java.csproj" />
     <Project Path="src/NinjaLauncher.Mods/NinjaLauncher.Mods.csproj" />
     <Project Path="src/NinjaLauncher.Platform/NinjaLauncher.Platform.csproj" />

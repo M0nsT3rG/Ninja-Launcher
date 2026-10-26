@@ -26,10 +26,3 @@
 | Quilt | Everything `meta.quiltmc.org` lists (beta loaders) | Install verified live (1.21.1) |
 | NeoForge | 1.20.2+ and 26.x | Official installer run, profile resolved and client booted (21.1.265 on 1.21.1) |
 | Forge | 1.12.2 and 1.13+ | Official installer run, profile resolved and client booted (47.4.28 on 1.20.1). 1.7.10–1.12.1 are not supported |
-
-## Bedrock Edition
-
-| Platform | Status |
-| --- | --- |
-| Windows 10/11 | Detects the `Microsoft.MinecraftUWP` package and launches through `shell:AppsFolder`. Not yet verified on a real install |
-| Linux / macOS | No official Bedrock. Ninja Launcher only launches an mcpelauncher you installed yourself (unofficial, requires the Android version from Google Play) |
