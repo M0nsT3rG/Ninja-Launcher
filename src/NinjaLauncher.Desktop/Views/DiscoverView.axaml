@@ -65,6 +65,9 @@
             <TextBlock Text="{l:T 'World'}" VerticalAlignment="Center" Margin="0,0,8,0" />
             <ComboBox ItemsSource="{Binding Worlds}" SelectedItem="{Binding TargetWorld}" MinWidth="180" PlaceholderText="{l:T 'No worlds'}" />
           </StackPanel>
+          <CheckBox Content="{l:T 'Only compatible with this instance'}" IsChecked="{Binding FilterByInstance}" Margin="0,0,16,0"
+                    ToolTip.Tip="{l:T 'Show only content for this instance’s Minecraft version (and mod loader, for mods)'}" />
+
           <TextBlock Classes="muted" Text="{l:T 'Data packs are added to one world. This instance has no worlds yet: play it once and create a world.'}"
                      VerticalAlignment="Center" TextWrapping="Wrap" IsVisible="{Binding HasNoWorlds}" />
         </WrapPanel>

@@ -443,5 +443,6 @@
  "CurseForge does not list a data packs category.": "O CurseForge não tem uma categoria de pacotes de dados.",
  "{0:N0} results on {1} · page {2} of {3}": "{0:N0} resultados no {1} · página {2} de {3}",
  "{0:N0} results for {1} (Minecraft {2} · {3} · {4} MB RAM) · page {5} of {6}": "{0:N0} resultados para {1} (Minecraft {2} · {3} · {4} MB RAM) · página {5} de {6}",
- "Vanilla": "Vanilla"
+ "Vanilla": "Vanilla",
+ "Show only content for this instance’s Minecraft version (and mod loader, for mods)": "Mostrar só conteúdo para a versão do Minecraft desta instância (e o carregador de mods, no caso dos mods)"
 }
