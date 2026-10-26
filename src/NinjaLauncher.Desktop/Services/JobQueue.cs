@@ -51,7 +51,7 @@ public sealed partial class JobViewModel : ObservableObject
         Status = L.T("Starting");
         var progress = new Progress<InstallProgress>(p => Dispatcher.UIThread.Post(() =>
         {
-            Status = p.Stage;
+            Status = L.T(p.Stage);
             Percent = Math.Clamp(p.Percent, 0, 100);
             Speed = p.BytesPerSecond > 0 ? $"{p.BytesPerSecond / 1024 / 1024:0.0} MB/s" : "";
         }));
@@ -75,7 +75,7 @@ public sealed partial class JobViewModel : ObservableObject
         catch (Exception e)
         {
             Status = L.T("Failed");
-            Error = SecretRedactor.Redact(e.Message);
+            Error = L.T(SecretRedactor.Redact(e.Message));
             CanRetry = true;
             _queue.Logger.LogError(e, "Job '{Title}' failed", Title);
             throw;

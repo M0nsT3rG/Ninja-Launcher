@@ -95,6 +95,20 @@ public sealed class HardeningTests
     }
 
     [Fact]
+    public void Formatted_engine_messages_are_translated_including_nested_ones()
+    {
+        try
+        {
+            NinjaLauncher.Desktop.Localization.L.Use("pt-PT");
+            Assert.Equal("Instância 'My Pack 2' criada (1.21.1 Fabric)", NinjaLauncher.Desktop.Localization.L.T("Created instance 'My Pack 2' (1.21.1 Fabric)"));
+            Assert.Equal("Não foi possível carregar as versões do Minecraft: Tempo esgotado a transferir https://x/y.",
+                NinjaLauncher.Desktop.Localization.L.T("Could not load Minecraft versions: Timed out downloading https://x/y."));
+            Assert.Equal("Sodium", NinjaLauncher.Desktop.Localization.L.T("Sodium")); // unknown text passes through
+        }
+        finally { NinjaLauncher.Desktop.Localization.L.Use("en"); }
+    }
+
+    [Fact]
     public void Localize_converter_formats_and_strips_the_xaml_brace_escape()
     {
         var c = new NinjaLauncher.Desktop.Views.LocalizeConverter();

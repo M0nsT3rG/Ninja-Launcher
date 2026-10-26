@@ -128,7 +128,7 @@ public sealed partial class DiscoverViewModel(UiContext ui, ModrinthClient modri
             if (!await ui.ConfirmAsync(L.F("Create a new instance from the modpack '{0}'? Its mods, loader and settings are downloaded from {1}.", hit.Title, hit.CurseForge is null ? "Modrinth" : "CurseForge") + "\n\n" + Warning)) return;
             GameInstance? created = null;
             IReadOnlyList<BlockedFile> blocked = [];
-            await jobs.Run($"Install modpack {hit.Title}", async (progress, ct) =>
+            await jobs.Run(L.F("Install modpack {0}", hit.Title), async (progress, ct) =>
             {
                 if (hit.CurseForge is { } pack) (created, blocked) = await curseForgePacks.InstallFromCurseForgeAsync(pack, progress, ct);
                 else created = await modpacks.InstallFromModrinthAsync(hit.Modrinth!, progress, ct);
@@ -142,7 +142,7 @@ public sealed partial class DiscoverViewModel(UiContext ui, ModrinthClient modri
         if (!await ui.ConfirmAsync(L.F("Install '{0}' and its required dependencies into '{1}'?", hit.Title, target.Name) + "\n\n" + Warning)) return;
         IReadOnlyList<InstalledContent> installed = [];
         IReadOnlyList<BlockedFile> manual = [];
-        await jobs.Run($"Install {hit.Title} → {target.Name}", async (progress, ct) =>
+        await jobs.Run(L.F("Install {0} → {1}", hit.Title, target.Name), async (progress, ct) =>
         {
             progress.Report(new(L.F("Resolving {0}", hit.Title), 10, 0));
             var gameDir = instances.GetGameDirectory(target);

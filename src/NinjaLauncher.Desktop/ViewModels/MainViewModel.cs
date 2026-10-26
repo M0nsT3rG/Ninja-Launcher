@@ -107,8 +107,9 @@ public sealed partial class MainViewModel : ObservableObject
 /// <summary>What pages need from the shell: error reporting, confirmations, navigation.</summary>
 public sealed class UiContext(MainViewModel shell)
 {
-    public void Info(string message) => shell.ShowToast(message, false);
-    public void Error(string message) => shell.ShowToast(message, true);
+    // L.T here also translates already-formatted messages that come from the engine layers.
+    public void Info(string message) => shell.ShowToast(Localization.L.T(message), false);
+    public void Error(string message) => shell.ShowToast(Localization.L.T(message), true);
     public Task<bool> ConfirmAsync(string text) => shell.AskAsync(text);
     public void Navigate(ViewModelBase page) => shell.Navigate(page);
     public MainViewModel Shell => shell;

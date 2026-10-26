@@ -86,7 +86,7 @@
           <ItemsControl.ItemTemplate>
             <DataTemplate DataType="d:ActivityEntry">
               <StackPanel Margin="0,0,0,10">
-                <TextBlock Text="{Binding Message}" TextWrapping="Wrap" />
+                <TextBlock Text="{Binding Message, Converter={x:Static v:Converters.Translate}}" TextWrapping="Wrap" />
                 <TextBlock Classes="muted" FontSize="11" Text="{Binding TimestampUtc, Converter={x:Static v:Converters.LocalTime}}" />
               </StackPanel>
             </DataTemplate>

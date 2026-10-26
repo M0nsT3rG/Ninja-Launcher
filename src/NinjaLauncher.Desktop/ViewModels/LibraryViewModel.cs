@@ -224,7 +224,7 @@ public sealed partial class LibraryViewModel : ViewModelBase
         if (file is null) return;
         if (!file.EndsWith(".mrpack", StringComparison.OrdinalIgnoreCase)) file += ".mrpack";
         MrpackExportResult? result = null;
-        await _jobs.Run($"Export {instance.Name} as .mrpack", async (progress, ct) =>
+        await _jobs.Run(L.F("Export {0} as .mrpack", instance.Name), async (progress, ct) =>
             result = await _exporter.ExportAsync(instance, _instances.GetGameDirectory(instance), file, "1.0.0",
                 new Progress<double>(p => progress.Report(new("Packing", p, 0))), ct));
         if (result is null) return; // cancelled
@@ -242,7 +242,7 @@ public sealed partial class LibraryViewModel : ViewModelBase
         if (file is null) return;
         if (!file.EndsWith(".zip", StringComparison.OrdinalIgnoreCase)) file += ".zip";
         NinjaLauncher.Mods.CurseForge.CurseForgeExportResult? result = null;
-        await _jobs.Run($"Export {instance.Name} for CurseForge", async (progress, ct) =>
+        await _jobs.Run(L.F("Export {0} for CurseForge", instance.Name), async (progress, ct) =>
             result = await _curseForgeExporter.ExportAsync(instance, _instances.GetGameDirectory(instance), file, "1.0.0",
                 new Progress<double>(p => progress.Report(new("Packing", p, 0))), ct));
         if (result is null) return; // cancelled
@@ -290,7 +290,7 @@ public sealed partial class LibraryViewModel : ViewModelBase
         if (file is null) return;
         var instance = await _instances.ImportConfigAsync(file);
         if (instance.Loader != ModLoaderKind.None && instance.LoaderVersion is { } lv)
-            await _jobs.Run($"Install {instance.Loader} {lv} for {instance.Name}", async (progress, ct) =>
+            await _jobs.Run(L.F("Install {0} {1} for {2}", instance.Loader, lv, instance.Name), async (progress, ct) =>
             {
                 var id = await _loaders[instance.Loader].InstallAsync(instance.MinecraftVersion, lv, progress, ct);
                 await _instances.SetLaunchVersionAsync(instance.Id, id, ct: ct);
@@ -307,7 +307,7 @@ public sealed partial class LibraryViewModel : ViewModelBase
         if (file is null) return;
         GameInstance? created = null;
         IReadOnlyList<NinjaLauncher.Mods.CurseForge.BlockedFile> blocked = [];
-        await _jobs.Run($"Import {Path.GetFileName(file)}", async (progress, ct) =>
+        await _jobs.Run(L.F("Import {0}", Path.GetFileName(file)), async (progress, ct) =>
         {
             if (file.EndsWith(".zip", StringComparison.OrdinalIgnoreCase)) (created, blocked) = await _curseForgePacks.InstallFromFileAsync(file, progress, ct);
             else created = await _modpacks.InstallFromFileAsync(file, progress, ct);
@@ -332,7 +332,7 @@ public sealed partial class LibraryViewModel : ViewModelBase
         if (loader != ModLoaderKind.None)
         {
             _ui.Info(L.F("Installing {0} {1}… see Downloads.", loader, loaderVersion));
-            await _jobs.Run($"Install {loader} {loaderVersion} for {name}", async (progress, ct) =>
+            await _jobs.Run(L.F("Install {0} {1} for {2}", loader, loaderVersion, name), async (progress, ct) =>
             {
                 var id = await _loaders[loader].InstallAsync(mc, loaderVersion!, progress, ct);
                 await _instances.SetLaunchVersionAsync(instance.Id, id, ct: ct);
@@ -376,7 +376,7 @@ public sealed partial class LibraryViewModel : ViewModelBase
         _game.EnsureNotRunning(instance, "repair it");
         if (instance.Loader != ModLoaderKind.None && instance.LoaderVersion is { } lv)
         {
-            await _jobs.Run($"Reinstall {instance.Loader} for {instance.Name}", async (progress, ct) =>
+            await _jobs.Run(L.F("Reinstall {0} for {1}", instance.Loader, instance.Name), async (progress, ct) =>
             {
                 var id = await _loaders[instance.Loader].InstallAsync(instance.MinecraftVersion, lv, progress, ct);
                 instance = await _instances.SetLaunchVersionAsync(instance.Id, id, ct: ct);
@@ -454,7 +454,7 @@ public sealed partial class LibraryViewModel : ViewModelBase
         var updates = _updates;
         var gameDir = _instances.GetGameDirectory(instance);
         var skipped = 0;
-        await _jobs.Run($"Update {updates.Count} mod(s) in {instance.Name}", async (progress, ct) =>
+        await _jobs.Run(L.F("Update {0} mod(s) in {1}", updates.Count, instance.Name), async (progress, ct) =>
         {
             for (var i = 0; i < updates.Count; i++)
             {
@@ -564,7 +564,7 @@ public sealed partial class LibraryViewModel : ViewModelBase
         _game.EnsureNotRunning(instance, "install mods");
         var gameDir = _instances.GetGameDirectory(instance);
         IReadOnlyList<InstalledContent> added = [];
-        await _jobs.Run($"Install missing dependencies for {instance.Name}", async (progress, ct) =>
+        await _jobs.Run(L.F("Install missing dependencies for {0}", instance.Name), async (progress, ct) =>
         {
             // Re-check first: the mods may have changed since the list on screen was produced.
             progress.Report(new(L.T("Checking dependencies"), 5, 0));

@@ -52,6 +52,9 @@ public static class Converters
 {
     public static readonly IValueConverter Localize = new LocalizeConverter();
 
+    /// <summary>Translates text produced by the engine layers (activity entries, mod issues, crash hints, enum names).</summary>
+    public static readonly IValueConverter Translate = new FuncValueConverter<object?, string?>(v => v is null ? null : NinjaLauncher.Desktop.Localization.L.T(v.ToString() ?? ""));
+
     public static readonly IValueConverter Geometry = new FuncValueConverter<string, StreamGeometry?>(s => s is null ? null : StreamGeometry.Parse(s));
 
     public static readonly IValueConverter LocalTime = new FuncValueConverter<DateTimeOffset, string>(t => t.LocalDateTime.ToString("g", CultureInfo.CurrentCulture));

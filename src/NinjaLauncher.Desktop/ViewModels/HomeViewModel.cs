@@ -118,7 +118,7 @@ public sealed partial class HomeViewModel : ViewModelBase
     {
         var errors = await game.CheckModsBeforeLaunchAsync(instance);
         if (errors.Count == 0) return true;
-        var list = string.Join("\n", errors.Take(5).Select(e => "• " + e.Message)) + (errors.Count > 5 ? $"\n• …and {errors.Count - 5} more" : "");
+        var list = string.Join("\n", errors.Take(5).Select(e => "• " + L.T(e.Message))) + (errors.Count > 5 ? "\n• " + L.F("…and {0} more", errors.Count - 5) : "");
         return await ui.ConfirmAsync(L.F("'{0}' has mod problems that will probably stop it from starting:", instance.Name) + "\n\n" + list + "\n\n" + L.T("You can fix them in Library → Check compatibility. Launch anyway?"));
     }
 

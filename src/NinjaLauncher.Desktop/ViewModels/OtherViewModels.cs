@@ -34,7 +34,7 @@ public sealed partial class AccountsViewModel(UiContext ui, AccountService accou
     public bool CanSignIn => accounts.CanSignIn;
     public string SignInUnavailableReason => L.T("Microsoft sign-in needs an Azure application ID approved by Mojang. Enter it under Settings → Accounts. Until then, sign-in is disabled (see docs/research/AUTHENTICATION.md).");
     public string StorageText => accounts.SecretStore.IsAvailable
-        ? L.F("Sign-in tokens are stored with {0}.", accounts.SecretStore.BackendName)
+        ? L.F("Sign-in tokens are stored with {0}.", L.T(accounts.SecretStore.BackendName))
         : L.T("No secure credential storage is available on this system. You will need to sign in again every time the launcher starts.");
 
     public override async Task OnShownAsync()

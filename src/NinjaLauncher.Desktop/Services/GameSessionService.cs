@@ -34,7 +34,7 @@ public sealed class GameSessionService(
         var account = await accounts.GetActiveAsync() ?? throw new InvalidOperationException(L.T("Sign in with a Microsoft account on the Accounts page before playing."));
         if (IsRunning(instance.Id)) throw new InvalidOperationException(L.F("'{0}' is already running.", instance.Name));
         // The guard lives inside the job so a Retry from the Downloads page is protected too.
-        await jobs.Run($"Play {instance.Name}", async (progress, ct) =>
+        await jobs.Run(L.F("Play {0}", instance.Name), async (progress, ct) =>
         {
             lock (_running)
                 if (!_running.Add(instance.Id)) throw new InvalidOperationException(L.F("'{0}' is already running.", instance.Name));
@@ -43,7 +43,7 @@ public sealed class GameSessionService(
             {
                 Dispatcher.UIThread.Post(Log.Clear);
                 var session = await accounts.GetSessionAsync(account, ct);
-                var current = await instances.GetAsync(instance.Id, ct) ?? throw new InvalidOperationException($"'{instance.Name}' no longer exists.");
+                var current = await instances.GetAsync(instance.Id, ct) ?? throw new InvalidOperationException(L.F("'{0}' no longer exists.", instance.Name));
                 await instances.MarkPlayedAsync(current.Id, ct);
                 await activity.AddAsync($"Launched '{current.Name}' as {session.Username}", ct);
                 var started = DateTime.UtcNow.AddSeconds(-5);
@@ -90,7 +90,7 @@ public sealed class GameSessionService(
             if (crash is null) return fallback;
             var summary = CrashReports.Summarize(CrashReports.ReadText(crash), crash.IsJvmCrash);
             var cause = summary.RootCause ?? summary.Exception;
-            return $"{summary.Title}{(cause is null ? "" : $" ({cause})")}. {summary.Hint ?? L.T("See Library → Crash reports for details.")}";
+            return $"{L.T(summary.Title)}{(cause is null ? "" : $" ({cause})")}. {L.T(summary.Hint ?? "See Library → Crash reports for details.")}";
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
         {
@@ -104,7 +104,7 @@ public sealed class GameSessionService(
         if (IsRunning(instance.Id)) throw new InvalidOperationException(L.F("Close '{0}' before you {1}.", instance.Name, L.T(action)));
     }
 
-    public Task RepairAsync(GameInstance instance) => jobs.Run($"Repair {instance.Name}", async (progress, ct) =>
+    public Task RepairAsync(GameInstance instance) => jobs.Run(L.F("Repair {0}", instance.Name), async (progress, ct) =>
     {
         EnsureNotRunning(instance, "repair it");
         // shortcut: full verification is a downloader-wide flag; a concurrent launch also re-hashes. Make it per-call if that hurts.
