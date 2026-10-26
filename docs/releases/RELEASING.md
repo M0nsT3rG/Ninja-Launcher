@@ -49,6 +49,13 @@ address may be left out).
 For local builds, put the same JSON in `src/NinjaLauncher.Desktop/listed-server.json` (git-ignored). Without either,
 nothing is listed. Players can still see the address in-game, as with any server in their list.
 
+## Built-in CurseForge key (private, off until permitted)
+
+Release builds embed the repository secret `CURSEFORGE_API_KEY` so CurseForge works without setup; a key a user saves in
+Settings takes precedence. Only add the secret once Overwolf has confirmed in writing that your key may be distributed
+inside Ninja Launcher (CurseForge 3rd Party API Terms §2.2). For a local build, put the key in
+`src/NinjaLauncher.Desktop/curseforge-api.key` (git-ignored by `*.key`).
+
 ## Cutting a release
 
 1. Update `CHANGELOG.md` and the `<Version>` in `Directory.Build.props`.

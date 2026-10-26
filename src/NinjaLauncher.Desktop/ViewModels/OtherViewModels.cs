@@ -132,9 +132,11 @@ public sealed partial class SettingsViewModel(UiContext ui, SettingsHolder setti
     });
 
     private async Task RefreshCurseForgeStatusAsync() =>
-        CurseForgeStatus = await secrets.GetAsync(CurseForgeSecretKey) is null
-            ? L.T("No key saved. CurseForge is disabled in Discover.")
-            : L.F("A key is saved ({0}). CurseForge is enabled in Discover.", secrets.BackendName);
+        CurseForgeStatus = await secrets.GetAsync(CurseForgeSecretKey) is not null
+            ? L.F("A key is saved ({0}). CurseForge is enabled in Discover.", secrets.BackendName)
+            : Services.BuiltInKeys.CurseForge is not null
+                ? L.T("Using Ninja Launcher's built-in key; CurseForge is enabled in Discover. Save your own key to use it instead.")
+                : L.T("No key saved. CurseForge is disabled in Discover.");
     [ObservableProperty, NotifyPropertyChangedFor(nameof(HasPendingUpdate))] public partial string? PendingVersion { get; set; } = updates.PendingVersion;
     [ObservableProperty] public partial string UpdateStatus { get; set; } = updates.UnavailableReason ?? L.T("Updates are signed by the Ninja Launcher release key and only install when you click Install.");
     [ObservableProperty] public partial bool IsUpdating { get; set; }

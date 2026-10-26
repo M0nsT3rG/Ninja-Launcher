@@ -65,7 +65,7 @@ public static class AppServices
         // Separate clients so the API key can never follow a redirect off api.curseforge.com, and CDN redirects stay on *.forgecdn.net.
         s.AddSingleton(sp => new NinjaLauncher.Mods.CurseForge.CurseForgeClient(
             RedirectGuardHandler.CreateClient(u => u.Host == "api.curseforge.com"),
-            ct => sp.GetRequiredService<ISecretStore>().GetAsync(NinjaLauncher.Desktop.ViewModels.SettingsViewModel.CurseForgeSecretKey, ct),
+            async ct => await sp.GetRequiredService<ISecretStore>().GetAsync(NinjaLauncher.Desktop.ViewModels.SettingsViewModel.CurseForgeSecretKey, ct) ?? BuiltInKeys.CurseForge,
             new HttpDownloadService(RedirectGuardHandler.CreateClient(u => NinjaLauncher.Mods.CurseForge.CurseForgeClient.IsCurseForgeCdn(u.Host)),
                 () => settingsHolder.Current.DownloadConcurrency, sp.GetRequiredService<ILogger<HttpDownloadService>>())));
         s.AddSingleton<NinjaLauncher.Mods.CurseForge.CurseForgeModpackInstaller>();

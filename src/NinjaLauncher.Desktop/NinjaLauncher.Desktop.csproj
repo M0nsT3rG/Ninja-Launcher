@@ -12,6 +12,8 @@
     <EmbeddedResource Include="Localization\*.json" LogicalName="NinjaLauncher.Localization.%(Filename).json" />
     <!-- Private, git-ignored: the server pre-listed in Multiplayer (see Services/ListedServer.cs). -->
     <EmbeddedResource Include="listed-server.json" LogicalName="NinjaLauncher.listed-server.json" Condition="Exists('listed-server.json')" />
+    <!-- Private, git-ignored (*.key): the CurseForge key built into release builds (see Services/BuiltInKeys.cs). -->
+    <EmbeddedResource Include="curseforge-api.key" LogicalName="NinjaLauncher.curseforge-api.key" Condition="Exists('curseforge-api.key')" />
     <!-- The owner's update-feed public key. Without it, self-update stays disabled (see docs/releases/RELEASING.md). -->
     <EmbeddedResource Include="..\..\branding\update-signing-key.pub.pem" LogicalName="NinjaLauncher.UpdateSigningKey.pem"
                       Condition="Exists('..\..\branding\update-signing-key.pub.pem')" />

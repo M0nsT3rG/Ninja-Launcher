@@ -50,12 +50,14 @@ jobs:
       - name: Unit tests
         run: dotnet test --project tests/NinjaLauncher.UnitTests -c Release
 
-      - name: Embed the listed server (private, optional)
+      - name: Embed private build values (optional)
         env:
           LISTED_SERVER_JSON: ${{ secrets.LISTED_SERVER_JSON }}
+          CURSEFORGE_API_KEY: ${{ secrets.CURSEFORGE_API_KEY }}
         shell: bash
         run: |
           if [ -n "$LISTED_SERVER_JSON" ]; then printf '%s' "$LISTED_SERVER_JSON" > src/NinjaLauncher.Desktop/listed-server.json; fi
+          if [ -n "$CURSEFORGE_API_KEY" ]; then printf '%s' "$CURSEFORGE_API_KEY" > src/NinjaLauncher.Desktop/curseforge-api.key; fi
 
       - name: Publish
         run: dotnet publish src/NinjaLauncher.Desktop -c Release -r ${{ matrix.rid }} --self-contained -p:Version=${{ env.VERSION }} -o publish
@@ -104,12 +106,14 @@ jobs:
           echo "version=$V" >> "$GITHUB_OUTPUT"
       - name: Install packaging tools
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends imagemagick desktop-file-utils appstream
-      - name: Embed the listed server (private, optional)
+      - name: Embed private build values (optional)
         env:
           LISTED_SERVER_JSON: ${{ secrets.LISTED_SERVER_JSON }}
+          CURSEFORGE_API_KEY: ${{ secrets.CURSEFORGE_API_KEY }}
         shell: bash
         run: |
           if [ -n "$LISTED_SERVER_JSON" ]; then printf '%s' "$LISTED_SERVER_JSON" > src/NinjaLauncher.Desktop/listed-server.json; fi
+          if [ -n "$CURSEFORGE_API_KEY" ]; then printf '%s' "$CURSEFORGE_API_KEY" > src/NinjaLauncher.Desktop/curseforge-api.key; fi
 
       - name: Publish
         run: dotnet publish src/NinjaLauncher.Desktop -c Release -r linux-x64 --self-contained -p:Version=${{ steps.version.outputs.version }} -o publish

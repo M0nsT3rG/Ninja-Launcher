@@ -439,5 +439,6 @@
  "Desktop notifications when a download finishes or the game closes while the launcher is in the background": "Notificações do sistema quando uma transferência termina ou o jogo fecha com o launcher em segundo plano",
  "In-app updates only work in a copy installed with the Ninja Launcher installer or AppImage. Development, portable, .deb and Flatpak copies update by installing the new release.": "As atualizações na aplicação só funcionam numa cópia instalada com o instalador do Ninja Launcher ou com a AppImage. As cópias de desenvolvimento, portáteis, .deb e Flatpak atualizam-se instalando a nova versão.",
  "Packing": "A empacotar",
- "Updates are not available.": "As atualizações não estão disponíveis."
+ "Updates are not available.": "As atualizações não estão disponíveis.",
+ "Using Ninja Launcher's built-in key; CurseForge is enabled in Discover. Save your own key to use it instead.": "A usar a chave incluída no Ninja Launcher; o CurseForge está ativo em Descobrir. Guarda a tua própria chave para a usares em vez desta."
 }
