@@ -14,7 +14,8 @@ dotnet test --project tests/NinjaLauncher.IntegrationTests   # live public APIs:
 | Full install (opt-in) | IntegrationTests `NINJA_FULL_INSTALL=1` | Yes (~1 GB) | A complete version and its Mojang Java runtime install with every file hash-verified; a second pass is a fast no-op |
 | Engine launch smoke (opt-in) | IntegrationTests `NINJA_LAUNCH_SMOKE=1` with `NINJA_IT_HOME` | Yes | The generated command line boots the real client to LWJGL and resource initialisation, then the test stops it. It uses a placeholder session. **This is not an authenticated launch and not the acceptance test** |
 | Live sign-in up to Mojang (manual) | manual | Yes | 2026-10-25 on Windows with a real personal account. Browser PKCE login, token exchange, Xbox Live and XSTS succeeded, and `login_with_xbox` returned the expected 403 (app ID not yet approved). The first attempt found a camelCase JSON bug (Xbox returned 400); it was fixed in 179560c |
-| Authenticated launch (acceptance) | manual | Yes | **Not yet performed.** Blocked by `.ai/BLOCKERS.md` B-01 |
+| Live sign-in (manual) | manual | Yes | 2026-10-26 on Windows after Mojang approved the app ID: the full chain completed and the Minecraft profile was resolved |
+| Authenticated launch (acceptance) | manual | Yes | **Not yet performed.** Sign-in now works (B-01 resolved) |
 
 No test fixture contains real credentials or game files. The mocks are a fake `IMinecraftAuthenticator` and in-memory repositories, and they are only used for account and instance logic.
 

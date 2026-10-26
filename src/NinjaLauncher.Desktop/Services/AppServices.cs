@@ -46,7 +46,8 @@ public static class AppServices
         s.AddSingleton<IJavaDiscovery, JavaDiscovery>();
         s.AddSingleton(sp => SecretStoreFactory.Create(sp.GetRequiredService<IAppPaths>()));
         s.AddSingleton<IMinecraftAuthenticator>(sp => new MicrosoftAuthenticator(sp.GetRequiredService<HttpClient>(), sp.GetRequiredService<IUrlLauncher>(),
-            () => Environment.GetEnvironmentVariable("NINJA_MSA_CLIENT_ID") is { Length: > 0 } env ? env : settingsHolder.Current.MicrosoftClientId,
+            () => Environment.GetEnvironmentVariable("NINJA_MSA_CLIENT_ID") is { Length: > 0 } env ? env
+                : settingsHolder.Current.MicrosoftClientId is { Length: > 0 } own ? own : BuiltInKeys.MicrosoftClientId,
             sp.GetRequiredService<ILogger<MicrosoftAuthenticator>>()));
         s.AddSingleton<InstanceService>();
         s.AddSingleton<AccountService>();

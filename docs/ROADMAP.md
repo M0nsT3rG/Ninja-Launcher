@@ -10,9 +10,9 @@ All seven research documents are written in `docs/research/`, each with sources,
 - Avalonia shell with 6 pages, dark and light themes, custom accent colour, owner-supplied logo: COMPLETE
 - CI on Windows x64, Linux x64, macOS arm64 and macOS x64: COMPLETE (green on 2026-10-25)
 
-## Phase 2: Authentication (v0.2.0). BLOCKED (external)
+## Phase 2: Authentication (v0.2.0). COMPLETE
 - PKCE loopback flow, state validation, Xbox, XSTS with error mapping, Minecraft profile, refresh with rotation, multiple accounts, switching and removal: implemented and unit-tested
-- Real sign-in: **BLOCKED** until Mojang approves an Azure app ID (see `.ai/BLOCKERS.md` B-01). Verified live up to that point: browser PKCE, token exchange, Xbox Live and XSTS succeed, and Minecraft returns the expected 403
+- Real sign-in: COMPLETE (verified live 2026-10-26). Mojang approved the app ID, which is now built in (Settings or `NINJA_MSA_CLIENT_ID` can override it)
 - Offline profiles (custom name, Prism-style): COMPLETE (unit-tested). Locked until a Microsoft account that owns Java Edition has signed in on this launcher, then stay unlocked. They use the vanilla offline UUID and the `legacy` user type, and never contact Microsoft. In practice they are unusable until B-01 is resolved
 
 ## Phase 3: Playable Java Edition (v0.3.0). PARTIALLY COMPLETE
@@ -20,7 +20,7 @@ All seven research documents are written in `docs/research/`, each with sources,
 - Install of client, libraries, assets, legacy assets, natives and logging config, with hash checks, retry and repair: COMPLETE (verified live)
 - Mojang Java runtime install, system Java fallback: COMPLETE (verified live)
 - Argument generation (modern, legacy, `default-user-jvm`), process launch, log capture, exit status, cancellation: implemented and unit-tested
-- **First playable acceptance test** (authenticated launch): BLOCKED by B-01
+- **First playable acceptance test** (authenticated launch): ready to run, sign-in works since 2026-10-26
 
 ## Phase 4: Instance management (v0.4.0). PARTIALLY COMPLETE
 - Create, rename, clone, delete (with confirmation), memory, JVM arguments, Java path, repair, world backup and restore, disk usage, open folder: COMPLETE

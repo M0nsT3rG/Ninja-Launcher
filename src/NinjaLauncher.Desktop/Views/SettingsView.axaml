@@ -81,8 +81,8 @@
         <Border Classes="card">
           <StackPanel Spacing="10">
             <TextBlock Classes="h2" Text="{l:T 'Accounts'}" />
-            <TextBlock Classes="muted" Text="{l:T 'Azure application (client) ID used for Microsoft sign-in. It must be registered in Microsoft Entra and approved by Mojang for Minecraft Services.'}" />
-            <TextBox Text="{Binding ClientId}" PlaceholderText="00000000-0000-0000-0000-000000000000" />
+            <TextBlock Classes="muted" Text="{l:T 'Microsoft sign-in uses Ninja Launcher’s own approved app ID. Only builds of your own need a different Azure application (client) ID, registered in Microsoft Entra and approved by Mojang.'}" />
+            <TextBox Text="{Binding ClientId}" PlaceholderText="{l:T 'Leave empty to use Ninja Launcher’s ID'}" />
             <Button Content="{l:T 'How to get an approved app ID'}" Command="{Binding OpenLinkCommand}" CommandParameter="https://help.minecraft.net/hc/en-us/articles/16254801392141" />
           </StackPanel>
         </Border>

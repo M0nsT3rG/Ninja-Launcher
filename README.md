@@ -25,11 +25,12 @@ Pre-release (v0.1.0 development). See [docs/ROADMAP.md](docs/ROADMAP.md) for eac
 | Modpacks (.mrpack install from Modrinth or file) | Complete (validation verified on a live pack); export not started |
 | Installers (Velopack) and a signed update feed | Implemented; Windows packaging verified locally. Self-update needs the owner key (B-05) and a public repository |
 
-## Microsoft sign-in requires an approved app ID
+## Microsoft sign-in and the app ID
 
 Mojang only allows Azure application IDs it has reviewed to call Minecraft Services.
-Until an ID is approved, every sign-in fails at `login_with_xbox` with HTTP 403.
-The project owner needs to:
+Ninja Launcher's own ID was approved on 2026-10-26 and is built in, so official builds need no setup.
+If you build a fork, it must use its own approved ID; with any other ID, sign-in fails at `login_with_xbox` with HTTP 403.
+To get one:
 
 1. Register a free app in Microsoft Entra (personal Microsoft accounts, "Mobile and desktop" redirect URI `http://localhost`, no client secret). Don't put "Minecraft" in the app name.
 2. Submit the app ID through the [AppID Review form](https://aka.ms/mce-reviewappid) ([details](https://help.minecraft.net/hc/en-us/articles/16254801392141)).

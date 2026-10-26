@@ -11,7 +11,7 @@ Last updated: 2026-10-25. See `docs/ROADMAP.md` for the status of each feature.
 - Owner logo integrated (`branding/ninja-launcher-logo.png` → `Assets/ninja-launcher.{png,ico}`).
 
 ## Waiting on external approvals (as of 2026-10-26)
-- Mojang AppID review for client ID `db657a7e-8a69-4faa-ae7f-a607b8f9a30a` (B-01). When approved, sign in, then do the first real launch (the acceptance test).
+- ~~Mojang AppID review (B-01)~~: approved 2026-10-26, ID built in, live sign-in verified. Next: the first real launch (the acceptance test).
 - CurseForge API key application (B-06). When approved, the owner pastes the key in Settings → CurseForge, then run the live test with `NINJA_CURSEFORGE_API_KEY`.
 
 ## Next unblocked tasks
