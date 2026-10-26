@@ -40,6 +40,13 @@ Why steps 2 and 3 matter: without them, anyone with write access to the reposito
 
 If you lose the private key, users can't receive updates until they reinstall a build that has the new public key. Keep a backup.
 
+## Pre-listed server (private)
+
+Release builds can pre-list one server in every Java instance's Multiplayer list. Its details stay out of the
+repository: set the repository secret `LISTED_SERVER_JSON` to `{"name": "<display name>", "javaAddress": "<host[:port]>"}`.
+For local builds, put the same JSON in `src/NinjaLauncher.Desktop/listed-server.json` (git-ignored). Without either,
+nothing is listed. Players can still see the address in-game, as with any server in their list.
+
 ## Cutting a release
 
 1. Update `CHANGELOG.md` and the `<Version>` in `Directory.Build.props`.

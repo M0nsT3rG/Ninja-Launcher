@@ -18,6 +18,8 @@ publish/
 *.p12
 *.snk
 secrets.json
+# private: the server pre-listed in Multiplayer (release builds write it from a secret)
+listed-server.json
 .env
 
 # signing keys: only the update public key may be committed

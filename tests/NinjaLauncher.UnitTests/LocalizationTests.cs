@@ -55,6 +55,9 @@ public sealed partial class LocalizationTests
         "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {SourceContext}: {Message:lj}{NewLine}{Exception}",
         "Application Support", "Eclipse Adoptium", "Amazon Corretto", "Windows DPAPI", "Minecraft Bedrock",
         "Exported from Ninja Launcher ({0}{1})", "Caused by: ", "Ninja Launcher",
+        // servers.dat parsing: caught internally, never shown
+        "Bad NBT array length.", "Bad NBT list length.", "NBT nested too deeply.", "NBT string too long.", "Truncated NBT.", "Unexpected NBT value.",
+        "Unknown NBT tag {0}.", "Ninja Launcher added its listed server to servers.dat once; delete this file to offer it again.\n",
     ];
 
     /// <summary>

@@ -50,6 +50,13 @@ jobs:
       - name: Unit tests
         run: dotnet test --project tests/NinjaLauncher.UnitTests -c Release
 
+      - name: Embed the listed server (private, optional)
+        env:
+          LISTED_SERVER_JSON: ${{ secrets.LISTED_SERVER_JSON }}
+        shell: bash
+        run: |
+          if [ -n "$LISTED_SERVER_JSON" ]; then printf '%s' "$LISTED_SERVER_JSON" > src/NinjaLauncher.Desktop/listed-server.json; fi
+
       - name: Publish
         run: dotnet publish src/NinjaLauncher.Desktop -c Release -r ${{ matrix.rid }} --self-contained -p:Version=${{ env.VERSION }} -o publish
 
@@ -97,6 +104,13 @@ jobs:
           echo "version=$V" >> "$GITHUB_OUTPUT"
       - name: Install packaging tools
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends imagemagick desktop-file-utils appstream
+      - name: Embed the listed server (private, optional)
+        env:
+          LISTED_SERVER_JSON: ${{ secrets.LISTED_SERVER_JSON }}
+        shell: bash
+        run: |
+          if [ -n "$LISTED_SERVER_JSON" ]; then printf '%s' "$LISTED_SERVER_JSON" > src/NinjaLauncher.Desktop/listed-server.json; fi
+
       - name: Publish
         run: dotnet publish src/NinjaLauncher.Desktop -c Release -r linux-x64 --self-contained -p:Version=${{ steps.version.outputs.version }} -o publish
       # Plain publish output, not the Velopack package: the package manager owns updates, so the in-app updater stays off.

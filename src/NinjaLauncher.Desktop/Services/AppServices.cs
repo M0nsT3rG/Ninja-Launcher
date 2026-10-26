@@ -76,6 +76,7 @@ public static class AppServices
                 sp.GetRequiredService<VersionCatalog>(), sp.GetRequiredService<GameInstaller>(), sp.GetRequiredService<JavaRuntimeManager>(),
                 sp.GetRequiredService<ILogger<InstallerLoaderProvider>>()));
         s.AddSingleton<NotificationService>();
+        s.AddSingleton<ListedServer>();
         s.AddSingleton<JobQueue>();
         s.AddSingleton<GameSessionService>();
         s.AddSingleton<UpdateService>();

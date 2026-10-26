@@ -16,7 +16,8 @@ namespace NinjaLauncher.Desktop.Services;
 /// <summary>Play/repair workflows shared by Home and Library. Owns the live game log.</summary>
 public sealed class GameSessionService(
     JavaLaunchService launcher, InstanceService instances, AccountService accounts, JobQueue jobs,
-    HttpDownloadService downloader, IActivityLog activity, ModCompatibilityChecker checker, NotificationService notifications)
+    HttpDownloadService downloader, IActivityLog activity, ModCompatibilityChecker checker, NotificationService notifications,
+    ListedServer listedServer)
 {
     private const int MaxLogLines = 3000;
     private readonly HashSet<Guid> _running = [];
@@ -45,6 +46,7 @@ public sealed class GameSessionService(
                 var session = await accounts.GetSessionAsync(account, ct);
                 var current = await instances.GetAsync(instance.Id, ct) ?? throw new InvalidOperationException(L.F("'{0}' no longer exists.", instance.Name));
                 await instances.MarkPlayedAsync(current.Id, ct);
+                listedServer.EnsureJava(instances.GetGameDirectory(current));
                 await activity.AddAsync($"Launched '{current.Name}' as {session.Username}", ct);
                 var started = DateTime.UtcNow.AddSeconds(-5);
                 var exit = await launcher.LaunchAsync(current, instances.GetGameDirectory(current),
