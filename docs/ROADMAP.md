@@ -25,7 +25,7 @@ All seven research documents are written in `docs/research/`, each with sources,
 ## Phase 4: Instance management (v0.4.0). PARTIALLY COMPLETE
 - Create, rename, clone, delete (with confirmation), memory, JVM arguments, Java path, repair, world backup and restore, disk usage, open folder: COMPLETE
 - Import and export of instance configurations (`.ninja.json`, no machine paths): COMPLETE
-- Custom icons: NOT STARTED
+- Custom instance icons (PNG/JPG/WebP/GIF ≤ 2 MB; Modrinth modpacks adopt the pack icon): COMPLETE
 
 ## Phase 5: Modded (v0.5.0 / v0.6.0). PARTIALLY COMPLETE
 - Fabric, Quilt: COMPLETE (verified live)
@@ -35,7 +35,8 @@ All seven research documents are written in `docs/research/`, each with sources,
 - Mod updates (hash lookup via `/version_files/update`, works for hand-added jars, keeps the disabled state, release-only unless already on a pre-release): COMPLETE (verified live)
 - Compatibility checks (Library + before Play: missing/disabled dependencies, incompatibilities, duplicates, wrong loader/version; one-click install of missing dependencies): COMPLETE (verified live and in the UI)
 - CurseForge (search mods, modpacks, shaders and resource packs; install with dependencies; CurseForge modpack zips; author-blocked files sent to manual download): PARTIALLY COMPLETE. Implemented and unit-tested; live use needs the owner's API key (B-06)
-- .mrpack export: NOT STARTED
+- Modpack export: Modrinth `.mrpack` (verified live with a round trip) and CurseForge `.zip` (fingerprint matching is unverified until a key is available; without a key everything is bundled): COMPLETE
+- Project logos in Discover and on installed mods: COMPLETE
 
 ## Phase 6: Bedrock (v0.7.0). PARTIALLY COMPLETE
 - Windows detection and launch, data folder: implemented. **Not verified on a machine with Bedrock installed**
@@ -43,7 +44,8 @@ All seven research documents are written in `docs/research/`, each with sources,
 
 ## Phase 7: Advanced (v0.8.0). PARTIALLY COMPLETE
 - Crash-report viewer (crash-reports and JVM hs_err logs, summary with suspected mods and hints; failed exits report the reason): COMPLETE (unit-tested with sample reports, checked in the UI)
-- Performance benchmarks, localisation, notifications: NOT STARTED
+- Localisation: Portuguese (Portugal), 242 strings; messages from the engine layers are still English: PARTIALLY COMPLETE
+- Performance benchmarks, notifications: NOT STARTED
 
 ## Phase 8: Distribution (v0.9.0 → v1.0.0). PARTIALLY COMPLETE
 - Velopack packaging (Windows Setup + portable zip, Linux AppImage, macOS .app/.pkg) and a draft-release workflow with SHA256SUMS: COMPLETE (Windows packaging verified locally; other platforms run only in the release workflow, **not yet run**)

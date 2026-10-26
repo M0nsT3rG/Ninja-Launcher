@@ -14,6 +14,7 @@
     <ProjectReference Include="..\..\src\NinjaLauncher.Minecraft.Java\NinjaLauncher.Minecraft.Java.csproj" />
     <ProjectReference Include="..\..\src\NinjaLauncher.Minecraft.Bedrock\NinjaLauncher.Minecraft.Bedrock.csproj" />
     <ProjectReference Include="..\..\src\NinjaLauncher.Mods\NinjaLauncher.Mods.csproj" />
+    <ProjectReference Include="..\..\src\NinjaLauncher.Desktop\NinjaLauncher.Desktop.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Using Include="Xunit" />

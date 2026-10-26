@@ -6,7 +6,7 @@ using NinjaLauncher.Mods.Modrinth;
 
 namespace NinjaLauncher.Mods.CurseForge;
 
-public sealed record CurseForgeExportResult(string Path, int LinkedFiles, int OverrideFiles, int SkippedDisabled, bool CurseForgeChecked);
+public sealed record CurseForgeExportResult(string Path, int LinkedFiles, int OverrideFiles, int SkippedDisabled, bool CurseForgeChecked, int SkippedPrivate = 0);
 
 /// <summary>
 /// Writes an instance as a CurseForge modpack zip (manifest.json + overrides/). Files found on CurseForge (by
@@ -15,32 +15,19 @@ public sealed record CurseForgeExportResult(string Path, int LinkedFiles, int Ov
 /// </summary>
 public sealed class CurseForgeExporter(CurseForgeClient curseForge)
 {
-    private static readonly string[] ContentFolders = ["mods", "resourcepacks", "shaderpacks"];
-    private static readonly string[] OverrideFolders = ["config", "defaultconfigs", "kubejs", "scripts", "global_packs", "datapacks"];
-
     public async Task<CurseForgeExportResult> ExportAsync(GameInstance instance, string gameDirectory, string outputPath, string version,
         IProgress<double>? progress, CancellationToken ct)
     {
-        var candidates = new List<(string Relative, string FullPath)>();
-        var skippedDisabled = 0;
-        foreach (var folder in ContentFolders)
-        {
-            var dir = Path.Combine(gameDirectory, folder);
-            if (!Directory.Exists(dir)) continue;
-            foreach (var file in Directory.GetFiles(dir))
-            {
-                if (file.EndsWith(".disabled", StringComparison.OrdinalIgnoreCase)) { skippedDisabled++; continue; }
-                if (file.EndsWith(".part", StringComparison.OrdinalIgnoreCase)) continue;
-                candidates.Add(($"{folder}/{Path.GetFileName(file)}", file));
-            }
-        }
+        var selection = PackExportFiles.Collect(gameDirectory);
+        var candidates = selection.Content;
+        var skippedDisabled = selection.SkippedDisabled;
 
         var linked = new List<object>();
         var overrides = new List<(string Relative, string FullPath)>();
         var checkedOnline = await curseForge.HasKeyAsync(ct);
         if (checkedOnline && candidates.Count > 0)
         {
-            var fingerprints = new Dictionary<(string, string), uint>();
+            var fingerprints = new Dictionary<(string Relative, string FullPath), uint>();
             foreach (var c in candidates) fingerprints[c] = await Task.Run(() => CurseForgeFingerprint.OfFile(c.FullPath), ct);
             progress?.Report(30);
             var matches = await curseForge.MatchFingerprintsAsync(fingerprints.Values.Distinct().ToList(), ct);
@@ -56,16 +43,7 @@ public sealed class CurseForgeExporter(CurseForgeClient curseForge)
         }
         else overrides.AddRange(candidates);
 
-        foreach (var folder in OverrideFolders)
-        {
-            var dir = Path.Combine(gameDirectory, folder);
-            if (!Directory.Exists(dir)) continue;
-            foreach (var file in Directory.EnumerateFiles(dir, "*", SearchOption.AllDirectories))
-            {
-                if (new FileInfo(file).LinkTarget is not null) continue;
-                overrides.Add((Path.GetRelativePath(gameDirectory, file).Replace('\\', '/'), file));
-            }
-        }
+        overrides.AddRange(selection.Overrides);
 
         var manifest = new
         {
@@ -99,7 +77,7 @@ public sealed class CurseForgeExporter(CurseForgeClient curseForge)
             File.Delete(temp);
             throw;
         }
-        return new CurseForgeExportResult(outputPath, linked.Count, overrides.Count, skippedDisabled, checkedOnline);
+        return new CurseForgeExportResult(outputPath, linked.Count, overrides.Count, skippedDisabled, checkedOnline, selection.SkippedPrivate);
     }
 
     /// <summary>The manifest loader id, e.g. "forge-47.2.0" (our Forge ids are "&lt;mc&gt;-&lt;forge&gt;").</summary>
@@ -119,7 +97,36 @@ public sealed class CurseForgeExporter(CurseForgeClient curseForge)
 /// </summary>
 public static class CurseForgeFingerprint
 {
-    public static uint OfFile(string path) => Compute(File.ReadAllBytes(path));
+    /// <summary>Streams the file twice (length of the filtered data first, as MurmurHash2 needs it up front).</summary>
+    public static uint OfFile(string path)
+    {
+        long length = 0;
+        var buffer = new byte[81920];
+        using (var s = File.OpenRead(path))
+            for (int read; (read = s.Read(buffer)) > 0;)
+                for (var i = 0; i < read; i++) if (!IsWhitespace(buffer[i])) length++;
+
+        const uint m = 0x5bd1e995;
+        var h = 1u ^ (uint)length;
+        uint word = 0;
+        var filled = 0;
+        using (var s = File.OpenRead(path))
+            for (int read; (read = s.Read(buffer)) > 0;)
+                for (var i = 0; i < read; i++)
+                {
+                    if (IsWhitespace(buffer[i])) continue;
+                    word |= (uint)buffer[i] << (8 * filled);
+                    if (++filled < 4) continue;
+                    var k = word * m; k ^= k >> 24; k *= m;
+                    h *= m; h ^= k;
+                    word = 0; filled = 0;
+                }
+        if (filled > 0) { h ^= word; h *= m; }
+        h ^= h >> 13; h *= m; h ^= h >> 15;
+        return h;
+    }
+
+    private static bool IsWhitespace(byte b) => b is 9 or 10 or 13 or 32;
 
     public static uint Compute(ReadOnlySpan<byte> data)
     {

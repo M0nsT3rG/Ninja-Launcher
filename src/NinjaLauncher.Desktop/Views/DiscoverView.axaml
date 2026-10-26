@@ -4,6 +4,7 @@
              xmlns:vm="using:NinjaLauncher.Desktop.ViewModels"
              xmlns:d="using:NinjaLauncher.Domain"
                           xmlns:c="using:NinjaLauncher.Desktop.Controls"
+             xmlns:v="using:NinjaLauncher.Desktop.Views"
              x:Class="NinjaLauncher.Desktop.Views.DiscoverView"
              x:DataType="vm:DiscoverViewModel" Classes="page">
   <DockPanel>
@@ -66,10 +67,10 @@
                 <StackPanel Spacing="3" Margin="0,0,12,0">
                   <StackPanel Orientation="Horizontal" Spacing="8">
                     <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="15" />
-                    <TextBlock Classes="muted" FontSize="12" Text="{Binding Author, StringFormat='by {0}'}" VerticalAlignment="Bottom" />
+                    <TextBlock Classes="muted" FontSize="12" Text="{Binding Author, Converter={x:Static v:Converters.Localize}, ConverterParameter='by {0}'}" VerticalAlignment="Bottom" />
                   </StackPanel>
                   <TextBlock Classes="muted" Text="{Binding Description}" TextTrimming="CharacterEllipsis" MaxLines="2" />
-                  <TextBlock FontSize="11" Foreground="{DynamicResource NinjaAccentBrush}" Text="{Binding Downloads, StringFormat='{}{0:N0} downloads'}" />
+                  <TextBlock FontSize="11" Foreground="{DynamicResource NinjaAccentBrush}" Text="{Binding Downloads, Converter={x:Static v:Converters.Localize}, ConverterParameter='{}{0:N0} downloads'}" />
                 </StackPanel>
               </DockPanel>
             </Border>

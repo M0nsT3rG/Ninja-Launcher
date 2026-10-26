@@ -15,8 +15,6 @@ Last updated: 2026-10-25. See `docs/ROADMAP.md` for the status of each feature.
 - CurseForge API key application (B-06). When approved, the owner pastes the key in Settings → CurseForge, then run the live test with `NINJA_CURSEFORGE_API_KEY`.
 
 ## Next unblocked tasks
-1. `.mrpack` export (import is done).
-4. Instance import/export (config JSON) and custom icons.
 6. Run the release workflow once B-05 is done; then add a Linux .deb (nfpm) and Flatpak.
 7. Fetch `.sha1` sidecars for hashless Fabric/Quilt libraries.
 

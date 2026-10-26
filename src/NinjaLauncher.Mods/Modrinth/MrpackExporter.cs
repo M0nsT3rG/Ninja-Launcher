@@ -4,7 +4,7 @@ using NinjaLauncher.Domain;
 
 namespace NinjaLauncher.Mods.Modrinth;
 
-public sealed record MrpackExportResult(string Path, int ModrinthFiles, int OverrideFiles, int SkippedDisabled);
+public sealed record MrpackExportResult(string Path, int ModrinthFiles, int OverrideFiles, int SkippedDisabled, int SkippedPrivate = 0);
 
 /// <summary>
 /// Writes an instance as a Modrinth modpack (formatVersion 1). Content that Modrinth hosts is referenced by URL and
@@ -13,31 +13,15 @@ public sealed record MrpackExportResult(string Path, int ModrinthFiles, int Over
 /// </summary>
 public sealed class MrpackExporter(ModrinthClient modrinth)
 {
-    // Folders whose files may be on Modrinth; anything not found there is shipped as an override.
-    private static readonly string[] ContentFolders = ["mods", "resourcepacks", "shaderpacks"];
-
-    // Pack configuration folders copied as overrides.
-    private static readonly string[] OverrideFolders = ["config", "defaultconfigs", "kubejs", "scripts", "global_packs", "datapacks"];
-
     public async Task<MrpackExportResult> ExportAsync(GameInstance instance, string gameDirectory, string outputPath, string versionId,
         IProgress<double>? progress, CancellationToken ct)
     {
         var dependencies = new Dictionary<string, string> { ["minecraft"] = instance.MinecraftVersion };
         if (LoaderDependency(instance) is { } loader) dependencies[loader.Key] = loader.Value;
 
-        var candidates = new List<(string Relative, string FullPath)>();
-        var skippedDisabled = 0;
-        foreach (var folder in ContentFolders)
-        {
-            var dir = Path.Combine(gameDirectory, folder);
-            if (!Directory.Exists(dir)) continue;
-            foreach (var file in Directory.GetFiles(dir))
-            {
-                if (file.EndsWith(".disabled", StringComparison.OrdinalIgnoreCase)) { skippedDisabled++; continue; } // the format has no "disabled" state
-                if (file.EndsWith(".part", StringComparison.OrdinalIgnoreCase)) continue;
-                candidates.Add(($"{folder}/{Path.GetFileName(file)}", file));
-            }
-        }
+        var selection = PackExportFiles.Collect(gameDirectory);
+        var candidates = selection.Content;
+        var skippedDisabled = selection.SkippedDisabled;
 
         var hashes = new Dictionary<string, string>();
         foreach (var (relative, full) in candidates) hashes[relative] = await ModrinthClient.Sha1OfAsync(full, ct);
@@ -56,16 +40,7 @@ public sealed class MrpackExporter(ModrinthClient modrinth)
             else
                 overrides.Add((relative, full));
         }
-        foreach (var folder in OverrideFolders)
-        {
-            var dir = Path.Combine(gameDirectory, folder);
-            if (!Directory.Exists(dir)) continue;
-            foreach (var file in Directory.EnumerateFiles(dir, "*", SearchOption.AllDirectories))
-            {
-                if (new FileInfo(file).LinkTarget is not null) continue; // never follow links out of the instance
-                overrides.Add((Path.GetRelativePath(gameDirectory, file).Replace('\\', '/'), file));
-            }
-        }
+        overrides.AddRange(selection.Overrides);
 
         var index = new
         {
@@ -99,7 +74,7 @@ public sealed class MrpackExporter(ModrinthClient modrinth)
             File.Delete(temp);
             throw;
         }
-        return new MrpackExportResult(outputPath, files.Count, overrides.Count, skippedDisabled);
+        return new MrpackExportResult(outputPath, files.Count, overrides.Count, skippedDisabled, selection.SkippedPrivate);
     }
 
     /// <summary>The modrinth.index.json dependency key and value for the instance's loader.</summary>

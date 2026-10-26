@@ -23,6 +23,14 @@ public static class RemoteImage
     /// <summary>Set at startup; null disables the disk cache.</summary>
     public static string? CacheDirectory { get; set; }
 
+    /// <summary>Set at startup: local images (instance icons) are only read from under this folder.</summary>
+    public static string? LocalRoot { get; set; }
+
+    // Compressed size is not enough: a tiny PNG can declare gigantic dimensions.
+    private const int MaxDimension = 4096;
+    private const double MaxAspect = 4.0;
+    private static Bitmap? _defaultIcon;
+
     private const long MaxBytes = 2 * 1024 * 1024;
     private const int MemoryLimit = 400;
     private static readonly SemaphoreSlim Gate = new(6);
@@ -48,15 +56,22 @@ public static class RemoteImage
     {
         image.Source = null;
         if (string.IsNullOrWhiteSpace(url)) return;
-        if (url.StartsWith("avares://", StringComparison.Ordinal))
+        if (url == Views.Converters.DefaultInstanceIcon)
         {
-            using var asset = Avalonia.Platform.AssetLoader.Open(new Uri(url));
-            image.Source = Bitmap.DecodeToWidth(asset, 96, BitmapInterpolationMode.MediumQuality);
+            // The bundled default is decoded once and shared by every list item.
+            if (_defaultIcon is null)
+            {
+                using var asset = Avalonia.Platform.AssetLoader.Open(new Uri(url));
+                _defaultIcon = Bitmap.DecodeToWidth(asset, 96, BitmapInterpolationMode.MediumQuality);
+            }
+            image.Source = _defaultIcon;
             return;
         }
         if (Path.IsPathRooted(url) && !url.StartsWith("http", StringComparison.OrdinalIgnoreCase))
         {
-            // Local instance icons: read fresh each time (they can change in place), never through the network path.
+            // Local instance icons only, from the instances folder; never UNC paths (that would contact a remote host).
+            if (LocalRoot is null || url.StartsWith(@"\\", StringComparison.Ordinal) || url.StartsWith("//", StringComparison.Ordinal) ||
+                !NinjaLauncher.Application.Security.SafePath.IsUnder(LocalRoot, url)) return;
             var local = await Task.Run(() => File.Exists(url) && new FileInfo(url).Length <= MaxBytes ? Decode(File.ReadAllBytes(url)) : null);
             if (GetUrl(image) == url) image.Source = local;
             return;
@@ -67,11 +82,12 @@ public static class RemoteImage
 
         var bitmap = await Task.Run(() => FetchAsync(uri));
         if (bitmap is null) return;
-        lock (Memory)
-        {
-            if (Memory.TryAdd(url, bitmap)) MemoryOrder.Enqueue(url);
-            while (MemoryOrder.Count > MemoryLimit && MemoryOrder.TryDequeue(out var old)) Memory.Remove(old);
-        }
+        if (DiskCacheable(uri)) // CurseForge images are only held while shown (API terms: no caching)
+            lock (Memory)
+            {
+                if (Memory.TryAdd(url, bitmap)) MemoryOrder.Enqueue(url);
+                while (MemoryOrder.Count > MemoryLimit && MemoryOrder.TryDequeue(out var old)) Memory.Remove(old);
+            }
         // The control may have been recycled for another item while we were downloading.
         await Dispatcher.UIThread.InvokeAsync(() => { if (GetUrl(image) == url) image.Source = bitmap; });
     }
@@ -83,7 +99,11 @@ public static class RemoteImage
             : null;
         try
         {
-            if (diskPath is not null && File.Exists(diskPath)) return Decode(await File.ReadAllBytesAsync(diskPath));
+            if (diskPath is not null && File.Exists(diskPath))
+            {
+                if (Decode(await File.ReadAllBytesAsync(diskPath)) is { } cached) return cached;
+                File.Delete(diskPath); // truncated or corrupt cache entry: fetch it again
+            }
             await Gate.WaitAsync();
             try
             {
@@ -103,7 +123,9 @@ public static class RemoteImage
                 if (bitmap is not null && diskPath is not null)
                 {
                     Directory.CreateDirectory(Path.GetDirectoryName(diskPath)!);
-                    await File.WriteAllBytesAsync(diskPath, bytes);
+                    var temp = diskPath + "." + Guid.NewGuid().ToString("N") + ".tmp";
+                    await File.WriteAllBytesAsync(temp, bytes);
+                    File.Move(temp, diskPath, overwrite: true);
                 }
                 return bitmap;
             }
@@ -115,8 +137,30 @@ public static class RemoteImage
         }
     }
 
+    /// <summary>True when the bytes are a decodable image of sane dimensions (header check, no full decode).</summary>
+    public static bool IsSafeImage(byte[] bytes)
+    {
+        try
+        {
+            using var codec = SkiaSharp.SKCodec.Create(new SkiaSharp.SKMemoryStream(bytes));
+            if (codec is null) return false;
+            var (w, h) = (codec.Info.Width, codec.Info.Height);
+            return w > 0 && h > 0 && w <= MaxDimension && h <= MaxDimension && Math.Max(w, h) / (double)Math.Min(w, h) <= MaxAspect;
+        }
+        catch (Exception) { return false; }
+    }
+
+    /// <summary>Deletes cached logos older than 30 days (cheap housekeeping at startup).</summary>
+    public static void PruneCache()
+    {
+        if (CacheDirectory is null || !Directory.Exists(CacheDirectory)) return;
+        foreach (var f in new DirectoryInfo(CacheDirectory).EnumerateFiles())
+            try { if (f.LastWriteTimeUtc < DateTime.UtcNow.AddDays(-30) || f.Name.EndsWith(".tmp")) f.Delete(); } catch (IOException) { }
+    }
+
     private static Bitmap? Decode(byte[] bytes)
     {
+        if (!IsSafeImage(bytes)) return null;
         try
         {
             using var ms = new MemoryStream(bytes);

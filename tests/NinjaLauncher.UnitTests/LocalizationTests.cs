@@ -19,7 +19,8 @@ public sealed partial class LocalizationTests
     [Fact]
     public void Every_ui_string_has_a_portuguese_translation()
     {
-        var keys = SourceFiles(".axaml").SelectMany(f => XamlKey().Matches(File.ReadAllText(f)).Select(m => m.Groups[1].Value))
+        var keys = SourceFiles(".axaml").SelectMany(f => XamlKey().Matches(File.ReadAllText(f)).Select(m => m.Groups[1].Value)
+                .Concat(ConverterKey().Matches(File.ReadAllText(f)).Select(m => m.Groups[1].Value.StartsWith("{}") ? m.Groups[1].Value[2..] : m.Groups[1].Value)))
             .Concat(SourceFiles(".cs").SelectMany(f => CodeKey().Matches(File.ReadAllText(f)).Select(m => Regex.Unescape(m.Groups[1].Value))))
             .Distinct().ToList();
         var pt = JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(Path.Combine(Desktop(), "Localization", "pt-PT.json")))!;
@@ -39,12 +40,20 @@ public sealed partial class LocalizationTests
             .SelectMany(f => literal.Matches(File.ReadAllText(f)).Select(m => $"{Path.GetFileName(f)}: {m.Value}"))
             .Where(s => !s.Contains("\"✕\"") && !s.Contains("Text=\"Ninja\"") && !s.Contains("Text=\"LAUNCHER\"")).ToList(); // brand wordmark stays as is
         Assert.Empty(leftovers);
+
+        // StringFormat bypasses translation; only brand-neutral formats may use it.
+        var formats = SourceFiles(".axaml").SelectMany(f => Regex.Matches(File.ReadAllText(f), "StringFormat='([^']*)'").Select(m => m.Groups[1].Value))
+            .Where(f => Regex.IsMatch(f, "[A-Za-z]") && f is not ("Java {0}" or "Ninja Launcher {0}")).ToList();
+        Assert.Empty(formats);
     }
 
     private static IEnumerable<string> Placeholders(string s) => Regex.Matches(s, @"\{\d+(?::[^}]*)?\}").Select(m => m.Value).Order();
 
     [GeneratedRegex(@"\{(?:l|loc):T '([^']*)'\}")]
     private static partial Regex XamlKey();
+
+    [GeneratedRegex(@"ConverterParameter='([^']*)'")]
+    private static partial Regex ConverterKey();
 
     [GeneratedRegex(@"L\.(?:T|F)\(""((?:[^""\\]|\\.)*)""")]
     private static partial Regex CodeKey();

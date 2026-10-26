@@ -38,8 +38,20 @@ public partial class MainWindow : Window
     }
 }
 
+/// <summary><c>{Binding X, Converter={x:Static v:Converters.Localize}, ConverterParameter='by {0}'}</c></summary>
+public sealed class LocalizeConverter : IValueConverter
+{
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        value is null || parameter is not string format ? null
+            : NinjaLauncher.Desktop.Localization.L.F(format.StartsWith("{}", StringComparison.Ordinal) ? format[2..] : format, value); // '{}' is the XAML escape for a leading brace
+
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => throw new NotSupportedException();
+}
+
 public static class Converters
 {
+    public static readonly IValueConverter Localize = new LocalizeConverter();
+
     public static readonly IValueConverter Geometry = new FuncValueConverter<string, StreamGeometry?>(s => s is null ? null : StreamGeometry.Parse(s));
 
     public static readonly IValueConverter LocalTime = new FuncValueConverter<DateTimeOffset, string>(t => t.LocalDateTime.ToString("g", CultureInfo.CurrentCulture));

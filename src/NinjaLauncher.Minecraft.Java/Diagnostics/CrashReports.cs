@@ -9,7 +9,10 @@ public sealed record CrashFile(string Path, string Name, DateTime WrittenUtc, bo
 /// <param name="Exception">The top-level exception line (or the JVM error signal).</param>
 /// <param name="RootCause">The deepest "Caused by" line, or the problematic native frame.</param>
 /// <param name="Hint">A plain-language suggestion for well-known causes; null when nothing specific applies.</param>
-public sealed record CrashSummary(string Title, string? Exception, string? RootCause, IReadOnlyList<string> SuspectedMods, string? Hint);
+public sealed record CrashSummary(string Title, string? Exception, string? RootCause, IReadOnlyList<string> SuspectedMods, string? Hint)
+{
+    public string SuspectedModsText => string.Join(", ", SuspectedMods);
+}
 
 /// <summary>Finds and summarises Minecraft crash reports (<c>crash-reports/*.txt</c>) and JVM fatal error logs (<c>hs_err_pid*.log</c>).</summary>
 public static partial class CrashReports

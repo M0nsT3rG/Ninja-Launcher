@@ -36,5 +36,6 @@ No test fixture contains real credentials or game files. The mocks are a fake `I
 | 2026-10-25 | Mod updates (live: outdated Sodium detected and replaced, disabled state kept) | passed |
 | 2026-10-25 | Compatibility (unit: 9 rules; live: Iris without Sodium flagged, dependency installed, re-check clean; UI driven via UI Automation) | passed |
 | 2026-10-25 | Crash reports (unit: vanilla, NeoForge suspects, Fabric mixin, JVM GPU-driver crash, redaction) | passed; real game crash output not yet captured |
+| 2026-10-26 | Logos, instance icons, exports and pt-PT (unit: icon validation and traversal, export loader mapping, MurmurHash2 reference vector, a localisation coverage test that fails on untranslated strings; live: `.mrpack` export → import round trip; UI: Discover logos, Library in Portuguese) | passed, 174 unit |
 | 2026-10-25 | Codex review of compatibility + crash reports | 8 findings, all fixed (docs/testing/REVIEW-2026-10-25-compat.md); 136 unit and 15 integration tests pass |
 | 2026-10-25 | Update feed signing (unit: valid, tampered, wrong channel, wrong key, missing .sig, http) + local vpk pack, portable build boots | 105 unit passed; Windows packaging verified |

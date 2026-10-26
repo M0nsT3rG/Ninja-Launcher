@@ -240,5 +240,16 @@
  "export it": "o exportar",
  "Minecraft for Windows (Bedrock) is not installed. Get it from the Microsoft Store or the Xbox app.": "O Minecraft para Windows (Bedrock) não está instalado. Obtém-no na Microsoft Store ou na aplicação Xbox.",
  "Bedrock is installed but no launchable entry was found in the Start menu.": "A Bedrock está instalada, mas não foi encontrada nenhuma entrada no menu Iniciar para a abrir.",
- "Minecraft for Windows is installed.": "O Minecraft para Windows está instalado."
+ "Minecraft for Windows is installed.": "O Minecraft para Windows está instalado.",
+ "by {0}": "por {0}",
+ "{0:N0} downloads": "{0:N0} transferências",
+ "Update {0}": "Atualizar {0}",
+ "Root cause: {0}": "Causa: {0}",
+ "Suspected mods: {0}": "Mods suspeitos: {0}",
+ "Install {0} and restart": "Instalar {0} e reiniciar",
+ "Data folder: {0}": "Pasta de dados: {0}",
+ "Pick a PNG, JPG, WebP or GIF image up to 4096×4096 pixels and 2 MB.": "Escolhe uma imagem PNG, JPG, WebP ou GIF com até 4096×4096 píxeis e 2 MB.",
+ "Unofficial mcpelauncher found (community project, not affiliated with Mojang).": "mcpelauncher não oficial encontrado (projeto da comunidade, sem ligação à Mojang).",
+ "Bedrock Edition has no official release for this OS. The community project mcpelauncher (requires owning the Android version on Google Play) can be installed separately; Ninja Launcher will then launch it. It is unofficial and not bundled.": "A Bedrock Edition não tem versão oficial para este sistema. O projeto da comunidade mcpelauncher (requer ter a versão Android na Google Play) pode ser instalado à parte; depois o Ninja Launcher abre-o. Não é oficial nem vem incluído.",
+ "{0} file(s) that looked private (logins, caches) were left out; check the pack before sharing.": "{0} ficheiro(s) que pareciam privados (sessões, caches) foram deixados de fora; revê o pacote antes de o partilhares."
 }

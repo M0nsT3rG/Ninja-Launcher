@@ -31,7 +31,10 @@ public partial class App : Avalonia.Application
             };
             var settings = _services.GetRequiredService<SettingsHolder>().Current;
             Localization.L.Use(settings.Language); // before any view is created; changing it applies on restart
-            Controls.RemoteImage.CacheDirectory = Path.Combine(_services.GetRequiredService<NinjaLauncher.Application.Abstractions.IAppPaths>().CacheDirectory, "icons");
+            var appPaths = _services.GetRequiredService<NinjaLauncher.Application.Abstractions.IAppPaths>();
+            Controls.RemoteImage.CacheDirectory = Path.Combine(appPaths.CacheDirectory, "icons");
+            Controls.RemoteImage.LocalRoot = appPaths.InstancesDirectory;
+            _ = Task.Run(Controls.RemoteImage.PruneCache);
             var instanceService = _services.GetRequiredService<NinjaLauncher.Application.Services.InstanceService>();
             Views.Converters.InstanceIconResolver = instanceService.GetIconPath;
             ThemeManager.Apply(settings.Theme, settings.AccentColor);

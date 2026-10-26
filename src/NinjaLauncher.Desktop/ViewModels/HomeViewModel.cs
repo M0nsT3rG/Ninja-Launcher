@@ -89,7 +89,7 @@ public sealed partial class HomeViewModel : ViewModelBase
         _bedrockStatus = await _bedrock.DetectAsync();
         BedrockText = L.T(_bedrockStatus.Message) + (_bedrockStatus.Version is { } v ? L.F(" (version {0})", v) : "");
         HasBedrockData = _bedrockStatus.DataDirectory is not null;
-        CanGetBedrock = OperatingSystem.IsWindows() && _bedrockStatus.Support == BedrockSupport.NotInstalled;
+        CanGetBedrock = OperatingSystem.IsWindows() && _bedrockStatus.Support == BedrockSupport.NotInstalled && _bedrockStatus.Version is null;
         PlayCommand.NotifyCanExecuteChanged();
     }
 

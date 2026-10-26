@@ -227,8 +227,10 @@ public sealed partial class LibraryViewModel : ViewModelBase
         await _jobs.Run($"Export {instance.Name} as .mrpack", async (progress, ct) =>
             result = await _exporter.ExportAsync(instance, _instances.GetGameDirectory(instance), file, "1.0.0",
                 new Progress<double>(p => progress.Report(new("Packing", p, 0))), ct));
-        _ui.Info(L.F("Exported {0}: {1} file(s) linked from Modrinth, {2} bundled", Path.GetFileName(file), result!.ModrinthFiles, result.OverrideFiles) +
-                 (result.SkippedDisabled > 0 ? L.F(", {0} disabled mod(s) left out.", result.SkippedDisabled) : L.T(". Worlds and personal settings are not included.")));
+        if (result is null) return; // cancelled
+        _ui.Info(L.F("Exported {0}: {1} file(s) linked from Modrinth, {2} bundled", Path.GetFileName(file), result.ModrinthFiles, result.OverrideFiles) +
+                 (result.SkippedDisabled > 0 ? L.F(", {0} disabled mod(s) left out.", result.SkippedDisabled) : L.T(". Worlds and personal settings are not included.")) +
+                 (result.SkippedPrivate > 0 ? " " + L.F("{0} file(s) that looked private (logins, caches) were left out; check the pack before sharing.", result.SkippedPrivate) : ""));
     });
 
     [RelayCommand]
@@ -243,7 +245,8 @@ public sealed partial class LibraryViewModel : ViewModelBase
         await _jobs.Run($"Export {instance.Name} for CurseForge", async (progress, ct) =>
             result = await _curseForgeExporter.ExportAsync(instance, _instances.GetGameDirectory(instance), file, "1.0.0",
                 new Progress<double>(p => progress.Report(new("Packing", p, 0))), ct));
-        _ui.Info(result!.CurseForgeChecked
+        if (result is null) return; // cancelled
+        _ui.Info(result.CurseForgeChecked
             ? L.F("Exported {0}: {1} file(s) linked from CurseForge, {2} bundled.", Path.GetFileName(file), result.LinkedFiles, result.OverrideFiles)
             : L.F("Exported {0} with all {1} file(s) bundled: add a CurseForge API key in Settings so mods can be linked instead.", Path.GetFileName(file), result.OverrideFiles));
     });
@@ -254,6 +257,8 @@ public sealed partial class LibraryViewModel : ViewModelBase
         if (Selected is not { } instance) return;
         var file = await _ui.PickFileAsync("Instance icon", "*.png;*.jpg;*.jpeg;*.webp;*.gif");
         if (file is null) return;
+        if (new FileInfo(file).Length > InstanceService.MaxIconBytes || !Controls.RemoteImage.IsSafeImage(await File.ReadAllBytesAsync(file)))
+            throw new ArgumentException(L.T("Pick a PNG, JPG, WebP or GIF image up to 4096×4096 pixels and 2 MB."));
         await _instances.SetIconAsync(instance.Id, file);
         await OnShownAsync();
         Selected = Instances.FirstOrDefault(i => i.Id == instance.Id);
@@ -496,7 +501,7 @@ public sealed partial class LibraryViewModel : ViewModelBase
         {
             var dir = Path.Combine(_instances.GetGameDirectory(instance), "mods");
             var hashes = new Dictionary<ModEntry, string>();
-            foreach (var e in entries) hashes[e] = await ModrinthClient.Sha1OfAsync(Path.Combine(dir, e.FileName), cts.Token);
+            foreach (var e in entries) hashes[e] = await CachedSha1Async(Path.Combine(dir, e.FileName), cts.Token);
             var versions = await _modrinth.IdentifyFilesAsync(hashes.Values.Distinct().ToList(), cts.Token);
             var info = await _modrinth.GetProjectInfoAsync(versions.Values.Select(v => v.ProjectId).Distinct().ToList(), cts.Token);
             if (cts.IsCancellationRequested || Selected?.Id != instance.Id) return;
@@ -505,6 +510,22 @@ public sealed partial class LibraryViewModel : ViewModelBase
                     (entry.ProjectTitle, entry.IconUrl) = (p.Title, p.IconUrl);
         }
         catch (Exception e) when (e is OperationCanceledException or HttpRequestException or IOException or System.Text.Json.JsonException or TimeoutException) { }
+    }
+
+    private static readonly Dictionary<(string Path, long Size, DateTime Modified), string> Sha1Cache = new();
+
+    private static async Task<string> CachedSha1Async(string path, CancellationToken ct)
+    {
+        var info = new FileInfo(path);
+        var key = (path, info.Length, info.LastWriteTimeUtc);
+        lock (Sha1Cache) if (Sha1Cache.TryGetValue(key, out var known)) return known;
+        var sha1 = await ModrinthClient.Sha1OfAsync(path, ct);
+        lock (Sha1Cache)
+        {
+            if (Sha1Cache.Count > 5000) Sha1Cache.Clear();
+            Sha1Cache[key] = sha1;
+        }
+        return sha1;
     }
 
     private int _contentRevision; // bumped on every mod change so in-flight results for older content are dropped

@@ -3,6 +3,7 @@
         xmlns:l="using:NinjaLauncher.Desktop.Localization"
              xmlns:vm="using:NinjaLauncher.Desktop.ViewModels"
              xmlns:a="using:NinjaLauncher.Application.Abstractions"
+             xmlns:v="using:NinjaLauncher.Desktop.Views"
              x:Class="NinjaLauncher.Desktop.Views.SettingsView"
              x:DataType="vm:SettingsViewModel" Classes="page">
   <DockPanel>
@@ -108,7 +109,7 @@
             <CheckBox Content="{l:T 'Check for updates when the launcher starts'}" IsChecked="{Binding CheckForUpdates}" IsEnabled="{Binding UpdatesAvailable}" />
             <StackPanel Orientation="Horizontal" Spacing="8">
               <Button Content="{l:T 'Check now'}" Command="{Binding CheckUpdatesCommand}" IsEnabled="{Binding UpdatesAvailable}" />
-              <Button Classes="accent" Content="{Binding PendingVersion, StringFormat='Install {0} and restart'}" Command="{Binding InstallUpdateCommand}"
+              <Button Classes="accent" Content="{Binding PendingVersion, Converter={x:Static v:Converters.Localize}, ConverterParameter='Install {0} and restart'}" Command="{Binding InstallUpdateCommand}"
                       IsVisible="{Binding HasPendingUpdate}" IsEnabled="{Binding !IsUpdating}" />
             </StackPanel>
           </StackPanel>
@@ -131,7 +132,7 @@
             <TextBlock Classes="h2" Text="{l:T 'About'}" />
             <TextBlock Text="{Binding Version, StringFormat='Ninja Launcher {0}'}" />
             <TextBlock Classes="muted" Text="{l:T 'Free and open-source software under the GNU GPL v3.0 or later.'}" />
-            <TextBlock Classes="muted" Text="{Binding DataDirectory, StringFormat='Data folder: {0}'}" />
+            <TextBlock Classes="muted" Text="{Binding DataDirectory, Converter={x:Static v:Converters.Localize}, ConverterParameter='Data folder: {0}'}" />
             <TextBlock Text="{Binding Disclaimer}" FontSize="11" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,6,0,0" />
           </StackPanel>
         </Border>

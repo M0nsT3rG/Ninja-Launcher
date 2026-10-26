@@ -43,16 +43,22 @@ public sealed class ModpackInstaller(InstanceService instances, IEnumerable<ILoa
     private async Task<GameInstance> TryAdoptIconAsync(GameInstance instance, string? iconUrl, CancellationToken ct)
     {
         if (!Uri.TryCreate(iconUrl, UriKind.Absolute, out var uri) || uri.Scheme != Uri.UriSchemeHttps || uri.Host != "cdn.modrinth.com") return instance;
+        var temp = Path.Combine(paths.CacheDirectory, "modpacks", $"icon-{instance.Id:N}");
         try
         {
-            var temp = Path.Combine(paths.CacheDirectory, "modpacks", $"icon-{instance.Id:N}");
             await downloads.DownloadAsync([new DownloadItem(uri, temp, null, null)], null, ct);
             if (new FileInfo(temp).Length > InstanceService.MaxIconBytes) return instance;
             var bytes = await File.ReadAllBytesAsync(temp, ct);
-            File.Delete(temp);
             return await instances.SetIconBytesAsync(instance.Id, bytes, Path.GetExtension(uri.AbsolutePath).ToLowerInvariant(), ct);
         }
-        catch (Exception e) when (e is IOException or HttpRequestException or InvalidOperationException) { return instance; }
+        catch (Exception) when (!ct.IsCancellationRequested)
+        {
+            return instance; // the pack is installed; a missing icon must not make it look failed
+        }
+        finally
+        {
+            try { File.Delete(temp); } catch (IOException) { }
+        }
     }
 
     public async Task<GameInstance> InstallFromModrinthAsync(ModrinthHit pack, IProgress<InstallProgress>? progress, CancellationToken ct)
