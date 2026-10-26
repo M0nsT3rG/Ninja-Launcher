@@ -51,6 +51,7 @@ public sealed partial class LibraryViewModel : ViewModelBase
         NinjaLauncher.Mods.CurseForge.CurseForgeModpackInstaller curseForgePacks, MrpackExporter exporter,
         NinjaLauncher.Mods.CurseForge.CurseForgeExporter curseForgeExporter)
     {
+        game.RunningChanged += () => Avalonia.Threading.Dispatcher.UIThread.Post(RefreshRunningState);
         (_exporter, _curseForgeExporter) = (exporter, curseForgeExporter);
         (_ui, _instances, _catalog, _game, _jobs, _shell, _settings, _modpacks, _modrinth, _checker) = (ui, instances, catalog, game, jobs, shell, settings, modpacks, modrinth, checker);
         _curseForgePacks = curseForgePacks;
@@ -168,8 +169,22 @@ public sealed partial class LibraryViewModel : ViewModelBase
         if (request == _loaderRequest) LoadingLoaderVersions = false;
     }
 
+    /// <summary>While its game runs, an instance can't be changed, updated, repaired or deleted (the game holds its files).</summary>
+    public bool IsSelectedRunning => Selected is { } i && _game.IsRunning(i.Id);
+
+    private bool CanEdit() => !IsSelectedRunning;
+
+    private void RefreshRunningState()
+    {
+        OnPropertyChanged(nameof(IsSelectedRunning));
+        foreach (var c in new IRelayCommand[] { ExportModpackCommand, ExportCurseForgeCommand, ChangeIconCommand, ResetIconCommand, SaveCommand, LaunchCommand,
+                     RepairCommand, DeleteCommand, ToggleModCommand, UpdateModsCommand, InstallMissingDependenciesCommand, BackupWorldCommand, RestoreBackupCommand })
+            c.NotifyCanExecuteChanged();
+    }
+
     partial void OnSelectedChanged(GameInstance? value)
     {
+        RefreshRunningState();
         _updates = [];
         Issues.Clear();
         CompatibilityStatus = "";
@@ -215,7 +230,7 @@ public sealed partial class LibraryViewModel : ViewModelBase
     [RelayCommand]
     private void CancelCreate() => IsCreating = false;
 
-    [RelayCommand]
+    [RelayCommand(CanExecute = nameof(CanEdit))]
     private Task ExportModpack() => _ui.RunAsync(async () =>
     {
         if (Selected is not { } instance) return;
@@ -233,7 +248,7 @@ public sealed partial class LibraryViewModel : ViewModelBase
                  (result.SkippedPrivate > 0 ? " " + L.F("{0} file(s) that looked private (logins, caches) were left out; check the pack before sharing.", result.SkippedPrivate) : ""));
     });
 
-    [RelayCommand]
+    [RelayCommand(CanExecute = nameof(CanEdit))]
     private Task ExportCurseForge() => _ui.RunAsync(async () =>
     {
         if (Selected is not { } instance) return;
@@ -251,10 +266,11 @@ public sealed partial class LibraryViewModel : ViewModelBase
             : L.F("Exported {0} with all {1} file(s) bundled: add a CurseForge API key in Settings so mods can be linked instead.", Path.GetFileName(file), result.OverrideFiles));
     });
 
-    [RelayCommand]
+    [RelayCommand(CanExecute = nameof(CanEdit))]
     private Task ChangeIcon() => _ui.RunAsync(async () =>
     {
         if (Selected is not { } instance) return;
+        _game.EnsureNotRunning(instance, "change its icon");
         var file = await _ui.PickFileAsync("Instance icon", "*.png;*.jpg;*.jpeg;*.webp;*.gif");
         if (file is null) return;
         if (new FileInfo(file).Length > InstanceService.MaxIconBytes || !Controls.RemoteImage.IsSafeImage(await File.ReadAllBytesAsync(file)))
@@ -264,10 +280,11 @@ public sealed partial class LibraryViewModel : ViewModelBase
         Selected = Instances.FirstOrDefault(i => i.Id == instance.Id);
     });
 
-    [RelayCommand]
+    [RelayCommand(CanExecute = nameof(CanEdit))]
     private Task ResetIcon() => _ui.RunAsync(async () =>
     {
         if (Selected is not { } instance) return;
+        _game.EnsureNotRunning(instance, "change its icon");
         await _instances.ClearIconAsync(instance.Id);
         await OnShownAsync();
         Selected = Instances.FirstOrDefault(i => i.Id == instance.Id);
@@ -343,10 +360,11 @@ public sealed partial class LibraryViewModel : ViewModelBase
         _ui.Info(L.F("Created '{0}'.", name));
     });
 
-    [RelayCommand]
+    [RelayCommand(CanExecute = nameof(CanEdit))]
     private Task Save() => _ui.RunAsync(async () =>
     {
         if (Selected is null) return;
+        _game.EnsureNotRunning(Selected, "change its settings");
         _updates = []; // version or loader may change what is compatible
         var updated = await _instances.UpdateAsync(Selected with
         {
@@ -358,7 +376,7 @@ public sealed partial class LibraryViewModel : ViewModelBase
         _ui.Info(L.T("Instance saved."));
     });
 
-    [RelayCommand]
+    [RelayCommand(CanExecute = nameof(CanEdit))]
     private Task Launch() => _ui.RunAsync(async () =>
     {
         if (Selected is not { } instance) return; // captured: the selection may change while checking
@@ -369,7 +387,7 @@ public sealed partial class LibraryViewModel : ViewModelBase
         await _game.PlayAsync(instance);
     });
 
-    [RelayCommand]
+    [RelayCommand(CanExecute = nameof(CanEdit))]
     private Task Repair() => _ui.RunAsync(async () =>
     {
         if (Selected is not { } instance) return;
@@ -396,12 +414,13 @@ public sealed partial class LibraryViewModel : ViewModelBase
         Selected = Instances.FirstOrDefault(i => i.Id == clone.Id);
     });
 
-    [RelayCommand]
+    [RelayCommand(CanExecute = nameof(CanEdit))]
     private Task Delete() => _ui.RunAsync(async () =>
     {
         if (Selected is not { } instance) return;
         _game.EnsureNotRunning(instance, "delete it");
         if (!await _ui.ConfirmAsync(L.F("Delete '{0}'? Its worlds, mods and settings in the instance folder will be permanently removed. Backups are kept.", instance.Name))) return;
+        _game.EnsureNotRunning(instance, "delete it"); // it may have been started while the question was open
         await _instances.DeleteAsync(instance.Id);
         Selected = null;
         await OnShownAsync();
@@ -417,18 +436,19 @@ public sealed partial class LibraryViewModel : ViewModelBase
         _shell.OpenDirectory(dir);
     }
 
-    [RelayCommand]
+    [RelayCommand(CanExecute = nameof(CanEdit))]
     private void ToggleMod(ModEntry mod)
     {
         if (Selected is null) return;
         try
         {
+            _game.EnsureNotRunning(Selected, "turn mods on or off");
             ModrinthClient.SetModEnabled(_instances.GetGameDirectory(Selected), mod.FileName, !mod.Enabled);
             _updates = []; // file names changed; re-check before updating
             ClearIssues();
             RefreshContent(Selected);
         }
-        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { _ui.Error(e.Message); }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or InvalidOperationException) { _ui.Error(e.Message); }
     }
 
     [RelayCommand]
@@ -446,7 +466,7 @@ public sealed partial class LibraryViewModel : ViewModelBase
         finally { CheckingUpdates = false; }
     });
 
-    [RelayCommand]
+    [RelayCommand(CanExecute = nameof(CanEdit))]
     private Task UpdateMods() => _ui.RunAsync(async () =>
     {
         if (Selected is not { } instance || _updates.Count == 0) return;
@@ -572,7 +592,7 @@ public sealed partial class LibraryViewModel : ViewModelBase
         finally { CheckingCompatibility = false; }
     });
 
-    [RelayCommand]
+    [RelayCommand(CanExecute = nameof(CanEdit))]
     private Task InstallMissingDependencies() => _ui.RunAsync(async () =>
     {
         if (Selected is not { } instance) return;
@@ -596,7 +616,7 @@ public sealed partial class LibraryViewModel : ViewModelBase
         await CheckCompatibility();
     });
 
-    [RelayCommand]
+    [RelayCommand(CanExecute = nameof(CanEdit))]
     private Task BackupWorld() => _ui.RunAsync(async () =>
     {
         if (Selected is null || SelectedWorld is null) throw new InvalidOperationException(L.T("Select a world to back up."));
@@ -606,7 +626,7 @@ public sealed partial class LibraryViewModel : ViewModelBase
         _ui.Info(L.F("Backup saved: {0}", Path.GetFileName(file)));
     });
 
-    [RelayCommand]
+    [RelayCommand(CanExecute = nameof(CanEdit))]
     private Task RestoreBackup() => _ui.RunAsync(async () =>
     {
         if (Selected is null || SelectedBackup is null) throw new InvalidOperationException(L.T("Select a backup to restore."));

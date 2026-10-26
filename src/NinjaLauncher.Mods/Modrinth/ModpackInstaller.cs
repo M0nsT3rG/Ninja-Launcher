@@ -73,7 +73,9 @@ public sealed class ModpackInstaller(InstanceService instances, IEnumerable<ILoa
         if (url.Host != "cdn.modrinth.com") throw new InvalidOperationException($"Refusing download from unexpected host {url.Host}.");
         var local = Path.Combine(paths.CacheDirectory, "modpacks", version.Id + ".mrpack");
         await downloads.DownloadAsync([new DownloadItem(url, local, file.Hashes.GetValueOrDefault("sha1"), file.Size)], null, ct);
-        var instance = await InstallFromFileAsync(local, progress, ct);
+        GameInstance instance;
+        try { instance = await InstallFromFileAsync(local, progress, ct); }
+        finally { try { File.Delete(local); } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { } } // installed copy lives in the instance
         return await TryAdoptIconAsync(instance, pack.IconUrl, ct);
     }
 }

@@ -98,7 +98,13 @@ public sealed partial class CurseForgeModpackInstaller(CurseForgeClient curseFor
         var (path, blocked) = await curseForge.DownloadAsync(pack, file, cache, file.Id.ToString(), ct);
         if (blocked is not null)
             throw new InvalidOperationException($"The author of '{pack.Name}' only allows downloading it on CurseForge: {blocked.PageUrl}. Download the zip there and use Library → Import modpack.");
-        return await InstallFromFileAsync(path!, progress, ct);
+        try { return await InstallFromFileAsync(path!, progress, ct); }
+        finally { TryDelete(path!); } // the pack's files now live in the instance; nothing CurseForge stays in the cache
+    }
+
+    private static void TryDelete(string path)
+    {
+        try { File.Delete(path); } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
     }
 
     private async Task<IReadOnlyList<BlockedFile>> InstallFilesAsync(CurseForgeManifest manifest, string gameDir, IProgress<InstallProgress>? progress, CancellationToken ct)

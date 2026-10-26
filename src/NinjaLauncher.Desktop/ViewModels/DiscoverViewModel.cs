@@ -25,7 +25,7 @@ public sealed record ContentHit(string Title, string Description, string Author,
 }
 
 public sealed partial class DiscoverViewModel(UiContext ui, ModrinthClient modrinth, ModpackInstaller modpacks, CurseForgeClient curseForge,
-    CurseForgeModpackInstaller curseForgePacks, InstanceService instances, JobQueue jobs, IUrlLauncher shell) : ViewModelBase
+    CurseForgeModpackInstaller curseForgePacks, InstanceService instances, JobQueue jobs, IUrlLauncher shell, GameSessionService game) : ViewModelBase
 {
     private const int PageSize = 20;
     private CancellationTokenSource? _searchCts;
@@ -139,6 +139,7 @@ public sealed partial class DiscoverViewModel(UiContext ui, ModrinthClient modri
         }
 
         var target = Target ?? throw new InvalidOperationException(L.T("Create or select an instance to install into."));
+        game.EnsureNotRunning(target, "install mods");
         if (!await ui.ConfirmAsync(L.F("Install '{0}' and its required dependencies into '{1}'?", hit.Title, target.Name) + "\n\n" + Warning)) return;
         IReadOnlyList<InstalledContent> installed = [];
         IReadOnlyList<BlockedFile> manual = [];

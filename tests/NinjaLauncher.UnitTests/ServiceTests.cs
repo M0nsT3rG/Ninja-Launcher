@@ -80,6 +80,40 @@ public sealed class InstanceServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task Delete_removes_curseforge_mods_including_read_only_files()
+    {
+        var a = await _service.CreateAsync("CF pack", "1.20.1");
+        var game = _service.GetGameDirectory(a);
+        foreach (var rel in new[] { "mods/jei-1.20.1-forge.jar", "mods/create-1.20.1.jar.disabled", "resourcepacks/pack.zip", "shaderpacks/BSL.zip", "config/jei/jei-client.toml" })
+        {
+            var f = Path.Combine(game, rel);
+            Directory.CreateDirectory(Path.GetDirectoryName(f)!);
+            await File.WriteAllTextAsync(f, "x");
+            File.SetAttributes(f, FileAttributes.ReadOnly); // e.g. copied from a read-only share or a zip
+        }
+        await _service.DeleteAsync(a.Id);
+        Assert.False(Directory.Exists(game));
+        Assert.Empty(_repo.Items);
+    }
+
+    [Fact]
+    public async Task Delete_keeps_the_instance_when_files_cannot_be_removed()
+    {
+        var a = await _service.CreateAsync("Locked", "1.21.1");
+        var jar = Path.Combine(_service.GetGameDirectory(a), "mods", "held.jar");
+        Directory.CreateDirectory(Path.GetDirectoryName(jar)!);
+        await File.WriteAllTextAsync(jar, "x");
+        using (new FileStream(jar, FileMode.Open, FileAccess.Read, FileShare.None)) // another program holds it
+        {
+            if (!OperatingSystem.IsWindows()) return; // Unix allows deleting open files
+            await Assert.ThrowsAsync<IOException>(() => _service.DeleteAsync(a.Id));
+        }
+        Assert.Single(_repo.Items); // still listed, so the user can retry
+        await _service.DeleteAsync(a.Id);
+        Assert.Empty(_repo.Items);
+    }
+
+    [Fact]
     public async Task Delete_removes_only_that_instance()
     {
         var a = await _service.CreateAsync("A", "1.21.1");

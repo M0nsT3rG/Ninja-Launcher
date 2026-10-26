@@ -89,6 +89,9 @@
               <TextBlock DockPanel.Dock="Right" Classes="muted" Text="{Binding DiskUsage}" VerticalAlignment="Center" />
               <TextBlock Classes="h2" Text="{Binding Selected.Name, FallbackValue=''}" />
             </DockPanel>
+            <Border Classes="card" Padding="10" Background="{DynamicResource NinjaSurfaceRaised}" IsVisible="{Binding IsSelectedRunning}">
+              <TextBlock Text="{l:T 'This instance is running. Close the game to change, update, repair or delete it.'}" Foreground="{DynamicResource NinjaAccentBrush}" TextWrapping="Wrap" />
+            </Border>
             <WrapPanel>
               <Button Classes="accent" Content="{l:T '▶ Launch'}" Command="{Binding LaunchCommand}" Margin="0,0,8,8" />
               <Button Content="{l:T 'Repair'}" Command="{Binding RepairCommand}" Margin="0,0,8,8" ToolTip.Tip="{l:T 'Re-verify every file by hash and re-download anything broken'}" />

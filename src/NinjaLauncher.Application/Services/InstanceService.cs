@@ -65,9 +65,37 @@ public sealed class InstanceService(IInstanceRepository repository, IAppPaths pa
     {
         var instance = await GetRequiredAsync(id, ct);
         var dir = GetGameDirectory(instance);
-        if (Directory.Exists(dir)) await Task.Run(() => Directory.Delete(dir, recursive: true), ct);
+        if (Directory.Exists(dir)) await Task.Run(() => DeleteDirectory(dir), ct);
         await repository.DeleteAsync(id, ct);
         await activity.AddAsync($"Deleted instance '{instance.Name}'", ct);
+    }
+
+    /// <summary>
+    /// Removes the folder and everything in it (mods from Modrinth or CurseForge, packs, worlds, configs). Read-only
+    /// files are cleared first; links are removed without touching their targets. Files briefly held by another
+    /// program (antivirus, an open file manager) get a few retries; if anything is left, the instance is not removed.
+    /// </summary>
+    internal static void DeleteDirectory(string dir)
+    {
+        for (var attempt = 1; ; attempt++)
+        {
+            try
+            {
+                foreach (var entry in new DirectoryInfo(dir).EnumerateFileSystemInfos("*", new EnumerationOptions { RecurseSubdirectories = true, AttributesToSkip = 0 }))
+                    if (entry.LinkTarget is null && entry.Attributes.HasFlag(FileAttributes.ReadOnly)) entry.Attributes &= ~FileAttributes.ReadOnly;
+                Directory.Delete(dir, recursive: true);
+                return;
+            }
+            catch (DirectoryNotFoundException) { return; }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException && attempt < 4)
+            {
+                Thread.Sleep(250 * attempt);
+            }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+            {
+                throw new IOException($"Some files in the instance folder are in use and could not be deleted: {e.Message} Close programs using them and try again.", e);
+            }
+        }
     }
 
     public Task<long> GetDiskUsageAsync(GameInstance instance, CancellationToken ct = default) => Task.Run(() =>
