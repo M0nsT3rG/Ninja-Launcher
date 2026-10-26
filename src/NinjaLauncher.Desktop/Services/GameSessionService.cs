@@ -9,6 +9,8 @@ using NinjaLauncher.Minecraft.Java.Diagnostics;
 using NinjaLauncher.Minecraft.Java.Launch;
 using NinjaLauncher.Mods.Modrinth;
 
+using NinjaLauncher.Desktop.Localization;
+
 namespace NinjaLauncher.Desktop.Services;
 
 /// <summary>Play/repair workflows shared by Home and Library. Owns the live game log.</summary>
@@ -29,13 +31,13 @@ public sealed class GameSessionService(
 
     public async Task PlayAsync(GameInstance instance)
     {
-        var account = await accounts.GetActiveAsync() ?? throw new InvalidOperationException("Sign in with a Microsoft account on the Accounts page before playing.");
-        if (IsRunning(instance.Id)) throw new InvalidOperationException($"'{instance.Name}' is already running.");
+        var account = await accounts.GetActiveAsync() ?? throw new InvalidOperationException(L.T("Sign in with a Microsoft account on the Accounts page before playing."));
+        if (IsRunning(instance.Id)) throw new InvalidOperationException(L.F("'{0}' is already running.", instance.Name));
         // The guard lives inside the job so a Retry from the Downloads page is protected too.
         await jobs.Run($"Play {instance.Name}", async (progress, ct) =>
         {
             lock (_running)
-                if (!_running.Add(instance.Id)) throw new InvalidOperationException($"'{instance.Name}' is already running.");
+                if (!_running.Add(instance.Id)) throw new InvalidOperationException(L.F("'{0}' is already running.", instance.Name));
             RunningChanged?.Invoke();
             try
             {
@@ -81,14 +83,14 @@ public sealed class GameSessionService(
     /// <summary>Turns a failed exit into a readable reason using the crash report the game just wrote, if any.</summary>
     private static string DescribeCrash(string gameDirectory, DateTime startedUtc, int exit)
     {
-        var fallback = $"Minecraft exited with status {exit}. Check the game output on Home for the reason.";
+        var fallback = L.F("Minecraft exited with status {0}. Check the game output on Home for the reason.", exit);
         try
         {
             var crash = CrashReports.List(gameDirectory).FirstOrDefault(f => f.WrittenUtc >= startedUtc);
             if (crash is null) return fallback;
             var summary = CrashReports.Summarize(CrashReports.ReadText(crash), crash.IsJvmCrash);
             var cause = summary.RootCause ?? summary.Exception;
-            return $"{summary.Title}{(cause is null ? "" : $" ({cause})")}. {summary.Hint ?? "See Library → Crash reports for details."}";
+            return $"{summary.Title}{(cause is null ? "" : $" ({cause})")}. {summary.Hint ?? L.T("See Library → Crash reports for details.")}";
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
         {
@@ -99,7 +101,7 @@ public sealed class GameSessionService(
     /// <summary>Throws when an action would touch files a running game holds open.</summary>
     public void EnsureNotRunning(GameInstance instance, string action)
     {
-        if (IsRunning(instance.Id)) throw new InvalidOperationException($"Close '{instance.Name}' before you {action}.");
+        if (IsRunning(instance.Id)) throw new InvalidOperationException(L.F("Close '{0}' before you {1}.", instance.Name, L.T(action)));
     }
 
     public Task RepairAsync(GameInstance instance) => jobs.Run($"Repair {instance.Name}", async (progress, ct) =>

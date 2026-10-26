@@ -8,6 +8,8 @@ using NinjaLauncher.Domain;
 using NinjaLauncher.Minecraft.Bedrock;
 using NinjaLauncher.Minecraft.Java.Launch;
 
+using NinjaLauncher.Desktop.Localization;
+
 namespace NinjaLauncher.Desktop.ViewModels;
 
 public sealed partial class HomeViewModel : ViewModelBase
@@ -41,7 +43,7 @@ public sealed partial class HomeViewModel : ViewModelBase
     [ObservableProperty, NotifyPropertyChangedFor(nameof(SelectedSummary)), NotifyCanExecuteChangedFor(nameof(PlayCommand))]
     public partial GameInstance? SelectedInstance { get; set; }
 
-    [ObservableProperty] public partial string AccountText { get; set; } = "Not signed in";
+    [ObservableProperty] public partial string AccountText { get; set; } = L.T("Not signed in");
     [ObservableProperty] public partial string BedrockText { get; set; } = "";
     [ObservableProperty] public partial bool HasBedrockData { get; set; }
     [ObservableProperty] public partial bool CanGetBedrock { get; set; }
@@ -51,14 +53,14 @@ public sealed partial class HomeViewModel : ViewModelBase
 
     public string SelectedSummary => SelectedInstance is { } i
         ? $"Minecraft {i.MinecraftVersion}{(i.Loader == ModLoaderKind.None ? "" : $" · {i.Loader} {i.LoaderVersion}")} · {i.MaxMemoryMb} MB" +
-          (i.LastPlayedUtc is { } t ? $" · last played {t.LocalDateTime:g}" : "")
-        : "Create an instance in the Library to start playing.";
+          (i.LastPlayedUtc is { } t ? L.F(" · last played {0:g}", t.LocalDateTime) : "")
+        : L.T("Create an instance in the Library to start playing.");
 
     public override async Task OnShownAsync()
     {
         var active = await _accounts.GetActiveAsync();
-        AccountText = active is null ? "Not signed in"
-            : active.Kind == AccountKind.Offline ? $"Offline as {active.Username}" : $"Signed in as {active.Username}";
+        AccountText = active is null ? L.T("Not signed in")
+            : active.Kind == AccountKind.Offline ? L.F("Offline as {0}", active.Username) : L.F("Signed in as {0}", active.Username);
         var list = await _instances.ListAsync();
         var selectedId = SelectedInstance?.Id ?? _settings.Current.SelectedInstanceId;
         Instances.Clear();
@@ -83,9 +85,9 @@ public sealed partial class HomeViewModel : ViewModelBase
 
     private async Task RefreshBedrockAsync()
     {
-        BedrockText = "Checking for Bedrock Edition…";
+        BedrockText = L.T("Checking for Bedrock Edition…");
         _bedrockStatus = await _bedrock.DetectAsync();
-        BedrockText = _bedrockStatus.Message + (_bedrockStatus.Version is { } v ? $" (version {v})" : "");
+        BedrockText = L.T(_bedrockStatus.Message) + (_bedrockStatus.Version is { } v ? L.F(" (version {0})", v) : "");
         HasBedrockData = _bedrockStatus.DataDirectory is not null;
         CanGetBedrock = OperatingSystem.IsWindows() && _bedrockStatus.Support == BedrockSupport.NotInstalled;
         PlayCommand.NotifyCanExecuteChanged();
@@ -106,7 +108,7 @@ public sealed partial class HomeViewModel : ViewModelBase
         }
         if (SelectedInstance is not { } instance) return; // captured: the selection may change while checking
         if (!await ConfirmModIssuesAsync(_ui, _game, instance)) return;
-        _ui.Info($"Preparing {instance.Name}… progress is on the Downloads page.");
+        _ui.Info(L.F("Preparing {0}… progress is on the Downloads page.", instance.Name));
         await _game.PlayAsync(instance);
         await OnShownAsync();
     });
@@ -117,7 +119,7 @@ public sealed partial class HomeViewModel : ViewModelBase
         var errors = await game.CheckModsBeforeLaunchAsync(instance);
         if (errors.Count == 0) return true;
         var list = string.Join("\n", errors.Take(5).Select(e => "• " + e.Message)) + (errors.Count > 5 ? $"\n• …and {errors.Count - 5} more" : "");
-        return await ui.ConfirmAsync($"'{instance.Name}' has mod problems that will probably stop it from starting:\n\n{list}\n\nYou can fix them in Library → Check compatibility. Launch anyway?");
+        return await ui.ConfirmAsync(L.F("'{0}' has mod problems that will probably stop it from starting:", instance.Name) + "\n\n" + list + "\n\n" + L.T("You can fix them in Library → Check compatibility. Launch anyway?"));
     }
 
     // Bedrock is licensed and installed by Microsoft (Store / Xbox app); we only send the user there.

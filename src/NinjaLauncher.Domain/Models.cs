@@ -45,7 +45,8 @@ public sealed record LauncherSettings
 {
     public ThemeMode Theme { get; init; } = ThemeMode.Dark;
     public string AccentColor { get; init; } = "#B44CFF";
-    public string Language { get; init; } = "en";
+    /// <summary>"auto" follows the system language; otherwise a supported culture code ("en", "pt-PT").</summary>
+    public string Language { get; init; } = "auto";
     public int DefaultMaxMemoryMb { get; init; } = 4096;
     public int DownloadConcurrency { get; init; } = 8;
     public string? CustomInstancesDirectory { get; init; }

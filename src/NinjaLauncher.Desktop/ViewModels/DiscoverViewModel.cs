@@ -8,6 +8,8 @@ using NinjaLauncher.Domain;
 using NinjaLauncher.Mods.CurseForge;
 using NinjaLauncher.Mods.Modrinth;
 
+using NinjaLauncher.Desktop.Localization;
+
 namespace NinjaLauncher.Desktop.ViewModels;
 
 public enum ContentSource { Modrinth, CurseForge }
@@ -44,7 +46,7 @@ public sealed partial class DiscoverViewModel(UiContext ui, ModrinthClient modri
     [ObservableProperty, NotifyCanExecuteChangedFor(nameof(PreviousPageCommand), nameof(NextPageCommand))] public partial int Offset { get; set; }
     [ObservableProperty, NotifyCanExecuteChangedFor(nameof(NextPageCommand))] public partial int Total { get; set; }
 
-    public string Warning => "Mods are programs that run with your user's permissions. Only install content you trust, whichever site it comes from.";
+    public string Warning => L.T("Mods are programs that run with your user’s permissions. Only install content you trust, whichever site it comes from.");
 
     public override async Task OnShownAsync()
     {
@@ -96,7 +98,7 @@ public sealed partial class DiscoverViewModel(UiContext ui, ModrinthClient modri
                 {
                     Results.Clear();
                     Total = 0;
-                    Summary = "CurseForge needs your own API key: add it in Settings → CurseForge.";
+                    Summary = L.T("CurseForge needs your own API key: add it in Settings → CurseForge.");
                     return;
                 }
                 var r = await curseForge.SearchAsync(query, kind, filter?.MinecraftVersion, filter?.Loader ?? ModLoaderKind.None, offset, PageSize, ct);
@@ -111,8 +113,8 @@ public sealed partial class DiscoverViewModel(UiContext ui, ModrinthClient modri
             Results.Clear();
             foreach (var hit in hits) Results.Add(hit);
             Total = total;
-            Summary = Total == 0 ? "No results." : $"{offset + 1}–{offset + Results.Count} of {Total:N0} on {source}" +
-                (filter is null ? "" : $", compatible with {filter.MinecraftVersion} {(kind == ProjectKind.Mod ? filter.Loader.ToString() : "")}");
+            Summary = Total == 0 ? L.T("No results.") : L.F("{0}–{1} of {2:N0} on {3}", offset + 1, offset + Results.Count, Total, source) +
+                (filter is null ? "" : L.F(", compatible with {0} {1}", filter.MinecraftVersion, kind == ProjectKind.Mod ? filter.Loader.ToString() : ""));
         }
         finally { IsBusy = false; }
     }
@@ -123,7 +125,7 @@ public sealed partial class DiscoverViewModel(UiContext ui, ModrinthClient modri
         var kind = Kind;
         if (kind == ProjectKind.Modpack)
         {
-            if (!await ui.ConfirmAsync($"Create a new instance from the modpack '{hit.Title}'? Its mods, loader and settings are downloaded from {(hit.CurseForge is null ? "Modrinth" : "CurseForge")}.\n\n{Warning}")) return;
+            if (!await ui.ConfirmAsync(L.F("Create a new instance from the modpack '{0}'? Its mods, loader and settings are downloaded from {1}.", hit.Title, hit.CurseForge is null ? "Modrinth" : "CurseForge") + "\n\n" + Warning)) return;
             GameInstance? created = null;
             IReadOnlyList<BlockedFile> blocked = [];
             await jobs.Run($"Install modpack {hit.Title}", async (progress, ct) =>
@@ -131,23 +133,23 @@ public sealed partial class DiscoverViewModel(UiContext ui, ModrinthClient modri
                 if (hit.CurseForge is { } pack) (created, blocked) = await curseForgePacks.InstallFromCurseForgeAsync(pack, progress, ct);
                 else created = await modpacks.InstallFromModrinthAsync(hit.Modrinth!, progress, ct);
             });
-            ui.Info($"Created instance '{created!.Name}'. Find it in the Library.");
+            ui.Info(L.F("Created instance '{0}'. Find it in the Library.", created!.Name));
             await OfferManualDownloadsAsync(ui, shell, blocked, instances.GetGameDirectory(created));
             return;
         }
 
-        var target = Target ?? throw new InvalidOperationException("Create or select an instance to install into.");
-        if (!await ui.ConfirmAsync($"Install '{hit.Title}' and its required dependencies into '{target.Name}'?\n\n{Warning}")) return;
+        var target = Target ?? throw new InvalidOperationException(L.T("Create or select an instance to install into."));
+        if (!await ui.ConfirmAsync(L.F("Install '{0}' and its required dependencies into '{1}'?", hit.Title, target.Name) + "\n\n" + Warning)) return;
         IReadOnlyList<InstalledContent> installed = [];
         IReadOnlyList<BlockedFile> manual = [];
         await jobs.Run($"Install {hit.Title} → {target.Name}", async (progress, ct) =>
         {
-            progress.Report(new($"Resolving {hit.Title}", 10, 0));
+            progress.Report(new(L.F("Resolving {0}", hit.Title), 10, 0));
             var gameDir = instances.GetGameDirectory(target);
             if (hit.CurseForge is { } mod) (installed, manual) = await curseForge.InstallAsync(mod, kind, target, gameDir, ct);
             else installed = await modrinth.InstallAsync(hit.Modrinth!, kind, target, gameDir, ct);
         });
-        if (installed.Count > 0) ui.Info($"Installed {string.Join(", ", installed.Select(i => i.FileName))}");
+        if (installed.Count > 0) ui.Info(L.F("Installed {0}", string.Join(", ", installed.Select(i => i.FileName))));
         await OfferManualDownloadsAsync(ui, shell, manual, instances.GetGameDirectory(target));
     });
 
@@ -163,7 +165,8 @@ public sealed partial class DiscoverViewModel(UiContext ui, ModrinthClient modri
         await File.WriteAllLinesAsync(report, ["Download each file from its page and put it in the folder shown:", "",
             .. blocked.Select(b => $"{b.ModName}: {b.FileName}\n  page:   {b.PageUrl}\n  folder: {b.TargetFolder}/\n")]);
         var list = string.Join("\n", blocked.Select(b => $"• {b.ModName} → {b.FileName} (into {b.TargetFolder}/)"));
-        if (!await ui.ConfirmAsync($"{blocked.Count} file(s) can only be downloaded on the CurseForge website because their authors don't allow other apps to download them:\n\n{list}\n\nThe full list with links is saved in manual-downloads.txt in the instance folder. Open the first {Math.Min(8, blocked.Count)} download page(s) and the instance folder now?")) return;
+        if (!await ui.ConfirmAsync(L.F("{0} file(s) can only be downloaded on the CurseForge website because their authors don’t allow other apps to download them:", blocked.Count) + "\n\n" + list + "\n\n" +
+            L.F("The full list with links is saved in manual-downloads.txt in the instance folder. Open the first {0} download page(s) and the instance folder now?", Math.Min(8, blocked.Count)))) return;
         foreach (var b in blocked.Take(8)) shell.Open(new Uri(b.PageUrl));
         Directory.CreateDirectory(gameDirectory);
         shell.OpenDirectory(gameDirectory);

@@ -6,6 +6,8 @@ using Microsoft.Extensions.Logging;
 using NinjaLauncher.Application.Security;
 using NinjaLauncher.Minecraft.Java.Install;
 
+using NinjaLauncher.Desktop.Localization;
+
 namespace NinjaLauncher.Desktop.Services;
 
 public delegate Task JobWork(IProgress<InstallProgress> progress, CancellationToken ct);
@@ -25,7 +27,7 @@ public sealed partial class JobViewModel : ObservableObject
     }
 
     public string Title { get; }
-    [ObservableProperty] public partial string Status { get; set; } = "Queued";
+    [ObservableProperty] public partial string Status { get; set; } = L.T("Queued");
     [ObservableProperty] public partial double Percent { get; set; }
     [ObservableProperty] public partial string Speed { get; set; } = "";
     [ObservableProperty] public partial string? Error { get; set; }
@@ -46,7 +48,7 @@ public sealed partial class JobViewModel : ObservableObject
         Error = null;
         CanRetry = false;
         IsRunning = true;
-        Status = "Starting";
+        Status = L.T("Starting");
         var progress = new Progress<InstallProgress>(p => Dispatcher.UIThread.Post(() =>
         {
             Status = p.Stage;
@@ -62,17 +64,17 @@ public sealed partial class JobViewModel : ObservableObject
         try
         {
             await Task.Run(() => _work(progress, _cts.Token));
-            Status = "Completed";
+            Status = L.T("Completed");
             Percent = 100;
         }
         catch (OperationCanceledException)
         {
-            Status = "Cancelled";
+            Status = L.T("Cancelled");
             CanRetry = true;
         }
         catch (Exception e)
         {
-            Status = "Failed";
+            Status = L.T("Failed");
             Error = SecretRedactor.Redact(e.Message);
             CanRetry = true;
             _queue.Logger.LogError(e, "Job '{Title}' failed", Title);

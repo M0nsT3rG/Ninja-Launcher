@@ -1,5 +1,6 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:l="using:NinjaLauncher.Desktop.Localization"
         xmlns:vm="using:NinjaLauncher.Desktop.ViewModels"
         xmlns:v="using:NinjaLauncher.Desktop.Views"
         x:Class="NinjaLauncher.Desktop.Views.MainWindow"
@@ -29,7 +30,7 @@
           </StackPanel>
         </StackPanel>
         <TextBlock DockPanel.Dock="Bottom" Classes="muted" FontSize="9" Margin="6,12,6,0"
-                   Text="Not an official Minecraft product. Not approved by or associated with Mojang or Microsoft." />
+                   Text="{l:T 'Not an official Minecraft product. Not approved by or associated with Mojang or Microsoft.'}" />
         <ListBox Classes="nav" ItemsSource="{Binding Navigation}" SelectedItem="{Binding SelectedNav}">
           <ListBox.ItemTemplate>
             <DataTemplate DataType="vm:NavItem">
@@ -64,13 +65,13 @@
     <Grid Grid.ColumnSpan="2" IsVisible="{Binding IsConfirmOpen}" Background="#99000000">
       <Border Classes="card" Width="460" HorizontalAlignment="Center" VerticalAlignment="Center" Padding="24">
         <StackPanel Spacing="18">
-          <TextBlock Classes="h2" Text="Are you sure?" />
+          <TextBlock Classes="h2" Text="{l:T 'Are you sure?'}" />
           <ScrollViewer MaxHeight="380">
             <SelectableTextBlock Text="{Binding ConfirmText}" TextWrapping="Wrap" />
           </ScrollViewer>
           <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10">
-            <Button Content="Cancel" Command="{Binding AnswerCommand}" CommandParameter="no" IsCancel="True" />
-            <Button Classes="accent" Content="Continue" Command="{Binding AnswerCommand}" CommandParameter="yes" />
+            <Button Content="{l:T 'Cancel'}" Command="{Binding AnswerCommand}" CommandParameter="no" IsCancel="True" />
+            <Button Classes="accent" Content="{l:T 'Continue'}" Command="{Binding AnswerCommand}" CommandParameter="yes" />
           </StackPanel>
         </StackPanel>
       </Border>

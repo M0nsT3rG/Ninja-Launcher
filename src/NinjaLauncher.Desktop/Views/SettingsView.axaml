@@ -1,25 +1,26 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:l="using:NinjaLauncher.Desktop.Localization"
              xmlns:vm="using:NinjaLauncher.Desktop.ViewModels"
              xmlns:a="using:NinjaLauncher.Application.Abstractions"
              x:Class="NinjaLauncher.Desktop.Views.SettingsView"
              x:DataType="vm:SettingsViewModel" Classes="page">
   <DockPanel>
     <DockPanel DockPanel.Dock="Top" Margin="0,0,0,18">
-      <Button DockPanel.Dock="Right" Classes="accent" Content="Save settings" Command="{Binding SaveCommand}" VerticalAlignment="Center" />
-      <TextBlock Classes="h1" Text="Settings" />
+      <Button DockPanel.Dock="Right" Classes="accent" Content="{l:T 'Save settings'}" Command="{Binding SaveCommand}" VerticalAlignment="Center" />
+      <TextBlock Classes="h1" Text="{l:T 'Settings'}" />
     </DockPanel>
     <ScrollViewer>
       <StackPanel Spacing="14" MaxWidth="820" HorizontalAlignment="Left">
         <Border Classes="card">
           <StackPanel Spacing="10">
-            <TextBlock Classes="h2" Text="Appearance" />
+            <TextBlock Classes="h2" Text="{l:T 'Appearance'}" />
             <StackPanel Orientation="Horizontal" Spacing="12">
-              <TextBlock Text="Theme" VerticalAlignment="Center" Width="140" />
+              <TextBlock Text="{l:T 'Theme'}" VerticalAlignment="Center" Width="140" />
               <ComboBox ItemsSource="{Binding Themes}" SelectedItem="{Binding Theme}" MinWidth="160" />
             </StackPanel>
             <StackPanel Orientation="Horizontal" Spacing="12">
-              <TextBlock Text="Accent colour" VerticalAlignment="Center" Width="140" />
+              <TextBlock Text="{l:T 'Accent colour'}" VerticalAlignment="Center" Width="140" />
               <ItemsControl ItemsSource="{Binding AccentPresets}">
                 <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="6" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
                 <ItemsControl.ItemTemplate>
@@ -31,14 +32,18 @@
               </ItemsControl>
               <TextBox Text="{Binding AccentColor}" Width="110" />
             </StackPanel>
-            <TextBlock Classes="muted" FontSize="12" Text="Language: English. Translations are planned; the interface text is not yet localised." />
+            <StackPanel Orientation="Horizontal" Spacing="12">
+              <TextBlock Text="{l:T 'Language'}" VerticalAlignment="Center" Width="140" />
+              <ComboBox ItemsSource="{Binding LanguageNames}" SelectedIndex="{Binding LanguageIndex}" MinWidth="200" />
+              <TextBlock Classes="muted" FontSize="12" Text="{l:T 'Applies after restart.'}" VerticalAlignment="Center" />
+            </StackPanel>
           </StackPanel>
         </Border>
 
         <Border Classes="card">
           <StackPanel Spacing="10">
-            <TextBlock Classes="h2" Text="Java" />
-            <TextBlock Classes="muted" Text="Ninja Launcher downloads the Java runtime Mojang publishes for each version. Installations found on this computer can be set per instance in the Library." />
+            <TextBlock Classes="h2" Text="{l:T 'Java'}" />
+            <TextBlock Classes="muted" Text="{l:T 'Ninja Launcher downloads the Java runtime Mojang publishes for each version. Installations found on this computer can be set per instance in the Library.'}" />
             <ItemsControl ItemsSource="{Binding JavaInstallations}">
               <ItemsControl.ItemTemplate>
                 <DataTemplate DataType="a:JavaInstallation">
@@ -50,23 +55,23 @@
                 </DataTemplate>
               </ItemsControl.ItemTemplate>
             </ItemsControl>
-            <Button Content="Rescan" Command="{Binding RescanCommand}" />
+            <Button Content="{l:T 'Rescan'}" Command="{Binding RescanCommand}" />
           </StackPanel>
         </Border>
 
         <Border Classes="card">
           <StackPanel Spacing="10">
-            <TextBlock Classes="h2" Text="Game and downloads" />
+            <TextBlock Classes="h2" Text="{l:T 'Game and downloads'}" />
             <StackPanel Orientation="Horizontal" Spacing="12">
-              <TextBlock Text="Default memory (MB)" VerticalAlignment="Center" Width="180" />
+              <TextBlock Text="{l:T 'Default memory (MB)'}" VerticalAlignment="Center" Width="180" />
               <NumericUpDown Value="{Binding DefaultMemory}" Minimum="512" Maximum="65536" Increment="512" FormatString="0" Width="160" />
             </StackPanel>
             <StackPanel Orientation="Horizontal" Spacing="12">
-              <TextBlock Text="Parallel downloads" VerticalAlignment="Center" Width="180" />
+              <TextBlock Text="{l:T 'Parallel downloads'}" VerticalAlignment="Center" Width="180" />
               <NumericUpDown Value="{Binding Concurrency}" Minimum="1" Maximum="32" FormatString="0" Width="160" />
             </StackPanel>
             <StackPanel Spacing="4">
-              <TextBlock Text="Instances folder (applies after restart)" />
+              <TextBlock Text="{l:T 'Instances folder (applies after restart)'}" />
               <TextBox Text="{Binding InstancesDirectory}" />
             </StackPanel>
           </StackPanel>
@@ -74,35 +79,35 @@
 
         <Border Classes="card">
           <StackPanel Spacing="10">
-            <TextBlock Classes="h2" Text="Accounts" />
-            <TextBlock Classes="muted" Text="Azure application (client) ID used for Microsoft sign-in. It must be registered in Microsoft Entra and approved by Mojang for Minecraft Services." />
+            <TextBlock Classes="h2" Text="{l:T 'Accounts'}" />
+            <TextBlock Classes="muted" Text="{l:T 'Azure application (client) ID used for Microsoft sign-in. It must be registered in Microsoft Entra and approved by Mojang for Minecraft Services.'}" />
             <TextBox Text="{Binding ClientId}" PlaceholderText="00000000-0000-0000-0000-000000000000" />
-            <Button Content="How to get an approved app ID" Command="{Binding OpenLinkCommand}" CommandParameter="https://help.minecraft.net/hc/en-us/articles/16254801392141" />
+            <Button Content="{l:T 'How to get an approved app ID'}" Command="{Binding OpenLinkCommand}" CommandParameter="https://help.minecraft.net/hc/en-us/articles/16254801392141" />
           </StackPanel>
         </Border>
 
         <Border Classes="card">
           <StackPanel Spacing="10">
-            <TextBlock Classes="h2" Text="CurseForge" />
-            <TextBlock Classes="muted" Text="CurseForge requires a personal API key, which its terms do not allow to be shared or bundled with the launcher. Apply for one at console.curseforge.com, then paste it here. It is kept in your system's secure storage." />
-            <TextBlock Classes="muted" Text="CurseForge's terms also forbid using its API through a VPN or proxy that hides your location." />
+            <TextBlock Classes="h2" Text="{l:T 'CurseForge'}" />
+            <TextBlock Classes="muted" Text="{l:T 'CurseForge requires a personal API key, which its terms do not allow to be shared or bundled with the launcher. Apply for one at console.curseforge.com, then paste it here. It is kept in your system’s secure storage.'}" />
+            <TextBlock Classes="muted" Text="{l:T 'CurseForge’s terms also forbid using its API through a VPN or proxy that hides your location.'}" />
             <TextBlock Text="{Binding CurseForgeStatus}" />
             <StackPanel Orientation="Horizontal" Spacing="8">
-              <TextBox Text="{Binding CurseForgeKey}" PasswordChar="•" PlaceholderText="Paste your CurseForge API key" Width="360" />
-              <Button Content="Save key" Command="{Binding SaveCurseForgeKeyCommand}" />
-              <Button Classes="danger" Content="Remove key" Command="{Binding RemoveCurseForgeKeyCommand}" />
+              <TextBox Text="{Binding CurseForgeKey}" PasswordChar="•" PlaceholderText="{l:T 'Paste your CurseForge API key'}" Width="360" />
+              <Button Content="{l:T 'Save key'}" Command="{Binding SaveCurseForgeKeyCommand}" />
+              <Button Classes="danger" Content="{l:T 'Remove key'}" Command="{Binding RemoveCurseForgeKeyCommand}" />
             </StackPanel>
-            <Button Content="Get a CurseForge API key" Command="{Binding OpenLinkCommand}" CommandParameter="https://console.curseforge.com/" />
+            <Button Content="{l:T 'Get a CurseForge API key'}" Command="{Binding OpenLinkCommand}" CommandParameter="https://console.curseforge.com/" />
           </StackPanel>
         </Border>
 
         <Border Classes="card">
           <StackPanel Spacing="10">
-            <TextBlock Classes="h2" Text="Updates" />
+            <TextBlock Classes="h2" Text="{l:T 'Updates'}" />
             <TextBlock Classes="muted" Text="{Binding UpdateStatus}" />
-            <CheckBox Content="Check for updates when the launcher starts" IsChecked="{Binding CheckForUpdates}" IsEnabled="{Binding UpdatesAvailable}" />
+            <CheckBox Content="{l:T 'Check for updates when the launcher starts'}" IsChecked="{Binding CheckForUpdates}" IsEnabled="{Binding UpdatesAvailable}" />
             <StackPanel Orientation="Horizontal" Spacing="8">
-              <Button Content="Check now" Command="{Binding CheckUpdatesCommand}" IsEnabled="{Binding UpdatesAvailable}" />
+              <Button Content="{l:T 'Check now'}" Command="{Binding CheckUpdatesCommand}" IsEnabled="{Binding UpdatesAvailable}" />
               <Button Classes="accent" Content="{Binding PendingVersion, StringFormat='Install {0} and restart'}" Command="{Binding InstallUpdateCommand}"
                       IsVisible="{Binding HasPendingUpdate}" IsEnabled="{Binding !IsUpdating}" />
             </StackPanel>
@@ -111,21 +116,21 @@
 
         <Border Classes="card">
           <StackPanel Spacing="10">
-            <TextBlock Classes="h2" Text="Diagnostics and privacy" />
-            <CheckBox Content="Verbose logging (applies after restart)" IsChecked="{Binding Verbose}" />
-            <TextBlock Classes="muted" Text="Logs stay on this computer and are scrubbed of sign-in tokens. Ninja Launcher sends no telemetry; it only contacts Microsoft, Mojang, Modrinth, the mod loader sites you use, and GitHub when checking for launcher updates." />
+            <TextBlock Classes="h2" Text="{l:T 'Diagnostics and privacy'}" />
+            <CheckBox Content="{l:T 'Verbose logging (applies after restart)'}" IsChecked="{Binding Verbose}" />
+            <TextBlock Classes="muted" Text="{l:T 'Logs stay on this computer and are scrubbed of sign-in tokens. Ninja Launcher sends no telemetry; it only contacts Microsoft, Mojang, Modrinth, the mod loader sites you use, and GitHub when checking for launcher updates.'}" />
             <StackPanel Orientation="Horizontal" Spacing="8">
-              <Button Content="Open logs folder" Command="{Binding OpenLogsCommand}" />
-              <Button Content="Open data folder" Command="{Binding OpenDataCommand}" />
+              <Button Content="{l:T 'Open logs folder'}" Command="{Binding OpenLogsCommand}" />
+              <Button Content="{l:T 'Open data folder'}" Command="{Binding OpenDataCommand}" />
             </StackPanel>
           </StackPanel>
         </Border>
 
         <Border Classes="card">
           <StackPanel Spacing="6">
-            <TextBlock Classes="h2" Text="About" />
+            <TextBlock Classes="h2" Text="{l:T 'About'}" />
             <TextBlock Text="{Binding Version, StringFormat='Ninja Launcher {0}'}" />
-            <TextBlock Classes="muted" Text="Free and open-source software under the GNU GPL v3.0 or later." />
+            <TextBlock Classes="muted" Text="{l:T 'Free and open-source software under the GNU GPL v3.0 or later.'}" />
             <TextBlock Classes="muted" Text="{Binding DataDirectory, StringFormat='Data folder: {0}'}" />
             <TextBlock Text="{Binding Disclaimer}" FontSize="11" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,6,0,0" />
           </StackPanel>

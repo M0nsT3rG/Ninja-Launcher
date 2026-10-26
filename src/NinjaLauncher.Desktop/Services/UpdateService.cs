@@ -3,6 +3,8 @@ using Microsoft.Extensions.Logging;
 using NinjaLauncher.Infrastructure.Updates;
 using Velopack;
 
+using NinjaLauncher.Desktop.Localization;
+
 namespace NinjaLauncher.Desktop.Services;
 
 /// <summary>
@@ -24,7 +26,7 @@ public sealed class UpdateService
         var key = ReadPublicKey();
         if (key is null)
         {
-            UnavailableReason = "This build has no update signing key, so automatic updates are disabled. Download new versions from the project's releases page.";
+            UnavailableReason = L.T("This build has no update signing key, so automatic updates are disabled. Download new versions from the project’s releases page.");
             return;
         }
         // No explicit channel: Velopack uses the one baked into the installed package by `vpk pack --channel`,
@@ -32,7 +34,7 @@ public sealed class UpdateService
         var manager = new UpdateManager(new SignedFeedSource(FeedBaseUrl, key, http));
         if (!manager.IsInstalled)
         {
-            UnavailableReason = "Updates only work in an installed copy of Ninja Launcher (not in development or portable runs).";
+            UnavailableReason = L.T("Updates only work in an installed copy of Ninja Launcher (not in development or portable runs).");
             return;
         }
         _manager = manager;
@@ -65,7 +67,7 @@ public sealed class UpdateService
     {
         if (_manager is null) throw new InvalidOperationException("Updates are not available.");
         // Re-check right before downloading: "latest" may have moved since the earlier check.
-        _pending = await _manager.CheckForUpdatesAsync() ?? throw new InvalidOperationException("No update is available any more.");
+        _pending = await _manager.CheckForUpdatesAsync() ?? throw new InvalidOperationException(L.T("No update is available any more."));
         await _manager.DownloadUpdatesAsync(_pending, progress);
         _manager.ApplyUpdatesAndRestart(_pending);
     }

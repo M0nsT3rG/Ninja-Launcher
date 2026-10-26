@@ -1,19 +1,20 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:l="using:NinjaLauncher.Desktop.Localization"
              xmlns:vm="using:NinjaLauncher.Desktop.ViewModels"
              xmlns:s="using:NinjaLauncher.Desktop.Services"
              x:Class="NinjaLauncher.Desktop.Views.DownloadsView"
              x:DataType="vm:DownloadsViewModel" Classes="page">
   <DockPanel>
     <DockPanel DockPanel.Dock="Top" Margin="0,0,0,18">
-      <Button DockPanel.Dock="Right" Content="Clear finished" Command="{Binding ClearFinishedCommand}" VerticalAlignment="Center" />
+      <Button DockPanel.Dock="Right" Content="{l:T 'Clear finished'}" Command="{Binding ClearFinishedCommand}" VerticalAlignment="Center" />
       <StackPanel>
-        <TextBlock Classes="h1" Text="Downloads" />
-        <TextBlock Classes="muted" Text="Installs, repairs, loader setups and game sessions. Every file is checked against its published hash." />
+        <TextBlock Classes="h1" Text="{l:T 'Downloads'}" />
+        <TextBlock Classes="muted" Text="{l:T 'Installs, repairs, loader setups and game sessions. Every file is checked against its published hash.'}" />
       </StackPanel>
     </DockPanel>
     <Panel>
-      <TextBlock Classes="muted" Text="Nothing here yet." IsVisible="{Binding !Jobs.Count}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+      <TextBlock Classes="muted" Text="{l:T 'Nothing here yet.'}" IsVisible="{Binding !Jobs.Count}" HorizontalAlignment="Center" VerticalAlignment="Center" />
       <ScrollViewer>
         <ItemsControl ItemsSource="{Binding Jobs}">
           <ItemsControl.ItemTemplate>
@@ -23,8 +24,8 @@
                   <DockPanel>
                     <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8">
                       <TextBlock Classes="muted" Text="{Binding Speed}" VerticalAlignment="Center" />
-                      <Button Content="Cancel" Command="{Binding CancelCommand}" IsVisible="{Binding IsRunning}" />
-                      <Button Content="Retry" Command="{Binding RetryCommand}" IsVisible="{Binding CanRetry}" />
+                      <Button Content="{l:T 'Cancel'}" Command="{Binding CancelCommand}" IsVisible="{Binding IsRunning}" />
+                      <Button Content="{l:T 'Retry'}" Command="{Binding RetryCommand}" IsVisible="{Binding CanRetry}" />
                     </StackPanel>
                     <StackPanel>
                       <TextBlock Text="{Binding Title}" FontWeight="SemiBold" />

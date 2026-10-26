@@ -30,6 +30,7 @@ public partial class App : Avalonia.Application
                 e.SetObserved();
             };
             var settings = _services.GetRequiredService<SettingsHolder>().Current;
+            Localization.L.Use(settings.Language); // before any view is created; changing it applies on restart
             Controls.RemoteImage.CacheDirectory = Path.Combine(_services.GetRequiredService<NinjaLauncher.Application.Abstractions.IAppPaths>().CacheDirectory, "icons");
             var instanceService = _services.GetRequiredService<NinjaLauncher.Application.Services.InstanceService>();
             Views.Converters.InstanceIconResolver = instanceService.GetIconPath;

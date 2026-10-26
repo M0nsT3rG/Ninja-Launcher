@@ -1,5 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:l="using:NinjaLauncher.Desktop.Localization"
              xmlns:vm="using:NinjaLauncher.Desktop.ViewModels"
              xmlns:d="using:NinjaLauncher.Domain"
              xmlns:v="using:NinjaLauncher.Desktop.Views"
@@ -11,20 +12,20 @@
   <Grid RowDefinitions="Auto,*" ColumnDefinitions="340,*">
     <DockPanel Grid.ColumnSpan="2" Margin="0,0,0,18">
       <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-        <Button Content="Import config" Command="{Binding ImportConfigCommand}" ToolTip.Tip="Create an instance from an exported .ninja.json" />
-        <Button Content="Import modpack" Command="{Binding ImportModpackCommand}" ToolTip.Tip="Modrinth .mrpack or CurseForge .zip" />
-        <Button Classes="accent" Content="+ New instance" Command="{Binding StartCreateCommand}" />
+        <Button Content="{l:T 'Import config'}" Command="{Binding ImportConfigCommand}" ToolTip.Tip="{l:T 'Create an instance from an exported .ninja.json'}" />
+        <Button Content="{l:T 'Import modpack'}" Command="{Binding ImportModpackCommand}" ToolTip.Tip="{l:T 'Modrinth .mrpack or CurseForge .zip'}" />
+        <Button Classes="accent" Content="{l:T '+ New instance'}" Command="{Binding StartCreateCommand}" />
       </StackPanel>
       <StackPanel>
-        <TextBlock Classes="h1" Text="Library" />
-        <TextBlock Classes="muted" Text="Every instance is isolated: its own worlds, mods, options and logs." />
+        <TextBlock Classes="h1" Text="{l:T 'Library'}" />
+        <TextBlock Classes="muted" Text="{l:T 'Every instance is isolated: its own worlds, mods, options and logs.'}" />
       </StackPanel>
     </DockPanel>
 
     <!-- Instance list -->
     <Border Grid.Row="1" Classes="card" Margin="0,0,18,0" Padding="12">
       <DockPanel>
-        <TextBox DockPanel.Dock="Top" Text="{Binding Search}" PlaceholderText="Search instances" Margin="0,0,0,10" />
+        <TextBox DockPanel.Dock="Top" Text="{Binding Search}" PlaceholderText="{l:T 'Search instances'}" Margin="0,0,0,10" />
         <ListBox ItemsSource="{Binding Instances}" SelectedItem="{Binding Selected}" Background="Transparent">
           <ListBox.ItemTemplate>
             <DataTemplate DataType="d:GameInstance">
@@ -51,27 +52,27 @@
     <Border Grid.Row="1" Grid.Column="1" Classes="card" IsVisible="{Binding IsCreating}">
       <ScrollViewer>
         <StackPanel Spacing="12" MaxWidth="520" HorizontalAlignment="Left">
-          <TextBlock Classes="h2" Text="New instance" />
-          <TextBlock Text="Name" />
-          <TextBox Text="{Binding NewName}" PlaceholderText="My survival world" MaxLength="64" />
-          <TextBlock Text="Minecraft version" />
+          <TextBlock Classes="h2" Text="{l:T 'New instance'}" />
+          <TextBlock Text="{l:T 'Name'}" />
+          <TextBox Text="{Binding NewName}" PlaceholderText="{l:T 'My survival world'}" MaxLength="64" />
+          <TextBlock Text="{l:T 'Minecraft version'}" />
           <StackPanel Orientation="Horizontal" Spacing="12">
             <ComboBox ItemsSource="{Binding Versions}" SelectedItem="{Binding NewVersion}" MinWidth="220" MaxDropDownHeight="360" />
-            <CheckBox Content="Show snapshots" IsChecked="{Binding ShowSnapshots}" />
+            <CheckBox Content="{l:T 'Show snapshots'}" IsChecked="{Binding ShowSnapshots}" />
           </StackPanel>
-          <TextBlock Text="Mod loader" />
+          <TextBlock Text="{l:T 'Mod loader'}" />
           <StackPanel Orientation="Horizontal" Spacing="12">
             <ComboBox ItemsSource="{Binding LoaderKinds}" SelectedItem="{Binding NewLoader}" MinWidth="140" />
             <ComboBox ItemsSource="{Binding LoaderVersions}" SelectedItem="{Binding NewLoaderVersion}" MinWidth="220" MaxDropDownHeight="360"
-                      PlaceholderText="Loader version" IsVisible="{Binding LoaderVersions.Count}" />
+                      PlaceholderText="{l:T 'Loader version'}" IsVisible="{Binding LoaderVersions.Count}" />
             <ProgressBar IsIndeterminate="True" Width="80" IsVisible="{Binding LoadingLoaderVersions}" />
           </StackPanel>
-          <TextBlock Text="Maximum memory (MB)" />
+          <TextBlock Text="{l:T 'Maximum memory (MB)'}" />
           <NumericUpDown Value="{Binding NewMemoryMb}" Minimum="512" Maximum="65536" Increment="512" FormatString="0" Width="180" HorizontalAlignment="Left" />
-          <TextBlock Classes="muted" FontSize="12" Text="Forge and NeoForge are installed by running their official installers, which can take a few minutes." />
+          <TextBlock Classes="muted" FontSize="12" Text="{l:T 'Forge and NeoForge are installed by running their official installers, which can take a few minutes.'}" />
           <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,8,0,0">
-            <Button Classes="accent" Content="Create" Command="{Binding CreateCommand}" />
-            <Button Content="Cancel" Command="{Binding CancelCreateCommand}" />
+            <Button Classes="accent" Content="{l:T 'Create'}" Command="{Binding CreateCommand}" />
+            <Button Content="{l:T 'Cancel'}" Command="{Binding CancelCreateCommand}" />
           </StackPanel>
         </StackPanel>
       </ScrollViewer>
@@ -80,7 +81,7 @@
     <!-- Details -->
     <Border Grid.Row="1" Grid.Column="1" Classes="card" IsVisible="{Binding !IsCreating}">
       <Panel>
-        <TextBlock Classes="muted" Text="Select an instance, or create one with “New instance”." IsVisible="{Binding !HasSelection}"
+        <TextBlock Classes="muted" Text="{l:T 'Select an instance, or create one with “New instance”.'}" IsVisible="{Binding !HasSelection}"
                    HorizontalAlignment="Center" VerticalAlignment="Center" />
         <ScrollViewer IsVisible="{Binding HasSelection}">
           <StackPanel Spacing="14">
@@ -89,48 +90,48 @@
               <TextBlock Classes="h2" Text="{Binding Selected.Name, FallbackValue=''}" />
             </DockPanel>
             <WrapPanel>
-              <Button Classes="accent" Content="▶ Launch" Command="{Binding LaunchCommand}" Margin="0,0,8,8" />
-              <Button Content="Repair" Command="{Binding RepairCommand}" Margin="0,0,8,8" ToolTip.Tip="Re-verify every file by hash and re-download anything broken" />
-              <Button Content="Clone" Command="{Binding CloneCommand}" Margin="0,0,8,8" />
-              <Button Content="Open folder" Command="{Binding OpenFolderCommand}" Margin="0,0,8,8" />
-              <Button Content="Export config" Command="{Binding ExportConfigCommand}" Margin="0,0,8,8" />
-              <Button Content="Export for Modrinth" Command="{Binding ExportModpackCommand}" Margin="0,0,8,8" ToolTip.Tip="Share this instance as a Modrinth modpack (.mrpack). Worlds and personal settings are not included." />
-              <Button Content="Export for CurseForge" Command="{Binding ExportCurseForgeCommand}" Margin="0,0,8,8" ToolTip.Tip="Share this instance as a CurseForge modpack (.zip). Worlds and personal settings are not included." />
-              <Button Content="Change icon" Command="{Binding ChangeIconCommand}" Margin="0,0,8,8" />
-              <Button Content="Reset icon" Command="{Binding ResetIconCommand}" Margin="0,0,8,8" IsVisible="{Binding Selected.IconKey, Converter={x:Static ObjectConverters.IsNotNull}, FallbackValue=False}" />
-              <Button Classes="danger" Content="Delete" Command="{Binding DeleteCommand}" Margin="0,0,8,8" />
+              <Button Classes="accent" Content="{l:T '▶ Launch'}" Command="{Binding LaunchCommand}" Margin="0,0,8,8" />
+              <Button Content="{l:T 'Repair'}" Command="{Binding RepairCommand}" Margin="0,0,8,8" ToolTip.Tip="{l:T 'Re-verify every file by hash and re-download anything broken'}" />
+              <Button Content="{l:T 'Clone'}" Command="{Binding CloneCommand}" Margin="0,0,8,8" />
+              <Button Content="{l:T 'Open folder'}" Command="{Binding OpenFolderCommand}" Margin="0,0,8,8" />
+              <Button Content="{l:T 'Export config'}" Command="{Binding ExportConfigCommand}" Margin="0,0,8,8" />
+              <Button Content="{l:T 'Export for Modrinth'}" Command="{Binding ExportModpackCommand}" Margin="0,0,8,8" ToolTip.Tip="{l:T 'Share this instance as a Modrinth modpack (.mrpack). Worlds and personal settings are not included.'}" />
+              <Button Content="{l:T 'Export for CurseForge'}" Command="{Binding ExportCurseForgeCommand}" Margin="0,0,8,8" ToolTip.Tip="{l:T 'Share this instance as a CurseForge modpack (.zip). Worlds and personal settings are not included.'}" />
+              <Button Content="{l:T 'Change icon'}" Command="{Binding ChangeIconCommand}" Margin="0,0,8,8" />
+              <Button Content="{l:T 'Reset icon'}" Command="{Binding ResetIconCommand}" Margin="0,0,8,8" IsVisible="{Binding Selected.IconKey, Converter={x:Static ObjectConverters.IsNotNull}, FallbackValue=False}" />
+              <Button Classes="danger" Content="{l:T 'Delete'}" Command="{Binding DeleteCommand}" Margin="0,0,8,8" />
             </WrapPanel>
 
-            <TextBlock Text="Settings" FontWeight="SemiBold" />
+            <TextBlock Text="{l:T 'Settings'}" FontWeight="SemiBold" />
             <Grid ColumnDefinitions="160,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="8">
-              <TextBlock Text="Name" VerticalAlignment="Center" />
+              <TextBlock Text="{l:T 'Name'}" VerticalAlignment="Center" />
               <TextBox Grid.Column="1" Text="{Binding EditName}" MaxLength="64" />
-              <TextBlock Grid.Row="1" Text="Memory (MB)" VerticalAlignment="Center" />
+              <TextBlock Grid.Row="1" Text="{l:T 'Memory (MB)'}" VerticalAlignment="Center" />
               <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" Spacing="8">
-                <NumericUpDown Value="{Binding EditMinMemory}" Minimum="256" Maximum="65536" Increment="256" FormatString="0" Width="150" ToolTip.Tip="Minimum (-Xms)" />
-                <NumericUpDown Value="{Binding EditMaxMemory}" Minimum="512" Maximum="65536" Increment="512" FormatString="0" Width="150" ToolTip.Tip="Maximum (-Xmx)" />
+                <NumericUpDown Value="{Binding EditMinMemory}" Minimum="256" Maximum="65536" Increment="256" FormatString="0" Width="150" ToolTip.Tip="{l:T 'Minimum (-Xms)'}" />
+                <NumericUpDown Value="{Binding EditMaxMemory}" Minimum="512" Maximum="65536" Increment="512" FormatString="0" Width="150" ToolTip.Tip="{l:T 'Maximum (-Xmx)'}" />
               </StackPanel>
-              <TextBlock Grid.Row="2" Text="JVM arguments" VerticalAlignment="Center" />
-              <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding EditJvmArgs}" PlaceholderText="Empty = recommended defaults from the version" />
-              <TextBlock Grid.Row="3" Text="Java executable" VerticalAlignment="Center" />
-              <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding EditJavaPath}" PlaceholderText="Empty = managed Java chosen for this version" />
-              <Button Grid.Row="4" Grid.Column="1" Content="Save settings" Command="{Binding SaveCommand}" />
+              <TextBlock Grid.Row="2" Text="{l:T 'JVM arguments'}" VerticalAlignment="Center" />
+              <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding EditJvmArgs}" PlaceholderText="{l:T 'Empty = recommended defaults from the version'}" />
+              <TextBlock Grid.Row="3" Text="{l:T 'Java executable'}" VerticalAlignment="Center" />
+              <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding EditJavaPath}" PlaceholderText="{l:T 'Empty = managed Java chosen for this version'}" />
+              <Button Grid.Row="4" Grid.Column="1" Content="{l:T 'Save settings'}" Command="{Binding SaveCommand}" />
             </Grid>
 
             <DockPanel>
               <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8">
                 <ProgressBar IsIndeterminate="True" Width="60" IsVisible="{Binding CheckingUpdates}" />
-                <Button Content="Check for updates" Command="{Binding CheckModUpdatesCommand}" IsVisible="{Binding Mods.Count}" />
+                <Button Content="{l:T 'Check for updates'}" Command="{Binding CheckModUpdatesCommand}" IsVisible="{Binding Mods.Count}" />
                 <Button Classes="accent" Content="{Binding UpdateCount, StringFormat='Update {0}'}" Command="{Binding UpdateModsCommand}" IsVisible="{Binding UpdateCount}" />
               </StackPanel>
-              <TextBlock Text="Mods" FontWeight="SemiBold" VerticalAlignment="Center" />
+              <TextBlock Text="{l:T 'Mods'}" FontWeight="SemiBold" VerticalAlignment="Center" />
             </DockPanel>
-            <TextBlock Classes="muted" Text="No mods installed. Find some on the Discover page." IsVisible="{Binding !Mods.Count}" />
+            <TextBlock Classes="muted" Text="{l:T 'No mods installed. Find some on the Discover page.'}" IsVisible="{Binding !Mods.Count}" />
             <ItemsControl ItemsSource="{Binding Mods}">
               <ItemsControl.ItemTemplate>
                 <DataTemplate DataType="vm:ModEntry">
                   <DockPanel Margin="0,2">
-                    <ToggleSwitch DockPanel.Dock="Right" IsChecked="{Binding Enabled, Mode=OneWay}" OnContent="On" OffContent="Off"
+                    <ToggleSwitch DockPanel.Dock="Right" IsChecked="{Binding Enabled, Mode=OneWay}" OnContent="{l:T 'On'}" OffContent="{l:T 'Off'}"
                                   Command="{Binding $parent[UserControl].((vm:LibraryViewModel)DataContext).ToggleModCommand}" CommandParameter="{Binding}" />
                     <TextBlock DockPanel.Dock="Right" Text="{Binding UpdateText}" IsVisible="{Binding HasUpdate}" Foreground="{DynamicResource NinjaAccentBrush}"
                                FontSize="12" VerticalAlignment="Center" Margin="0,0,12,0" />
@@ -146,10 +147,10 @@
             <DockPanel>
               <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8">
                 <ProgressBar IsIndeterminate="True" Width="60" IsVisible="{Binding CheckingCompatibility}" />
-                <Button Content="Check compatibility" Command="{Binding CheckCompatibilityCommand}" IsVisible="{Binding Mods.Count}" />
-                <Button Classes="accent" Content="Install missing dependencies" Command="{Binding InstallMissingDependenciesCommand}" IsVisible="{Binding HasMissingDependencies}" />
+                <Button Content="{l:T 'Check compatibility'}" Command="{Binding CheckCompatibilityCommand}" IsVisible="{Binding Mods.Count}" />
+                <Button Classes="accent" Content="{l:T 'Install missing dependencies'}" Command="{Binding InstallMissingDependenciesCommand}" IsVisible="{Binding HasMissingDependencies}" />
               </StackPanel>
-              <TextBlock Text="Compatibility" FontWeight="SemiBold" VerticalAlignment="Center" />
+              <TextBlock Text="{l:T 'Compatibility'}" FontWeight="SemiBold" VerticalAlignment="Center" />
             </DockPanel>
             <TextBlock Classes="muted" Text="{Binding CompatibilityStatus}" IsVisible="{Binding CompatibilityStatus.Length}" />
             <ItemsControl ItemsSource="{Binding Issues}">
@@ -167,10 +168,10 @@
             </ItemsControl>
 
             <DockPanel>
-              <Button DockPanel.Dock="Right" Content="Open crash folder" Command="{Binding OpenCrashFolderCommand}" IsVisible="{Binding CrashFiles.Count}" />
-              <TextBlock Text="Crash reports" FontWeight="SemiBold" VerticalAlignment="Center" />
+              <Button DockPanel.Dock="Right" Content="{l:T 'Open crash folder'}" Command="{Binding OpenCrashFolderCommand}" IsVisible="{Binding CrashFiles.Count}" />
+              <TextBlock Text="{l:T 'Crash reports'}" FontWeight="SemiBold" VerticalAlignment="Center" />
             </DockPanel>
-            <TextBlock Classes="muted" Text="No crashes recorded for this instance." IsVisible="{Binding !CrashFiles.Count}" />
+            <TextBlock Classes="muted" Text="{l:T 'No crashes recorded for this instance.'}" IsVisible="{Binding !CrashFiles.Count}" />
             <ComboBox ItemsSource="{Binding CrashFiles}" SelectedItem="{Binding SelectedCrash}" MinWidth="360" IsVisible="{Binding CrashFiles.Count}">
               <ComboBox.ItemTemplate>
                 <DataTemplate DataType="diag:CrashFile">
@@ -193,20 +194,20 @@
             <TextBox Text="{Binding CrashText}" IsReadOnly="True" AcceptsReturn="True" TextWrapping="NoWrap" Height="220"
                      FontFamily="Cascadia Mono, Consolas, Menlo, monospace" FontSize="11" IsVisible="{Binding HasCrash}" />
 
-            <TextBlock Text="World backups" FontWeight="SemiBold" />
+            <TextBlock Text="{l:T 'World backups'}" FontWeight="SemiBold" />
             <StackPanel Orientation="Horizontal" Spacing="8">
-              <ComboBox ItemsSource="{Binding Worlds}" SelectedItem="{Binding SelectedWorld}" PlaceholderText="World" MinWidth="220" />
-              <Button Content="Back up" Command="{Binding BackupWorldCommand}" />
+              <ComboBox ItemsSource="{Binding Worlds}" SelectedItem="{Binding SelectedWorld}" PlaceholderText="{l:T 'World'}" MinWidth="220" />
+              <Button Content="{l:T 'Back up'}" Command="{Binding BackupWorldCommand}" />
             </StackPanel>
             <StackPanel Orientation="Horizontal" Spacing="8">
-              <ComboBox ItemsSource="{Binding Backups}" SelectedItem="{Binding SelectedBackup}" PlaceholderText="Backup" MinWidth="320">
+              <ComboBox ItemsSource="{Binding Backups}" SelectedItem="{Binding SelectedBackup}" PlaceholderText="{l:T 'Backup'}" MinWidth="320">
                 <ComboBox.ItemTemplate>
                   <DataTemplate x:DataType="x:String">
                     <TextBlock Text="{Binding Converter={x:Static v:Converters.FileName}}" />
                   </DataTemplate>
                 </ComboBox.ItemTemplate>
               </ComboBox>
-              <Button Content="Restore" Command="{Binding RestoreBackupCommand}" />
+              <Button Content="{l:T 'Restore'}" Command="{Binding RestoreBackupCommand}" />
             </StackPanel>
           </StackPanel>
         </ScrollViewer>

@@ -11,6 +11,8 @@ using NinjaLauncher.Minecraft.Java.Metadata;
 using NinjaLauncher.Mods.Loaders;
 using NinjaLauncher.Mods.Modrinth;
 
+using NinjaLauncher.Desktop.Localization;
+
 namespace NinjaLauncher.Desktop.ViewModels;
 
 public sealed partial class ModEntry(string fileName, bool enabled, ModUpdate? update) : ObservableObject
@@ -22,7 +24,7 @@ public sealed partial class ModEntry(string fileName, bool enabled, ModUpdate? u
     public string DisplayName => ProjectTitle is null ? FileName.Replace(".disabled", "") : $"{ProjectTitle}  ·  {FileName.Replace(".disabled", "")}";
     public ModUpdate? Update { get; } = update;
     public bool HasUpdate => Update is not null;
-    public string UpdateText => Update is null ? "" : $"Update: {Update.CurrentVersion ?? "?"} → {Update.Latest.VersionNumber}";
+    public string UpdateText => Update is null ? "" : L.F("Update: {0} → {1}", Update.CurrentVersion ?? "?", Update.Latest.VersionNumber);
 }
 
 public sealed partial class LibraryViewModel : ViewModelBase
@@ -131,7 +133,7 @@ public sealed partial class LibraryViewModel : ViewModelBase
         }
         catch (Exception e) when (e is not OperationCanceledException)
         {
-            _ui.Error($"Could not load Minecraft versions: {e.Message}");
+            _ui.Error(L.F("Could not load Minecraft versions: {0}", e.Message));
         }
     }
 
@@ -161,7 +163,7 @@ public sealed partial class LibraryViewModel : ViewModelBase
             if (request != _loaderRequest) return;
             foreach (var v in versions.OrderByDescending(v => v.Stable).Take(60)) LoaderVersions.Add(v.Version);
             NewLoaderVersion = LoaderVersions.FirstOrDefault();
-            if (LoaderVersions.Count == 0) _ui.Error($"{loader} has no build for Minecraft {mc} that Ninja Launcher can install.");
+            if (LoaderVersions.Count == 0) _ui.Error(L.F("{0} has no build for Minecraft {1} that Ninja Launcher can install.", loader, mc));
         });
         if (request == _loaderRequest) LoadingLoaderVersions = false;
     }
@@ -184,7 +186,7 @@ public sealed partial class LibraryViewModel : ViewModelBase
         {
             RefreshContent(value);
             var bytes = await _instances.GetDiskUsageAsync(value);
-            if (Selected?.Id == value.Id) DiskUsage = $"{bytes / 1024.0 / 1024.0:0.0} MB on disk";
+            if (Selected?.Id == value.Id) DiskUsage = L.F("{0:0.0} MB on disk", bytes / 1024.0 / 1024.0);
         });
     }
 
@@ -225,8 +227,8 @@ public sealed partial class LibraryViewModel : ViewModelBase
         await _jobs.Run($"Export {instance.Name} as .mrpack", async (progress, ct) =>
             result = await _exporter.ExportAsync(instance, _instances.GetGameDirectory(instance), file, "1.0.0",
                 new Progress<double>(p => progress.Report(new("Packing", p, 0))), ct));
-        _ui.Info($"Exported {Path.GetFileName(file)}: {result!.ModrinthFiles} file(s) linked from Modrinth, {result.OverrideFiles} bundled" +
-                 (result.SkippedDisabled > 0 ? $", {result.SkippedDisabled} disabled mod(s) left out." : ". Worlds and personal settings are not included."));
+        _ui.Info(L.F("Exported {0}: {1} file(s) linked from Modrinth, {2} bundled", Path.GetFileName(file), result!.ModrinthFiles, result.OverrideFiles) +
+                 (result.SkippedDisabled > 0 ? L.F(", {0} disabled mod(s) left out.", result.SkippedDisabled) : L.T(". Worlds and personal settings are not included.")));
     });
 
     [RelayCommand]
@@ -242,8 +244,8 @@ public sealed partial class LibraryViewModel : ViewModelBase
             result = await _curseForgeExporter.ExportAsync(instance, _instances.GetGameDirectory(instance), file, "1.0.0",
                 new Progress<double>(p => progress.Report(new("Packing", p, 0))), ct));
         _ui.Info(result!.CurseForgeChecked
-            ? $"Exported {Path.GetFileName(file)}: {result.LinkedFiles} file(s) linked from CurseForge, {result.OverrideFiles} bundled."
-            : $"Exported {Path.GetFileName(file)} with all {result.OverrideFiles} file(s) bundled: add a CurseForge API key in Settings so mods can be linked instead.");
+            ? L.F("Exported {0}: {1} file(s) linked from CurseForge, {2} bundled.", Path.GetFileName(file), result.LinkedFiles, result.OverrideFiles)
+            : L.F("Exported {0} with all {1} file(s) bundled: add a CurseForge API key in Settings so mods can be linked instead.", Path.GetFileName(file), result.OverrideFiles));
     });
 
     [RelayCommand]
@@ -273,7 +275,7 @@ public sealed partial class LibraryViewModel : ViewModelBase
         var file = await _ui.SaveFileAsync("Instance configuration", $"{SafePath.SanitizeName(Selected.Name)}.ninja.json");
         if (file is null) return;
         await _instances.ExportConfigAsync(Selected, file);
-        _ui.Info($"Exported to {Path.GetFileName(file)}.");
+        _ui.Info(L.F("Exported to {0}.", Path.GetFileName(file)));
     });
 
     [RelayCommand]
@@ -290,7 +292,7 @@ public sealed partial class LibraryViewModel : ViewModelBase
             });
         await OnShownAsync();
         Selected = Instances.FirstOrDefault(i => i.Id == instance.Id);
-        _ui.Info($"Imported '{instance.Name}'.");
+        _ui.Info(L.F("Imported '{0}'.", instance.Name));
     });
 
     [RelayCommand]
@@ -307,24 +309,24 @@ public sealed partial class LibraryViewModel : ViewModelBase
         });
         await OnShownAsync();
         Selected = Instances.FirstOrDefault(i => i.Id == created!.Id);
-        _ui.Info($"Imported '{created!.Name}'.");
+        _ui.Info(L.F("Imported '{0}'.", created!.Name));
         await DiscoverViewModel.OfferManualDownloadsAsync(_ui, _shell, blocked, _instances.GetGameDirectory(created));
     });
 
     [RelayCommand]
     private Task Create() => _ui.RunAsync(async () =>
     {
-        if (string.IsNullOrWhiteSpace(NewName)) throw new ArgumentException("Give the instance a name.");
-        if (NewVersion is null) throw new ArgumentException("Pick a Minecraft version.");
-        if (NewLoader != ModLoaderKind.None && NewLoaderVersion is null) throw new ArgumentException($"Pick a {NewLoader} version.");
+        if (string.IsNullOrWhiteSpace(NewName)) throw new ArgumentException(L.T("Give the instance a name."));
+        if (NewVersion is null) throw new ArgumentException(L.T("Pick a Minecraft version."));
+        if (NewLoader != ModLoaderKind.None && NewLoaderVersion is null) throw new ArgumentException(L.F("Pick a {0} version.", NewLoader));
         if (NewLoader == ModLoaderKind.Forge && !NewLoaderVersion!.StartsWith(NewVersion + "-", StringComparison.Ordinal))
-            throw new ArgumentException($"Forge {NewLoaderVersion} is not a build for Minecraft {NewVersion}.");
+            throw new ArgumentException(L.F("Forge {0} is not a build for Minecraft {1}.", NewLoaderVersion, NewVersion));
         var (name, mc, loader, loaderVersion, memory) = (NewName, NewVersion, NewLoader, NewLoaderVersion, NewMemoryMb);
         var instance = await _instances.CreateAsync(name, mc, loader, loaderVersion, memory);
         IsCreating = false;
         if (loader != ModLoaderKind.None)
         {
-            _ui.Info($"Installing {loader} {loaderVersion}… see Downloads.");
+            _ui.Info(L.F("Installing {0} {1}… see Downloads.", loader, loaderVersion));
             await _jobs.Run($"Install {loader} {loaderVersion} for {name}", async (progress, ct) =>
             {
                 var id = await _loaders[loader].InstallAsync(mc, loaderVersion!, progress, ct);
@@ -333,7 +335,7 @@ public sealed partial class LibraryViewModel : ViewModelBase
         }
         await OnShownAsync();
         Selected = Instances.FirstOrDefault(i => i.Id == instance.Id);
-        _ui.Info($"Created '{name}'.");
+        _ui.Info(L.F("Created '{0}'.", name));
     });
 
     [RelayCommand]
@@ -348,7 +350,7 @@ public sealed partial class LibraryViewModel : ViewModelBase
         });
         await OnShownAsync();
         Selected = Instances.FirstOrDefault(i => i.Id == updated.Id);
-        _ui.Info("Instance saved.");
+        _ui.Info(L.T("Instance saved."));
     });
 
     [RelayCommand]
@@ -356,9 +358,9 @@ public sealed partial class LibraryViewModel : ViewModelBase
     {
         if (Selected is not { } instance) return; // captured: the selection may change while checking
         if (instance.Loader != ModLoaderKind.None && instance.LaunchVersionId is null)
-            throw new InvalidOperationException($"{instance.Loader} is not installed for this instance yet. Use Repair to install it.");
+            throw new InvalidOperationException(L.F("{0} is not installed for this instance yet. Use Repair to install it.", instance.Loader));
         if (!await HomeViewModel.ConfirmModIssuesAsync(_ui, _game, instance)) return;
-        _ui.Info($"Preparing {instance.Name}… progress is on the Downloads page.");
+        _ui.Info(L.F("Preparing {0}… progress is on the Downloads page.", instance.Name));
         await _game.PlayAsync(instance);
     });
 
@@ -376,7 +378,7 @@ public sealed partial class LibraryViewModel : ViewModelBase
             });
         }
         await _game.RepairAsync(instance);
-        _ui.Info($"'{instance.Name}' verified and repaired.");
+        _ui.Info(L.F("'{0}' verified and repaired.", instance.Name));
         await OnShownAsync();
     });
 
@@ -394,11 +396,11 @@ public sealed partial class LibraryViewModel : ViewModelBase
     {
         if (Selected is not { } instance) return;
         _game.EnsureNotRunning(instance, "delete it");
-        if (!await _ui.ConfirmAsync($"Delete '{instance.Name}'? Its worlds, mods and settings in the instance folder will be permanently removed. Backups are kept.")) return;
+        if (!await _ui.ConfirmAsync(L.F("Delete '{0}'? Its worlds, mods and settings in the instance folder will be permanently removed. Backups are kept.", instance.Name))) return;
         await _instances.DeleteAsync(instance.Id);
         Selected = null;
         await OnShownAsync();
-        _ui.Info($"Deleted '{instance.Name}'.");
+        _ui.Info(L.F("Deleted '{0}'.", instance.Name));
     });
 
     [RelayCommand]
@@ -434,7 +436,7 @@ public sealed partial class LibraryViewModel : ViewModelBase
             _updates = await _modrinth.CheckUpdatesAsync(instance, _instances.GetGameDirectory(instance), CancellationToken.None);
             if (Selected?.Id != instance.Id) return;
             RefreshContent(instance);
-            _ui.Info(_updates.Count == 0 ? "All Modrinth mods are up to date." : $"{_updates.Count} mod update(s) available.");
+            _ui.Info(_updates.Count == 0 ? L.T("All Modrinth mods are up to date.") : L.F("{0} mod update(s) available.", _updates.Count));
         }
         finally { CheckingUpdates = false; }
     });
@@ -451,13 +453,13 @@ public sealed partial class LibraryViewModel : ViewModelBase
         {
             for (var i = 0; i < updates.Count; i++)
             {
-                progress.Report(new($"Updating {updates[i].FileName}", 100.0 * i / updates.Count, 0));
+                progress.Report(new(L.F("Updating {0}", updates[i].FileName), 100.0 * i / updates.Count, 0));
                 if (await _modrinth.ApplyUpdateAsync(updates[i], instance, gameDir, ct) is null) skipped++;
             }
         });
         _updates = [];
         if (Selected?.Id == instance.Id) { RefreshContent(instance); ClearIssues(); }
-        _ui.Info(skipped == 0 ? "Mods updated." : $"Mods updated; {skipped} skipped because they changed since the check.");
+        _ui.Info(skipped == 0 ? L.T("Mods updated.") : L.F("Mods updated; {0} skipped because they changed since the check.", skipped));
     });
 
     partial void OnSelectedCrashChanged(CrashFile? value)
@@ -528,7 +530,7 @@ public sealed partial class LibraryViewModel : ViewModelBase
             Issues.Clear();
             foreach (var i in issues) Issues.Add(i);
             var errors = issues.Count(i => i.Severity == IssueSeverity.Error);
-            CompatibilityStatus = issues.Count == 0 ? "No problems found." : $"{errors} error(s), {issues.Count - errors} other note(s).";
+            CompatibilityStatus = issues.Count == 0 ? L.T("No problems found.") : L.F("{0} error(s), {1} other note(s).", errors, issues.Count - errors);
             OnPropertyChanged(nameof(HasMissingDependencies));
         }
         finally { CheckingCompatibility = false; }
@@ -544,14 +546,14 @@ public sealed partial class LibraryViewModel : ViewModelBase
         await _jobs.Run($"Install missing dependencies for {instance.Name}", async (progress, ct) =>
         {
             // Re-check first: the mods may have changed since the list on screen was produced.
-            progress.Report(new("Checking dependencies", 5, 0));
+            progress.Report(new(L.T("Checking dependencies"), 5, 0));
             var missing = (await _checker.AnalyzeAsync(instance, gameDir, ct))
                 .Where(i => i.MissingProjectId is not null).Select(i => (i.MissingProjectId!, i.MissingVersionId)).ToList();
-            progress.Report(new($"Installing {missing.Count} dependenc{(missing.Count == 1 ? "y" : "ies")}", 20, 0));
+            progress.Report(new(L.F("Installing {0} dependencies", missing.Count), 20, 0));
             if (missing.Count > 0) added = await _modrinth.InstallProjectsAsync(missing, instance, gameDir, ct);
         });
         _updates = [];
-        _ui.Info(added.Count == 0 ? "Nothing to install." : $"Installed {string.Join(", ", added.Select(a => a.FileName))}.");
+        _ui.Info(added.Count == 0 ? L.T("Nothing to install.") : L.F("Installed {0}.", string.Join(", ", added.Select(a => a.FileName))));
         if (Selected?.Id != instance.Id) return; // the user moved on; don't repaint another instance
         RefreshContent(instance);
         ClearIssues();
@@ -561,20 +563,20 @@ public sealed partial class LibraryViewModel : ViewModelBase
     [RelayCommand]
     private Task BackupWorld() => _ui.RunAsync(async () =>
     {
-        if (Selected is null || SelectedWorld is null) throw new InvalidOperationException("Select a world to back up.");
+        if (Selected is null || SelectedWorld is null) throw new InvalidOperationException(L.T("Select a world to back up."));
         _game.EnsureNotRunning(Selected, "back up its worlds"); // a running game keeps writing region files
         var file = await _instances.BackupWorldAsync(Selected, SelectedWorld);
         RefreshContent(Selected);
-        _ui.Info($"Backup saved: {Path.GetFileName(file)}");
+        _ui.Info(L.F("Backup saved: {0}", Path.GetFileName(file)));
     });
 
     [RelayCommand]
     private Task RestoreBackup() => _ui.RunAsync(async () =>
     {
-        if (Selected is null || SelectedBackup is null) throw new InvalidOperationException("Select a backup to restore.");
+        if (Selected is null || SelectedBackup is null) throw new InvalidOperationException(L.T("Select a backup to restore."));
         _game.EnsureNotRunning(Selected, "restore a backup");
         await _instances.RestoreBackupAsync(Selected, SelectedBackup);
         RefreshContent(Selected);
-        _ui.Info("Backup restored into the saves folder.");
+        _ui.Info(L.T("Backup restored into the saves folder."));
     });
 }
