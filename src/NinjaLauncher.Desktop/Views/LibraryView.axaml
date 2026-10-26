@@ -128,6 +128,10 @@
             </DockPanel>
             <TextBlock Classes="muted" Text="{l:T 'No mods installed. Find some on the Discover page.'}" IsVisible="{Binding !Mods.Count}" />
             <ItemsControl ItemsSource="{Binding Mods}">
+              <!-- Only rows inside the page's visible area are created; big packs have hundreds of mods. -->
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate><VirtualizingStackPanel /></ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
               <ItemsControl.ItemTemplate>
                 <DataTemplate DataType="vm:ModEntry">
                   <DockPanel Margin="0,2">

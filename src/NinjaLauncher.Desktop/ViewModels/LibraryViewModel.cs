@@ -502,17 +502,32 @@ public sealed partial class LibraryViewModel : ViewModelBase
             var dir = Path.Combine(_instances.GetGameDirectory(instance), "mods");
             var hashes = new Dictionary<ModEntry, string>();
             foreach (var e in entries) hashes[e] = await CachedSha1Async(Path.Combine(dir, e.FileName), cts.Token);
-            var versions = await _modrinth.IdentifyFilesAsync(hashes.Values.Distinct().ToList(), cts.Token);
-            var info = await _modrinth.GetProjectInfoAsync(versions.Values.Select(v => v.ProjectId).Distinct().ToList(), cts.Token);
+            var unknown = hashes.Values.Distinct().Where(h => { lock (ProjectByHash) return !ProjectByHash.ContainsKey(h); }).ToList();
+            if (unknown.Count > 0)
+            {
+                var versions = await _modrinth.IdentifyFilesAsync(unknown, cts.Token);
+                var info = await _modrinth.GetProjectInfoAsync(versions.Values.Select(v => v.ProjectId).Distinct().ToList(), cts.Token);
+                lock (ProjectByHash)
+                {
+                    if (ProjectByHash.Count > 5000) ProjectByHash.Clear();
+                    // Files Modrinth doesn't know are remembered too (as null) so they aren't looked up again this session.
+                    foreach (var h in unknown)
+                        ProjectByHash[h] = versions.TryGetValue(h, out var v) && info.TryGetValue(v.ProjectId, out var p) ? (p.Title, p.IconUrl) : null;
+                }
+            }
             if (cts.IsCancellationRequested || Selected?.Id != instance.Id) return;
             foreach (var (entry, hash) in hashes)
-                if (versions.TryGetValue(hash, out var v) && info.TryGetValue(v.ProjectId, out var p))
-                    (entry.ProjectTitle, entry.IconUrl) = (p.Title, p.IconUrl);
+            {
+                (string Title, string? IconUrl)? project;
+                lock (ProjectByHash) project = ProjectByHash.GetValueOrDefault(hash);
+                if (project is { } p) (entry.ProjectTitle, entry.IconUrl) = (p.Title, p.IconUrl);
+            }
         }
         catch (Exception e) when (e is OperationCanceledException or HttpRequestException or IOException or System.Text.Json.JsonException or TimeoutException) { }
     }
 
     private static readonly Dictionary<(string Path, long Size, DateTime Modified), string> Sha1Cache = new();
+    private static readonly Dictionary<string, (string Title, string? IconUrl)?> ProjectByHash = new(StringComparer.OrdinalIgnoreCase);
 
     private static async Task<string> CachedSha1Async(string path, CancellationToken ct)
     {

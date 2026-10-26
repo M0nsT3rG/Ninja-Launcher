@@ -44,8 +44,9 @@ All seven research documents are written in `docs/research/`, each with sources,
 
 ## Phase 7: Advanced (v0.8.0). PARTIALLY COMPLETE
 - Crash-report viewer (crash-reports and JVM hs_err logs, summary with suspected mods and hints; failed exits report the reason): COMPLETE (unit-tested with sample reports, checked in the UI)
-- Localisation: Portuguese (Portugal), 242 strings; messages from the engine layers are still English: PARTIALLY COMPLETE
-- Performance benchmarks, notifications: NOT STARTED
+- Localisation: Portuguese (Portugal), 430+ strings including engine messages (errors, progress, mod issues, crash hints, activity), checked by tests; the sign-in browser page stays English: COMPLETE
+- Desktop notifications (download finished/failed, game closed/crashed; only while the launcher is in the background; setting to turn off): COMPLETE. Windows call verified; Linux/macOS commands not run on a desktop yet
+- Performance baseline and fixes (virtualised mod list, cached Modrinth lookups; see docs/testing/PERFORMANCE.md): COMPLETE on Windows
 
 ## Phase 8: Distribution (v0.9.0 → v1.0.0). PARTIALLY COMPLETE
 - Velopack packaging (Windows Setup + portable zip, Linux AppImage, macOS .app/.pkg) and a draft-release workflow with SHA256SUMS: COMPLETE (Windows packaging verified locally; other platforms run only in the release workflow, **not yet run**)
