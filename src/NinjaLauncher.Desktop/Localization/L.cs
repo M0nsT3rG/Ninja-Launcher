@@ -28,15 +28,16 @@ public static partial class L
         _templates = null;
     }
 
-    private static List<(Regex Pattern, string Translation)>? _templates;
+    private static List<(Regex Pattern, string Translation, HashSet<string> Nested)>? _templates;
 
     // Keys with placeholders ("Created instance '{0}' ({1})") as anchored patterns, so already-formatted messages
     // from the engine layers (exceptions, progress stages, activity entries) can be translated too.
-    private static List<(Regex Pattern, string Translation)> Templates() => _templates ??= _table
+    private static List<(Regex Pattern, string Translation, HashSet<string> Nested)> Templates() => _templates ??= _table
         .Where(kv => kv.Value.Length > 0 && Placeholder().IsMatch(kv.Key) && Placeholder().Replace(kv.Key, "").Trim().Length >= 4)
         .OrderByDescending(kv => Placeholder().Replace(kv.Key, "").Length) // most specific first
         .Select(kv => (new Regex("^" + string.Concat(Placeholder().Split(kv.Key).Select((part, i) => i % 2 == 0 ? Regex.Escape(part) : $"(?<p{part}>.*?)")) + "$",
-            RegexOptions.Singleline | RegexOptions.CultureInvariant, TimeSpan.FromMilliseconds(50)), kv.Value))
+            RegexOptions.Singleline | RegexOptions.CultureInvariant, TimeSpan.FromMilliseconds(50)), kv.Value,
+            Placeholder().Matches(kv.Key).Where(m => m.Index >= 2 && kv.Key[(m.Index - 2)..m.Index] == ": ").Select(m => m.Groups[1].Value).ToHashSet()))
         .ToList();
 
     [GeneratedRegex(@"\{(\d+)(?::[^}]*)?\}")]
@@ -54,17 +55,16 @@ public static partial class L
     {
         if (_table.TryGetValue(text, out var t) && t.Length > 0) return t;
         if (depth > 2 || text.Length > 2000) return text;
-        try
+        foreach (var (pattern, translation, nested) in Templates())
         {
-            foreach (var (pattern, translation) in Templates())
-            {
-                var m = pattern.Match(text);
-                if (!m.Success) continue;
-                // Filled-in values are kept, except nested sentences (e.g. an exception message), which are translated too.
-                return Placeholder().Replace(translation, p => m.Groups["p" + p.Groups[1].Value].Value is var v && v.Contains(' ') ? Lookup(v, depth + 1) : v);
-            }
+            Match m;
+            try { m = pattern.Match(text); }
+            catch (RegexMatchTimeoutException) { continue; }
+            if (!m.Success) continue;
+            // Filled-in values (names, versions, paths) are kept as they are. Only a value that the English key puts
+            // after ": " is an embedded message ("Could not load versions: {0}") and is translated too.
+            return Placeholder().Replace(translation, p => m.Groups["p" + p.Groups[1].Value].Value is var v && nested.Contains(p.Groups[1].Value) ? Lookup(v, depth + 1) : v);
         }
-        catch (RegexMatchTimeoutException) { }
         return text;
     }
 

@@ -29,7 +29,7 @@ public sealed class DesktopNotifier : IDisposable
             if (OperatingSystem.IsMacOS())
                 // Text goes in as argv, never spliced into the script.
                 return Run("osascript", "-e", "on run argv", "-e", "display notification (item 2 of argv) with title (item 1 of argv)", "-e", "end run", title, body);
-            return Run("notify-send", "--app-name=Ninja Launcher", "--icon=io.github.m0nst3rg.NinjaLauncher", title, body);
+            return Run("notify-send", "--app-name=Ninja Launcher", "--icon=io.github.m0nst3rg.NinjaLauncher", "--", title, body);
         }
         catch (Exception e) when (e is System.ComponentModel.Win32Exception or InvalidOperationException or ExternalException) { return false; }
     }
@@ -72,17 +72,22 @@ public sealed class DesktopNotifier : IDisposable
 
         public bool Show(string title, string body)
         {
-            if (!_added)
-            {
-                _added = ShellNotifyIcon(NimAdd, ref _data);
-                _data.uTimeoutOrVersion = 4; // NOTIFYICON_VERSION_4
-                ShellNotifyIcon(NimSetVersion, ref _data);
-            }
-            _data.uFlags = NifIcon | NifTip | NifInfo;
             _data.szInfoTitle = title;
             _data.szInfo = body;
             _data.dwInfoFlags = _data.hIcon == 0 ? 0x1 /* NIIF_INFO */ : NiifUser | NiifLargeIcon;
-            return _added && ShellNotifyIcon(NimModify, ref _data);
+            if (_added && Modify()) return true;
+            // First use, or Explorer restarted and dropped the icon: add it again.
+            _data.uFlags = NifIcon | NifTip;
+            _added = ShellNotifyIcon(NimAdd, ref _data);
+            _data.uTimeoutOrVersion = 4; // NOTIFYICON_VERSION_4
+            ShellNotifyIcon(NimSetVersion, ref _data);
+            return _added && Modify();
+        }
+
+        private bool Modify()
+        {
+            _data.uFlags = NifIcon | NifTip | NifInfo;
+            return ShellNotifyIcon(NimModify, ref _data);
         }
 
         public void Dispose()

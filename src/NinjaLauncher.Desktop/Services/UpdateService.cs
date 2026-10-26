@@ -65,7 +65,7 @@ public sealed class UpdateService
 
     public async Task DownloadAndRestartAsync(Action<int> progress)
     {
-        if (_manager is null) throw new InvalidOperationException("Updates are not available.");
+        if (_manager is null) throw new InvalidOperationException(L.T("Updates are not available."));
         // Re-check right before downloading: "latest" may have moved since the earlier check.
         _pending = await _manager.CheckForUpdatesAsync() ?? throw new InvalidOperationException(L.T("No update is available any more."));
         await _manager.DownloadUpdatesAsync(_pending, progress);

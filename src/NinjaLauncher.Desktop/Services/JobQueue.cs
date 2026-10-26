@@ -19,14 +19,14 @@ public sealed partial class JobViewModel : ObservableObject
     private readonly JobWork _work;
     private CancellationTokenSource _cts = new();
 
-    private readonly bool _notify;
+    private readonly bool _notifySuccess;
 
-    internal JobViewModel(JobQueue queue, string title, JobWork work, bool notify)
+    internal JobViewModel(JobQueue queue, string title, JobWork work, bool notifySuccess)
     {
         _queue = queue;
         Title = title;
         _work = work;
-        _notify = notify;
+        _notifySuccess = notifySuccess;
     }
 
     public string Title { get; }
@@ -69,7 +69,7 @@ public sealed partial class JobViewModel : ObservableObject
             await Task.Run(() => _work(progress, _cts.Token));
             Status = L.T("Completed");
             Percent = 100;
-            if (_notify) _queue.Notifications.Notify(L.T("Finished"), Title);
+            if (_notifySuccess) _queue.Notifications.Notify(L.T("Finished"), Title);
         }
         catch (OperationCanceledException)
         {
@@ -81,7 +81,7 @@ public sealed partial class JobViewModel : ObservableObject
             Status = L.T("Failed");
             Error = L.T(SecretRedactor.Redact(e.Message));
             CanRetry = true;
-            if (_notify) _queue.Notifications.Notify(L.F("Failed: {0}", Title), Error);
+            _queue.Notifications.Notify(L.F("Failed: {0}", Title), Error);
             _queue.Logger.LogError(e, "Job '{Title}' failed", Title);
             throw;
         }
@@ -100,10 +100,10 @@ public sealed class JobQueue(ILogger<JobQueue> logger, NotificationService notif
     public ObservableCollection<JobViewModel> Jobs { get; } = [];
 
     /// <summary>Starts a job on a background thread; the returned task faults if the job fails.</summary>
-    /// <param name="notify">Send a desktop notification when it finishes (if the launcher is in the background).</param>
-    public Task Run(string title, JobWork work, bool notify = true)
+    /// <param name="notifySuccess">Send a desktop notification when it succeeds; failures always notify (only while the launcher is in the background).</param>
+    public Task Run(string title, JobWork work, bool notifySuccess = true)
     {
-        var job = new JobViewModel(this, title, work, notify);
+        var job = new JobViewModel(this, title, work, notifySuccess);
         Jobs.Insert(0, job);
         while (Jobs.Count > 50 && Jobs[^1] is { IsRunning: false } old) Jobs.Remove(old);
         return job.Start();

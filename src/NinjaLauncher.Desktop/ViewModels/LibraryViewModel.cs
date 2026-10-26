@@ -226,7 +226,7 @@ public sealed partial class LibraryViewModel : ViewModelBase
         MrpackExportResult? result = null;
         await _jobs.Run(L.F("Export {0} as .mrpack", instance.Name), async (progress, ct) =>
             result = await _exporter.ExportAsync(instance, _instances.GetGameDirectory(instance), file, "1.0.0",
-                new Progress<double>(p => progress.Report(new("Packing", p, 0))), ct));
+                new Progress<double>(p => progress.Report(new(L.T("Packing"), p, 0))), ct));
         if (result is null) return; // cancelled
         _ui.Info(L.F("Exported {0}: {1} file(s) linked from Modrinth, {2} bundled", Path.GetFileName(file), result.ModrinthFiles, result.OverrideFiles) +
                  (result.SkippedDisabled > 0 ? L.F(", {0} disabled mod(s) left out.", result.SkippedDisabled) : L.T(". Worlds and personal settings are not included.")) +
@@ -244,7 +244,7 @@ public sealed partial class LibraryViewModel : ViewModelBase
         NinjaLauncher.Mods.CurseForge.CurseForgeExportResult? result = null;
         await _jobs.Run(L.F("Export {0} for CurseForge", instance.Name), async (progress, ct) =>
             result = await _curseForgeExporter.ExportAsync(instance, _instances.GetGameDirectory(instance), file, "1.0.0",
-                new Progress<double>(p => progress.Report(new("Packing", p, 0))), ct));
+                new Progress<double>(p => progress.Report(new(L.T("Packing"), p, 0))), ct));
         if (result is null) return; // cancelled
         _ui.Info(result.CurseForgeChecked
             ? L.F("Exported {0}: {1} file(s) linked from CurseForge, {2} bundled.", Path.GetFileName(file), result.LinkedFiles, result.OverrideFiles)

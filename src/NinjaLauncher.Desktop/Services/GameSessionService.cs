@@ -51,12 +51,7 @@ public sealed class GameSessionService(
                     new LaunchSession(session.Username, session.ProfileId, session.MinecraftAccessToken, session.Xuid, session.Offline ? "legacy" : "msa"),
                     progress, AppendLog, ct);
                 await activity.AddAsync($"'{current.Name}' exited with status {exit}", ct);
-                if (exit != 0)
-                {
-                    var reason = DescribeCrash(instances.GetGameDirectory(current), started, exit);
-                    notifications.Notify(L.F("'{0}' crashed", current.Name), reason);
-                    throw new InvalidOperationException(reason);
-                }
+                if (exit != 0) throw new InvalidOperationException(DescribeCrash(instances.GetGameDirectory(current), started, exit));
                 notifications.Notify(L.T("Minecraft closed"), L.F("'{0}' closed normally.", current.Name));
             }
             finally
@@ -64,7 +59,7 @@ public sealed class GameSessionService(
                 lock (_running) _running.Remove(instance.Id);
                 RunningChanged?.Invoke();
             }
-        }, notify: false); // the game reports closing or crashing itself
+        }, notifySuccess: false); // a clean exit is reported above; failures and crashes notify through the job
     }
 
     /// <summary>

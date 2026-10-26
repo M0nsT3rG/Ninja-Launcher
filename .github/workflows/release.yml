@@ -120,7 +120,7 @@ jobs:
     needs: linux-packages
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/flathub-infra/flatpak-github-actions:freedesktop-26.08
+      image: ghcr.io/flathub-infra/flatpak-github-actions@sha256:6ed6921bb5a9e1a916989971844f159b854b7b225880c381fa34f7a158863039 # freedesktop-26.08
       options: --privileged
     steps:
       - uses: actions/checkout@v4
@@ -128,7 +128,7 @@ jobs:
         with:
           name: flatpak-input
           path: artifacts/linux
-      - uses: flatpak/flatpak-github-actions/flatpak-builder@v6
+      - uses: flatpak/flatpak-github-actions/flatpak-builder@79327416609af08178ad73b352877e51450790b3 # v6
         with:
           manifest-path: packaging/flatpak/io.github.m0nst3rg.NinjaLauncher.yml
           bundle: ninja-launcher-${{ needs.linux-packages.outputs.version }}-x86_64.flatpak

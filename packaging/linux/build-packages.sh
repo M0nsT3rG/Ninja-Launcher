@@ -87,7 +87,7 @@ Architecture: amd64
 Maintainer: M0nsT3rG <56177619+M0nsT3rG@users.noreply.github.com>
 Installed-Size: $(du -sk --exclude=DEBIAN "$PKG" | cut -f1)
 Depends: libc6, libgcc-s1, libstdc++6, zlib1g, libicu78 | libicu77 | libicu76 | libicu74 | libicu72 | libicu70, libssl3t64 | libssl3, libfontconfig1, libx11-6, libice6, libsm6, libxext6, libxi6, libxrandr2, libxcursor1, libxfixes3
-Recommends: libsecret-tools, xdg-utils, libgl1
+Recommends: libsecret-tools, libnotify-bin, xdg-utils, libgl1
 Section: games
 Priority: optional
 Homepage: https://github.com/M0nsT3rG/Ninja-Launcher

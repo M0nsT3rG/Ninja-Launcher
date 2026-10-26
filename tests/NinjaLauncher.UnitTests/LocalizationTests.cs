@@ -79,7 +79,8 @@ public sealed partial class LocalizationTests
                 var lineEnd = text.IndexOf('\n', start) is var e && e < 0 ? text.Length : e;
                 var line = text[lineStart..lineEnd];
                 var before = text[lineStart..start];
-                if (desktop && !line.Contains("AddAsync(")) continue; // Desktop UI text is covered by the test above; activity entries are not
+                // Desktop UI text is covered by the test above; activity entries, progress stages and exceptions may skip L.T.
+                if (desktop && !Regex.IsMatch(line, @"AddAsync\(|Report\(new\(|throw new ")) continue;
                 if (NonUiLine().IsMatch(line) || NonUiArgument().IsMatch(before)) continue;
                 if (!UiLike().IsMatch(literal) || !literal.Contains(' ') || !Regex.IsMatch(Regex.Replace(literal, @"\{\d+[^}]*\}", ""), "[a-z]{3}")) continue;
                 if (NotUiText.Contains(literal)) continue;

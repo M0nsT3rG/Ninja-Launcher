@@ -104,6 +104,9 @@ public sealed class HardeningTests
             Assert.Equal("Não foi possível carregar as versões do Minecraft: Tempo esgotado a transferir https://x/y.",
                 NinjaLauncher.Desktop.Localization.L.T("Could not load Minecraft versions: Timed out downloading https://x/y."));
             Assert.Equal("Sodium", NinjaLauncher.Desktop.Localization.L.T("Sodium")); // unknown text passes through
+            // Names that happen to look like short UI strings ("Play {0}", "Update {0}") must stay as they are.
+            Assert.Equal("'Play Online' iniciado como Steve", NinjaLauncher.Desktop.Localization.L.T("Launched 'Play Online' as Steve"));
+            Assert.Equal("Update Checker precisa de Fabric API, que está desativado.", NinjaLauncher.Desktop.Localization.L.T("Update Checker requires Fabric API, which is disabled."));
         }
         finally { NinjaLauncher.Desktop.Localization.L.Use("en"); }
     }

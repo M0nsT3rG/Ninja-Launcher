@@ -17,6 +17,8 @@ finish-args:
   - --device=dri
   # Game audio (OpenAL through PulseAudio/PipeWire).
   - --socket=pulseaudio
+  # Desktop notifications (download finished, game closed or crashed) through notify-send.
+  - --talk-name=org.freedesktop.Notifications
   # No --talk-name=org.freedesktop.secrets: the app stores refresh tokens through the secret-tool CLI, which the
   # freedesktop runtime does not ship (it is in the SDK's devel split), so sign-ins last one session here.
   # Instances, Java runtimes and game files live in ~/.var/app/<app-id>/data (XDG_DATA_HOME), where downloaded Java
