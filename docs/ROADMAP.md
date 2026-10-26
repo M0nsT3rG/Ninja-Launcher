@@ -26,6 +26,7 @@ All seven research documents are written in `docs/research/`, each with sources,
 - Create, rename, clone, delete (with confirmation), memory, JVM arguments, Java path, repair, world backup and restore, disk usage, open folder: COMPLETE
 - Import and export of instance configurations (`.ninja.json`, no machine paths): COMPLETE
 - Custom instance icons (PNG/JPG/WebP/GIF ≤ 2 MB; Modrinth modpacks adopt the pack icon): COMPLETE
+- Pre-list a partner server in Multiplayer for Java instances and Bedrock (details kept out of the repository): NOT STARTED
 
 ## Phase 5: Modded (v0.5.0 / v0.6.0). PARTIALLY COMPLETE
 - Fabric, Quilt: COMPLETE (verified live)
