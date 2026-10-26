@@ -5,13 +5,22 @@
              xmlns:d="using:NinjaLauncher.Domain"
                           xmlns:c="using:NinjaLauncher.Desktop.Controls"
              xmlns:v="using:NinjaLauncher.Desktop.Views"
+             xmlns:m="using:NinjaLauncher.Mods.Modrinth"
              x:Class="NinjaLauncher.Desktop.Views.DiscoverView"
              x:DataType="vm:DiscoverViewModel" Classes="page">
   <DockPanel>
     <StackPanel DockPanel.Dock="Top" Margin="0,0,0,14">
       <TextBlock Classes="h1" Text="{l:T 'Discover'}" />
-      <TextBlock Classes="muted" Text="{l:T 'Mods, modpacks, shaders and resource packs from Modrinth and CurseForge.'}" />
+      <TextBlock Classes="muted" Text="{l:T 'Mods, modpacks, resource packs, data packs and shaders from Modrinth and CurseForge.'}" />
     </StackPanel>
+
+    <TabStrip DockPanel.Dock="Top" ItemsSource="{Binding Kinds}" SelectedItem="{Binding Kind}" Margin="0,0,0,10">
+      <TabStrip.ItemTemplate>
+        <DataTemplate DataType="m:ProjectKind">
+          <TextBlock Text="{Binding Converter={x:Static v:Converters.KindName}}" />
+        </DataTemplate>
+      </TabStrip.ItemTemplate>
+    </TabStrip>
 
     <Border DockPanel.Dock="Top" Classes="card" Padding="14" Margin="0,0,0,12">
       <StackPanel Spacing="10">
@@ -21,7 +30,6 @@
         </DockPanel>
         <WrapPanel>
           <ComboBox ItemsSource="{Binding Sources}" SelectedItem="{Binding Source}" MinWidth="140" Margin="0,0,8,0" />
-          <ComboBox ItemsSource="{Binding Kinds}" SelectedItem="{Binding Kind}" MinWidth="150" Margin="0,0,12,0" />
           <StackPanel Orientation="Horizontal" IsVisible="{Binding NeedsTarget}">
             <TextBlock Text="{l:T 'Install into'}" VerticalAlignment="Center" Margin="0,0,8,0" />
             <ComboBox ItemsSource="{Binding Instances}" SelectedItem="{Binding Target}" MinWidth="220" PlaceholderText="{l:T 'No instances'}" Margin="0,0,12,0">
@@ -31,9 +39,15 @@
                 </DataTemplate>
               </ComboBox.ItemTemplate>
             </ComboBox>
+            <StackPanel Orientation="Horizontal" IsVisible="{Binding IsDataPack}" Margin="0,0,12,0">
+              <TextBlock Text="{l:T 'World'}" VerticalAlignment="Center" Margin="0,0,8,0" />
+              <ComboBox ItemsSource="{Binding Worlds}" SelectedItem="{Binding TargetWorld}" MinWidth="180" PlaceholderText="{l:T 'No worlds'}" />
+            </StackPanel>
             <CheckBox Content="{l:T 'Only compatible with this instance'}" IsChecked="{Binding FilterByInstance}" />
           </StackPanel>
           <TextBlock Classes="muted" Text="{l:T 'Installing a modpack creates a new instance.'}" VerticalAlignment="Center" IsVisible="{Binding !NeedsTarget}" />
+          <TextBlock Classes="muted" Text="{l:T 'Data packs are added to one world. This instance has no worlds yet: play it once and create a world.'}"
+                     VerticalAlignment="Center" TextWrapping="Wrap" IsVisible="{Binding HasNoWorlds}" />
         </WrapPanel>
         <TextBlock Classes="muted" FontSize="12" Text="{Binding Warning}" />
       </StackPanel>

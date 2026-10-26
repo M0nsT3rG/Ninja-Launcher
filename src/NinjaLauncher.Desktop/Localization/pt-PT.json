@@ -110,7 +110,6 @@
  "Use this account": "Usar esta conta",
  "Remove": "Remover",
  "Active": "Ativa",
- "Mods, modpacks, shaders and resource packs from Modrinth and CurseForge.": "Mods, modpacks, shaders e pacotes de recursos do Modrinth e do CurseForge.",
  "Search": "Pesquisar",
  "Search…": "Pesquisar…",
  "Install into": "Instalar em",
@@ -430,5 +429,16 @@
  "change its settings": "alterar as definições",
  "turn mods on or off": "ativar ou desativar mods",
  "This instance is running. Close the game to change, update, repair or delete it.": "Esta instância está a correr. Fecha o jogo para a alterar, atualizar, reparar ou eliminar.",
- "Some files in the instance folder are in use and could not be deleted: {0} Close programs using them and try again.": "Alguns ficheiros da pasta da instância estão em uso e não foram eliminados: {0} Fecha os programas que os estão a usar e tenta novamente."
+ "Some files in the instance folder are in use and could not be deleted: {0} Close programs using them and try again.": "Alguns ficheiros da pasta da instância estão em uso e não foram eliminados: {0} Fecha os programas que os estão a usar e tenta novamente.",
+ "Mods, modpacks, resource packs, data packs and shaders from Modrinth and CurseForge.": "Mods, modpacks, pacotes de recursos, pacotes de dados e shaders do Modrinth e do CurseForge.",
+ "Modpacks": "Modpacks",
+ "Resource packs": "Pacotes de recursos",
+ "Data packs": "Pacotes de dados",
+ "Shaders": "Shaders",
+ "No worlds": "Sem mundos",
+ "Data packs are added to one world. This instance has no worlds yet: play it once and create a world.": "Os pacotes de dados são adicionados a um mundo. Esta instância ainda não tem mundos: joga uma vez e cria um mundo.",
+ "Data packs are added to a world. Play this instance once and create a world, then pick it here.": "Os pacotes de dados são adicionados a um mundo. Joga esta instância uma vez, cria um mundo e escolhe-o aqui.",
+ "the world '{0}' of '{1}'": "o mundo '{0}' de '{1}'",
+ "Pick the world to add the data pack to.": "Escolhe o mundo onde adicionar o pacote de dados.",
+ "CurseForge does not list a data packs category.": "O CurseForge não tem uma categoria de pacotes de dados."
 }

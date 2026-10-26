@@ -119,11 +119,16 @@ public sealed class CurseForgeClient(HttpClient http, Func<CancellationToken, Ta
     }
 
     /// <summary>The shaders class has no confirmed fixed id, so it is looked up by slug (0 if absent).</summary>
-    public async Task<int> ShadersClassIdAsync(CancellationToken ct)
+    public Task<int> ShadersClassIdAsync(CancellationToken ct) => ClassIdBySlugAsync("shaders", ct);
+
+    /// <summary>Data packs, looked up by slug like shaders (curseforge.com/minecraft/data-packs).</summary>
+    public Task<int> DataPacksClassIdAsync(CancellationToken ct) => ClassIdBySlugAsync("data-packs", ct);
+
+    private async Task<int> ClassIdBySlugAsync(string slug, CancellationToken ct)
     {
         using var doc = await GetAsync($"{ApiBase}/v1/categories?gameId={MinecraftGameId}&classesOnly=true", ct);
         return doc.RootElement.GetProperty("data").EnumerateArray()
-            .Where(c => c.TryGetProperty("slug", out var s) && s.GetString() == "shaders")
+            .Where(c => c.TryGetProperty("slug", out var s) && s.GetString() == slug)
             .Select(c => c.GetProperty("id").GetInt32()).FirstOrDefault();
     }
 
@@ -132,34 +137,41 @@ public sealed class CurseForgeClient(HttpClient http, Func<CancellationToken, Ta
         ProjectKind.Mod => ClassMods,
         ProjectKind.Modpack => ClassModpacks,
         ProjectKind.ResourcePack => ClassResourcePacks,
+        ProjectKind.DataPack => await DataPacksClassIdAsync(ct) is > 0 and var dp ? dp : throw new InvalidOperationException("CurseForge does not list a data packs category."),
         _ => await ShadersClassIdAsync(ct) is > 0 and var id ? id : throw new InvalidOperationException("CurseForge does not list a shaders category."),
     };
 
     /// <summary>Picks the newest release (falling back to beta/alpha) and installs it plus required dependencies.</summary>
-    public async Task<CurseForgeInstallResult> InstallAsync(CurseForgeMod mod, ProjectKind kind, GameInstance instance, string gameDirectory, CancellationToken ct)
+    /// <param name="world">Data packs only: the world (folder under <c>saves</c>) to add them to.</param>
+    public async Task<CurseForgeInstallResult> InstallAsync(CurseForgeMod mod, ProjectKind kind, GameInstance instance, string gameDirectory, CancellationToken ct,
+        string? world = null)
     {
         if (kind == ProjectKind.Mod && instance.Loader == ModLoaderKind.None)
             throw new InvalidOperationException("This instance has no mod loader. Create a Fabric, Quilt, Forge or NeoForge instance to install mods.");
+        if (kind == ProjectKind.DataPack && string.IsNullOrWhiteSpace(world)) throw new ArgumentException("Pick the world to add the data pack to.");
         var shaders = kind == ProjectKind.Shader ? await ShadersClassIdAsync(ct) : 0;
+        var dataPacks = kind == ProjectKind.DataPack ? await DataPacksClassIdAsync(ct) : 0;
         // Re-read the project right before installing: distribution permission may have changed since the search.
         mod = (await GetModsAsync([mod.Id], ct)).FirstOrDefault() ?? throw new InvalidOperationException($"'{mod.Name}' is no longer on CurseForge.");
         var installed = new List<InstalledContent>();
         var blocked = new List<BlockedFile>();
         var visited = new HashSet<long>();
-        await InstallRecursiveAsync(mod, kind, instance, gameDirectory, shaders, visited, installed, blocked, ct);
+        var dataPackFolder = world is null ? null : Modrinth.ModrinthClient.DataPackFolder(world);
+        await InstallRecursiveAsync(mod, kind, instance, gameDirectory, shaders, visited, installed, blocked, ct, dataPacks, dataPackFolder);
         return new CurseForgeInstallResult(installed, blocked);
     }
 
     private async Task InstallRecursiveAsync(CurseForgeMod mod, ProjectKind kind, GameInstance instance, string gameDir, int shadersClass,
-        HashSet<long> visited, List<InstalledContent> installed, List<BlockedFile> blocked, CancellationToken ct)
+        HashSet<long> visited, List<InstalledContent> installed, List<BlockedFile> blocked, CancellationToken ct, int dataPacksClass = 0, string? dataPackFolder = null)
     {
         if (!visited.Add(mod.Id)) return;
         if (visited.Count > 64) throw new InvalidOperationException($"'{mod.Name}' pulls in more than 64 required projects; install them individually.");
-        var loader = kind == ProjectKind.Mod ? instance.Loader : ModLoaderKind.None;
+        // Only mods are filtered by loader; a data pack's dependencies are usually other data packs.
+        var loader = mod.ClassId == ClassMods ? instance.Loader : ModLoaderKind.None;
         var files = (await GetFilesAsync(mod.Id, instance.MinecraftVersion, loader, ct)).Where(f => f.IsAvailable).OrderByDescending(f => f.FileDate).ToList();
         var file = files.FirstOrDefault(f => f.ReleaseType == 1) ?? files.FirstOrDefault()
             ?? throw new InvalidOperationException($"'{mod.Name}' has no file for Minecraft {instance.MinecraftVersion}{(loader == ModLoaderKind.None ? "" : " / " + loader)}.");
-        var folder = ContentFolder(mod.ClassId, shadersClass);
+        var folder = dataPacksClass != 0 && mod.ClassId == dataPacksClass && dataPackFolder is not null ? dataPackFolder : ContentFolder(mod.ClassId, shadersClass);
         var (path, block) = await DownloadAsync(mod, file, gameDir, folder, ct);
         if (block is not null) blocked.Add(block);
         else installed.Add(new InstalledContent(Path.GetFileName(path!), mod.Name, file.DisplayName));
@@ -170,7 +182,7 @@ public sealed class CurseForgeClient(HttpClient http, Func<CancellationToken, Ta
         if (missing.Count > 0)
             throw new InvalidOperationException($"'{mod.Name}' requires CurseForge project(s) {string.Join(", ", missing)}, which are no longer available. Nothing further was installed.");
         foreach (var dep in found)
-            await InstallRecursiveAsync(dep, ProjectKind.Mod, instance, gameDir, shadersClass, visited, installed, blocked, ct);
+            await InstallRecursiveAsync(dep, ProjectKind.Mod, instance, gameDir, shadersClass, visited, installed, blocked, ct, dataPacksClass, dataPackFolder);
     }
 
     /// <summary>Downloads one file if the author allows it; otherwise returns it as blocked (never builds a CDN URL).</summary>

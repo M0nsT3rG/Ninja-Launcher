@@ -32,7 +32,11 @@ public sealed partial class DiscoverViewModel(UiContext ui, ModrinthClient modri
 
     public ObservableCollection<ContentHit> Results { get; } = [];
     public ObservableCollection<GameInstance> Instances { get; } = [];
-    public IReadOnlyList<ProjectKind> Kinds { get; } = [ProjectKind.Mod, ProjectKind.Modpack, ProjectKind.Shader, ProjectKind.ResourcePack];
+    public IReadOnlyList<ProjectKind> Kinds { get; } = [ProjectKind.Mod, ProjectKind.Modpack, ProjectKind.ResourcePack, ProjectKind.DataPack, ProjectKind.Shader];
+    public ObservableCollection<string> Worlds { get; } = [];
+    public bool IsDataPack => Kind == ProjectKind.DataPack;
+    public bool HasNoWorlds => IsDataPack && Target is not null && Worlds.Count == 0;
+    [ObservableProperty] public partial string? TargetWorld { get; set; }
     public IReadOnlyList<ContentSource> Sources { get; } = [ContentSource.Modrinth, ContentSource.CurseForge];
     public bool NeedsTarget => Kind != ProjectKind.Modpack;
 
@@ -54,6 +58,7 @@ public sealed partial class DiscoverViewModel(UiContext ui, ModrinthClient modri
         Instances.Clear();
         foreach (var i in await instances.ListAsync()) Instances.Add(i);
         Target = Instances.FirstOrDefault(i => i.Id == keep) ?? Instances.FirstOrDefault(i => i.Loader != ModLoaderKind.None) ?? Instances.FirstOrDefault();
+        RefreshWorlds();
         // CurseForge data may not be kept around (API terms §3.1), so its results are always re-queried.
         if (Results.Count == 0 || Source == ContentSource.CurseForge) await SearchAsync();
     }
@@ -61,10 +66,26 @@ public sealed partial class DiscoverViewModel(UiContext ui, ModrinthClient modri
     partial void OnKindChanged(ProjectKind value)
     {
         OnPropertyChanged(nameof(NeedsTarget));
+        OnPropertyChanged(nameof(IsDataPack));
+        RefreshWorlds();
         Restart();
     }
     partial void OnSourceChanged(ContentSource value) => Restart();
-    partial void OnTargetChanged(GameInstance? value) { if (FilterByInstance) Restart(); }
+    partial void OnTargetChanged(GameInstance? value)
+    {
+        RefreshWorlds();
+        if (FilterByInstance) Restart();
+    }
+
+    /// <summary>Data packs belong to a world, so their install target is a world of the selected instance.</summary>
+    private void RefreshWorlds()
+    {
+        var keep = TargetWorld;
+        Worlds.Clear();
+        if (Target is { } t) foreach (var w in instances.ListWorlds(t)) Worlds.Add(w);
+        TargetWorld = Worlds.Contains(keep ?? "") ? keep : Worlds.FirstOrDefault();
+        OnPropertyChanged(nameof(HasNoWorlds));
+    }
     partial void OnFilterByInstanceChanged(bool value) => Restart();
 
     private void Restart() => _ = ui.RunAsync(() => { Offset = 0; return SearchAsync(); });
@@ -140,15 +161,19 @@ public sealed partial class DiscoverViewModel(UiContext ui, ModrinthClient modri
 
         var target = Target ?? throw new InvalidOperationException(L.T("Create or select an instance to install into."));
         game.EnsureNotRunning(target, "install mods");
-        if (!await ui.ConfirmAsync(L.F("Install '{0}' and its required dependencies into '{1}'?", hit.Title, target.Name) + "\n\n" + Warning)) return;
+        var world = kind == ProjectKind.DataPack
+            ? TargetWorld ?? throw new InvalidOperationException(L.T("Data packs are added to a world. Play this instance once and create a world, then pick it here."))
+            : null;
+        var into = world is null ? target.Name : L.F("the world '{0}' of '{1}'", world, target.Name);
+        if (!await ui.ConfirmAsync(L.F("Install '{0}' and its required dependencies into '{1}'?", hit.Title, into) + "\n\n" + Warning)) return;
         IReadOnlyList<InstalledContent> installed = [];
         IReadOnlyList<BlockedFile> manual = [];
         await jobs.Run(L.F("Install {0} → {1}", hit.Title, target.Name), async (progress, ct) =>
         {
             progress.Report(new(L.F("Resolving {0}", hit.Title), 10, 0));
             var gameDir = instances.GetGameDirectory(target);
-            if (hit.CurseForge is { } mod) (installed, manual) = await curseForge.InstallAsync(mod, kind, target, gameDir, ct);
-            else installed = await modrinth.InstallAsync(hit.Modrinth!, kind, target, gameDir, ct);
+            if (hit.CurseForge is { } mod) (installed, manual) = await curseForge.InstallAsync(mod, kind, target, gameDir, ct, world);
+            else installed = await modrinth.InstallAsync(hit.Modrinth!, kind, target, gameDir, ct, world);
         });
         if (installed.Count > 0) ui.Info(L.F("Installed {0}", string.Join(", ", installed.Select(i => i.FileName))));
         await OfferManualDownloadsAsync(ui, shell, manual, instances.GetGameDirectory(target));

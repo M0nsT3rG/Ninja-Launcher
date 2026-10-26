@@ -95,6 +95,14 @@ public sealed class HardeningTests
     }
 
     [Fact]
+    public void Data_packs_go_into_the_named_world_only()
+    {
+        Assert.Equal("saves/My World. /datapacks", NinjaLauncher.Mods.Modrinth.ModrinthClient.DataPackFolder("My World. ")); // real folder names kept as is
+        foreach (var bad in new[] { "", ".", "..", "../x", "a/b", "a\\b", "C:x" })
+            Assert.Throws<ArgumentException>(() => NinjaLauncher.Mods.Modrinth.ModrinthClient.DataPackFolder(bad));
+    }
+
+    [Fact]
     public void Formatted_engine_messages_are_translated_including_nested_ones()
     {
         try

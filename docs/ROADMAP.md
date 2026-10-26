@@ -39,6 +39,7 @@ All seven research documents are written in `docs/research/`, each with sources,
 - CurseForge (search mods, modpacks, shaders and resource packs; install with dependencies; CurseForge modpack zips; author-blocked files sent to manual download): PARTIALLY COMPLETE. Implemented and unit-tested; live use needs the owner's API key (B-06)
 - Modpack export: Modrinth `.mrpack` (verified live with a round trip) and CurseForge `.zip` (fingerprint matching is unverified until a key is available; without a key everything is bundled): COMPLETE
 - Project logos in Discover and on installed mods: COMPLETE
+- Discover tabs for mods, modpacks, resource packs, data packs and shaders on both sources; data packs install into a chosen world's `datapacks` folder: COMPLETE (Modrinth verified live; CurseForge data packs use the `data-packs` class looked up by slug, unverified until a key is available)
 
 ## Phase 6: Bedrock (v0.7.0). REMOVED
 - Dropped on 2026-10-26 at the owner's request (D-16). Ninja Launcher is Java Edition only.

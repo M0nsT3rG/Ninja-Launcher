@@ -101,6 +101,24 @@ public sealed class NetworkTests : IDisposable
     }
 
     [Fact]
+    public async Task Modrinth_data_pack_installs_into_the_chosen_world()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var client = new ModrinthClient(_downloads);
+        var hits = (await client.SearchAsync("terralith", ProjectKind.DataPack, "1.21.1", ModLoaderKind.None, 0, 5, ct)).Hits;
+        var hit = hits.First(h => h.Title.Contains("Terralith", StringComparison.OrdinalIgnoreCase));
+        // A plain vanilla instance: data packs need no mod loader.
+        var instance = new GameInstance { Id = Guid.NewGuid(), Name = "dp", MinecraftVersion = "1.21.1" };
+        var game = Path.Combine(_home, "dp");
+        Directory.CreateDirectory(Path.Combine(game, "saves", "My World"));
+        var installed = await client.InstallAsync(hit, ProjectKind.DataPack, instance, game, ct, world: "My World");
+        var file = Assert.Single(installed).FileName;
+        Assert.EndsWith(".zip", file);
+        Assert.True(File.Exists(Path.Combine(game, "saves", "My World", "datapacks", file)));
+        Assert.False(Directory.Exists(Path.Combine(game, "mods")));
+    }
+
+    [Fact]
     public async Task Outdated_mod_is_detected_and_updated_in_place()
     {
         var ct = TestContext.Current.CancellationToken;

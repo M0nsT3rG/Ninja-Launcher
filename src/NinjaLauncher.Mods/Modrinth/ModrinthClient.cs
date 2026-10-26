@@ -6,7 +6,7 @@ using NinjaLauncher.Domain;
 
 namespace NinjaLauncher.Mods.Modrinth;
 
-public enum ProjectKind { Mod, Modpack, Shader, ResourcePack }
+public enum ProjectKind { Mod, Modpack, Shader, ResourcePack, DataPack }
 
 public sealed record ModrinthHit(
     [property: JsonPropertyName("project_id")] string ProjectId,
@@ -55,7 +55,7 @@ public sealed class ModrinthClient(IDownloadService downloads)
 
     public static string ProjectTypeFacet(ProjectKind kind) => kind switch
     {
-        ProjectKind.Mod => "mod", ProjectKind.Modpack => "modpack", ProjectKind.Shader => "shader", _ => "resourcepack",
+        ProjectKind.Mod => "mod", ProjectKind.Modpack => "modpack", ProjectKind.Shader => "shader", ProjectKind.DataPack => "datapack", _ => "resourcepack",
     };
 
     public static string? LoaderName(ModLoaderKind loader) => loader switch
@@ -73,19 +73,23 @@ public sealed class ModrinthClient(IDownloadService downloads)
         return JsonSerializer.Deserialize<ModrinthSearchResult>(await GetCachedAsync(url, ct), Json)!;
     }
 
-    public async Task<IReadOnlyList<ModrinthVersion>> GetVersionsAsync(string projectId, string? gameVersion, ModLoaderKind loader, CancellationToken ct)
+    /// <param name="loaderName">Overrides <paramref name="loader"/>, e.g. "datapack" for a project's data pack files.</param>
+    public async Task<IReadOnlyList<ModrinthVersion>> GetVersionsAsync(string projectId, string? gameVersion, ModLoaderKind loader, CancellationToken ct, string? loaderName = null)
     {
         var url = $"{ApiBase}/project/{Uri.EscapeDataString(projectId)}/version";
         var q = new List<string>();
-        if (LoaderName(loader) is { } l) q.Add("loaders=" + Uri.EscapeDataString(JsonSerializer.Serialize(new[] { l })));
+        if ((loaderName ?? LoaderName(loader)) is { } l) q.Add("loaders=" + Uri.EscapeDataString(JsonSerializer.Serialize(new[] { l })));
         if (!string.IsNullOrWhiteSpace(gameVersion)) q.Add("game_versions=" + Uri.EscapeDataString(JsonSerializer.Serialize(new[] { gameVersion })));
         if (q.Count > 0) url += "?" + string.Join('&', q);
         return JsonSerializer.Deserialize<List<ModrinthVersion>>(await GetCachedAsync(url, ct), Json)!;
     }
 
     /// <summary>Installs the newest compatible version plus required dependencies into the instance's content folder.</summary>
-    public async Task<IReadOnlyList<InstalledContent>> InstallAsync(ModrinthHit project, ProjectKind kind, GameInstance instance, string gameDirectory, CancellationToken ct)
+    /// <param name="world">Data packs only: the world (folder under <c>saves</c>) to add them to; Minecraft loads data packs per world.</param>
+    public async Task<IReadOnlyList<InstalledContent>> InstallAsync(ModrinthHit project, ProjectKind kind, GameInstance instance, string gameDirectory, CancellationToken ct,
+        string? world = null)
     {
+        if (kind == ProjectKind.DataPack && string.IsNullOrWhiteSpace(world)) throw new ArgumentException("Pick the world to add the data pack to.");
         var installed = new List<InstalledContent>();
         var visited = new HashSet<string>();
         var loader = kind == ProjectKind.Mod ? instance.Loader : ModLoaderKind.None;
@@ -94,14 +98,15 @@ public sealed class ModrinthClient(IDownloadService downloads)
         var ledger = await LoadLedgerAsync(gameDirectory, ct);
         try
         {
-            await InstallRecursiveAsync(project.ProjectId, project.Title, null, isRoot: true, kind, loader, instance.MinecraftVersion, gameDirectory, ledger, visited, installed, ct);
+            await InstallRecursiveAsync(project.ProjectId, project.Title, null, isRoot: true, kind, loader, instance.MinecraftVersion, gameDirectory, ledger, visited, installed, ct, world);
         }
         finally { await SaveLedgerAsync(gameDirectory, ledger, CancellationToken.None); }
         return installed;
     }
 
     private async Task InstallRecursiveAsync(string projectId, string title, string? pinnedVersionId, bool isRoot, ProjectKind kind, ModLoaderKind loader,
-        string mc, string gameDir, Dictionary<string, LedgerEntry> ledger, HashSet<string> visited, List<InstalledContent> installed, CancellationToken ct)
+        string mc, string gameDir, Dictionary<string, LedgerEntry> ledger, HashSet<string> visited, List<InstalledContent> installed, CancellationToken ct,
+        string? world = null)
     {
         if (!visited.Add(projectId) || visited.Count > 64) return;
         // Dependencies already installed by an earlier install are left alone; the project the user picked is updated in place.
@@ -112,7 +117,7 @@ public sealed class ModrinthClient(IDownloadService downloads)
             version = JsonSerializer.Deserialize<ModrinthVersion>(await GetCachedAsync($"{ApiBase}/version/{Uri.EscapeDataString(pinnedVersionId)}", ct), Json)!;
         else
         {
-            var versions = await GetVersionsAsync(projectId, mc, loader, ct);
+            var versions = await GetVersionsAsync(projectId, mc, loader, ct, kind == ProjectKind.DataPack ? "datapack" : null);
             var ordered = versions.OrderByDescending(v => v.DatePublished).ToList();
             version = ordered.FirstOrDefault(v => v.VersionType is null or "release") ?? ordered.FirstOrDefault()
                 ?? throw new InvalidOperationException($"'{title}' has no release for Minecraft {mc}{(loader == ModLoaderKind.None ? "" : " / " + loader)}.");
@@ -121,7 +126,7 @@ public sealed class ModrinthClient(IDownloadService downloads)
         var url = new Uri(file.Url);
         if (!AllowedHosts.Contains(url.Host)) throw new InvalidOperationException($"Refusing download from unexpected host {url.Host}.");
 
-        var folderName = ContentFolder(kind);
+        var folderName = kind == ProjectKind.DataPack ? DataPackFolder(world!) : ContentFolder(kind);
         var folder = Path.Combine(gameDir, folderName);
         var target = SafePath.Combine(folder, SafePath.SanitizeName(file.Filename));
         await downloads.DownloadAsync([new DownloadItem(url, target, file.Hashes.GetValueOrDefault("sha1"), file.Size)], null, ct);
@@ -138,7 +143,7 @@ public sealed class ModrinthClient(IDownloadService downloads)
         installed.Add(new InstalledContent(Path.GetFileName(target), title, version.VersionNumber));
 
         foreach (var dep in version.Dependencies.Where(d => d.DependencyType == "required" && d.ProjectId is not null))
-            await InstallRecursiveAsync(dep.ProjectId!, dep.ProjectId!, dep.VersionId, isRoot: false, kind, loader, mc, gameDir, ledger, visited, installed, ct);
+            await InstallRecursiveAsync(dep.ProjectId!, dep.ProjectId!, dep.VersionId, isRoot: false, kind, loader, mc, gameDir, ledger, visited, installed, ct, world);
     }
 
     private static string LedgerPath(string gameDir) => Path.Combine(gameDir, ".ninja", "modrinth.json");
@@ -157,6 +162,13 @@ public sealed class ModrinthClient(IDownloadService downloads)
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         await File.WriteAllTextAsync(path, JsonSerializer.Serialize(ledger, Json), ct);
     }
+
+    /// <summary>Where a world's data packs live, relative to the instance's game directory.</summary>
+    /// <remarks>The name must be an existing world folder's own name (one path segment); SafePath still checks containment on use.</remarks>
+    public static string DataPackFolder(string world) =>
+        world.Length > 0 && world is not ("." or "..") && world.IndexOfAny(['/', '\\', ':', '\0']) < 0
+            ? $"saves/{world}/datapacks"
+            : throw new ArgumentException("Pick the world to add the data pack to.");
 
     public static string ContentFolder(ProjectKind kind) => kind switch
     {

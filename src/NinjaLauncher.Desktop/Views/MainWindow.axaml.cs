@@ -52,6 +52,15 @@ public static class Converters
 {
     public static readonly IValueConverter Localize = new LocalizeConverter();
 
+    public static readonly IValueConverter KindName = new FuncValueConverter<NinjaLauncher.Mods.Modrinth.ProjectKind, string>(k => NinjaLauncher.Desktop.Localization.L.T(k switch
+    {
+        NinjaLauncher.Mods.Modrinth.ProjectKind.Mod => "Mods",
+        NinjaLauncher.Mods.Modrinth.ProjectKind.Modpack => "Modpacks",
+        NinjaLauncher.Mods.Modrinth.ProjectKind.ResourcePack => "Resource packs",
+        NinjaLauncher.Mods.Modrinth.ProjectKind.DataPack => "Data packs",
+        _ => "Shaders",
+    }));
+
     /// <summary>Translates text produced by the engine layers (activity entries, mod issues, crash hints, enum names).</summary>
     public static readonly IValueConverter Translate = new FuncValueConverter<object?, string?>(v => v is null ? null : NinjaLauncher.Desktop.Localization.L.T(v.ToString() ?? ""));
 
