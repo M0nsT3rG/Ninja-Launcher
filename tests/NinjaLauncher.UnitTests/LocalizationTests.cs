@@ -54,7 +54,7 @@ public sealed partial class LocalizationTests
         "XboxLive.signin offline_access", "NinjaLauncher/{0} (+https://github.com/M0nsT3rG/Ninja-Launcher)",
         "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {SourceContext}: {Message:lj}{NewLine}{Exception}",
         "Application Support", "Eclipse Adoptium", "Amazon Corretto", "Windows DPAPI", "Minecraft Bedrock",
-        "Exported from Ninja Launcher ({0}{1})", "Caused by: ",
+        "Exported from Ninja Launcher ({0}{1})", "Caused by: ", "Ninja Launcher",
     ];
 
     /// <summary>

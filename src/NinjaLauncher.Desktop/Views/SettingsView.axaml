@@ -118,6 +118,7 @@
         <Border Classes="card">
           <StackPanel Spacing="10">
             <TextBlock Classes="h2" Text="{l:T 'Diagnostics and privacy'}" />
+            <CheckBox Content="{l:T 'Desktop notifications when a download finishes or the game closes while the launcher is in the background'}" IsChecked="{Binding DesktopNotifications}" />
             <CheckBox Content="{l:T 'Verbose logging (applies after restart)'}" IsChecked="{Binding Verbose}" />
             <TextBlock Classes="muted" Text="{l:T 'Logs stay on this computer and are scrubbed of sign-in tokens. Ninja Launcher sends no telemetry; it only contacts Microsoft, Mojang, Modrinth, the mod loader sites you use, and GitHub when checking for launcher updates.'}" />
             <StackPanel Orientation="Horizontal" Spacing="8">

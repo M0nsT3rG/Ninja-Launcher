@@ -51,6 +51,8 @@ public sealed record LauncherSettings
     public int DownloadConcurrency { get; init; } = 8;
     public string? CustomInstancesDirectory { get; init; }
     public bool CheckForUpdates { get; init; } = true;
+    /// <summary>Notify through the operating system when a download or the game finishes while the launcher is in the background.</summary>
+    public bool DesktopNotifications { get; init; } = true;
     public bool VerboseLogging { get; init; }
     public GameEdition LastEdition { get; init; } = GameEdition.Java;
     public Guid? SelectedInstanceId { get; init; }

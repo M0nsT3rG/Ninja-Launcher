@@ -16,7 +16,7 @@ namespace NinjaLauncher.Desktop.Services;
 /// <summary>Play/repair workflows shared by Home and Library. Owns the live game log.</summary>
 public sealed class GameSessionService(
     JavaLaunchService launcher, InstanceService instances, AccountService accounts, JobQueue jobs,
-    HttpDownloadService downloader, IActivityLog activity, ModCompatibilityChecker checker)
+    HttpDownloadService downloader, IActivityLog activity, ModCompatibilityChecker checker, NotificationService notifications)
 {
     private const int MaxLogLines = 3000;
     private readonly HashSet<Guid> _running = [];
@@ -51,14 +51,20 @@ public sealed class GameSessionService(
                     new LaunchSession(session.Username, session.ProfileId, session.MinecraftAccessToken, session.Xuid, session.Offline ? "legacy" : "msa"),
                     progress, AppendLog, ct);
                 await activity.AddAsync($"'{current.Name}' exited with status {exit}", ct);
-                if (exit != 0) throw new InvalidOperationException(DescribeCrash(instances.GetGameDirectory(current), started, exit));
+                if (exit != 0)
+                {
+                    var reason = DescribeCrash(instances.GetGameDirectory(current), started, exit);
+                    notifications.Notify(L.F("'{0}' crashed", current.Name), reason);
+                    throw new InvalidOperationException(reason);
+                }
+                notifications.Notify(L.T("Minecraft closed"), L.F("'{0}' closed normally.", current.Name));
             }
             finally
             {
                 lock (_running) _running.Remove(instance.Id);
                 RunningChanged?.Invoke();
             }
-        });
+        }, notify: false); // the game reports closing or crashing itself
     }
 
     /// <summary>

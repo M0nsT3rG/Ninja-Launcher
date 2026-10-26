@@ -105,6 +105,7 @@ public sealed partial class SettingsViewModel(UiContext ui, SettingsHolder setti
     [ObservableProperty] public partial bool Verbose { get; set; } = settings.Current.VerboseLogging;
     [ObservableProperty] public partial string ClientId { get; set; } = settings.Current.MicrosoftClientId;
     [ObservableProperty] public partial bool CheckForUpdates { get; set; } = settings.Current.CheckForUpdates;
+    [ObservableProperty] public partial bool DesktopNotifications { get; set; } = settings.Current.DesktopNotifications;
     public IReadOnlyList<string> LanguageNames { get; } = L.Languages.Select(l => l.Name).ToList();
     [ObservableProperty] public partial int LanguageIndex { get; set; } = Math.Max(0, L.Languages.ToList().FindIndex(l => l.Code == settings.Current.Language));
     [ObservableProperty] public partial string CurseForgeKey { get; set; } = "";
@@ -184,6 +185,7 @@ public sealed partial class SettingsViewModel(UiContext ui, SettingsHolder setti
         {
             Theme = Theme, AccentColor = AccentColor, DefaultMaxMemoryMb = DefaultMemory, DownloadConcurrency = Math.Clamp(Concurrency, 1, 32),
             CustomInstancesDirectory = customDir, VerboseLogging = Verbose, MicrosoftClientId = ClientId.Trim(), CheckForUpdates = CheckForUpdates, Language = language,
+            DesktopNotifications = DesktopNotifications,
         });
         ui.Info(restart ? L.T("Settings saved. Restart Ninja Launcher to apply the folder, language and logging changes.") : L.T("Settings saved."));
     });

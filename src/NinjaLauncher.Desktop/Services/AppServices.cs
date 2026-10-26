@@ -75,6 +75,7 @@ public static class AppServices
             s.AddSingleton<ILoaderProvider>(sp => new InstallerLoaderProvider(kind, sp.GetRequiredService<IDownloadService>(), sp.GetRequiredService<IAppPaths>(),
                 sp.GetRequiredService<VersionCatalog>(), sp.GetRequiredService<GameInstaller>(), sp.GetRequiredService<JavaRuntimeManager>(),
                 sp.GetRequiredService<ILogger<InstallerLoaderProvider>>()));
+        s.AddSingleton<NotificationService>();
         s.AddSingleton<JobQueue>();
         s.AddSingleton<GameSessionService>();
         s.AddSingleton<UpdateService>();

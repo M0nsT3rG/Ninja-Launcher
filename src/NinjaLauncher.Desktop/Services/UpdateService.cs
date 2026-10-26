@@ -34,7 +34,7 @@ public sealed class UpdateService
         var manager = new UpdateManager(new SignedFeedSource(FeedBaseUrl, key, http));
         if (!manager.IsInstalled)
         {
-            UnavailableReason = L.T("Updates only work in an installed copy of Ninja Launcher (not in development or portable runs).");
+            UnavailableReason = L.T("In-app updates only work in a copy installed with the Ninja Launcher installer or AppImage. Development, portable, .deb and Flatpak copies update by installing the new release.");
             return;
         }
         _manager = manager;

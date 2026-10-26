@@ -10,7 +10,6 @@
  "Cancelled": "Cancelado",
  "Failed": "Falhou",
  "This build has no update signing key, so automatic updates are disabled. Download new versions from the project’s releases page.": "Esta versão não tem chave de assinatura de atualizações, por isso as atualizações automáticas estão desativadas. Transfere novas versões a partir da página de lançamentos do projeto.",
- "Updates only work in an installed copy of Ninja Launcher (not in development or portable runs).": "As atualizações só funcionam numa cópia instalada do Ninja Launcher (não em execuções de desenvolvimento ou portáteis).",
  "No update is available any more.": "Já não há nenhuma atualização disponível.",
  "Mods are programs that run with your user’s permissions. Only install content you trust, whichever site it comes from.": "Os mods são programas que correm com as permissões do teu utilizador. Instala apenas conteúdo em que confias, seja qual for o site de origem.",
  "CurseForge needs your own API key: add it in Settings → CurseForge.": "O CurseForge precisa da tua própria chave de API: adiciona-a em Definições → CurseForge.",
@@ -432,5 +431,12 @@
  "Update feed redirected away from HTTPS.": "O feed de atualizações foi redirecionado para fora de HTTPS.",
  "Update feeds must use HTTPS.": "Os feeds de atualizações têm de usar HTTPS.",
  "Update package name is not a plain file name.": "O nome do pacote de atualização não é um nome de ficheiro simples.",
- "Could not query installed apps: {0}": "Não foi possível consultar as aplicações instaladas: {0}"
+ "Could not query installed apps: {0}": "Não foi possível consultar as aplicações instaladas: {0}",
+ "Finished": "Concluído",
+ "Failed: {0}": "Falhou: {0}",
+ "'{0}' crashed": "'{0}' falhou",
+ "Minecraft closed": "Minecraft fechado",
+ "'{0}' closed normally.": "'{0}' fechou normalmente.",
+ "Desktop notifications when a download finishes or the game closes while the launcher is in the background": "Notificações do sistema quando uma transferência termina ou o jogo fecha com o launcher em segundo plano",
+ "In-app updates only work in a copy installed with the Ninja Launcher installer or AppImage. Development, portable, .deb and Flatpak copies update by installing the new release.": "As atualizações na aplicação só funcionam numa cópia instalada com o instalador do Ninja Launcher ou com a AppImage. As cópias de desenvolvimento, portáteis, .deb e Flatpak atualizam-se instalando a nova versão."
 }
