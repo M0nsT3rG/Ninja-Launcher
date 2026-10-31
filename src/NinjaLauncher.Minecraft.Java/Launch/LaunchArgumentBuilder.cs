@@ -7,7 +7,8 @@ using NinjaLauncher.Minecraft.Java.Metadata;
 namespace NinjaLauncher.Minecraft.Java.Launch;
 
 /// <summary>Authenticated identity passed to the game. The access token never leaves memory except as a process argument.</summary>
-public sealed record LaunchSession(string Username, string Uuid, string AccessToken, string Xuid, string UserType = "msa");
+/// <param name="ClientId">The Azure app ID the token was issued to, passed as <c>--clientId</c>.</param>
+public sealed record LaunchSession(string Username, string Uuid, string AccessToken, string Xuid, string UserType = "msa", string ClientId = "");
 
 public sealed record LaunchOptions(
     string GameDirectory,
@@ -15,8 +16,7 @@ public sealed record LaunchOptions(
     int MaxMemoryMb,
     string UserJvmArguments,
     int? WindowWidth = null,
-    int? WindowHeight = null,
-    string ClientId = "");
+    int? WindowHeight = null);
 
 /// <summary>Builds the JVM + game argument list from version metadata. The result is passed as an argv array, never through a shell.</summary>
 public static partial class LaunchArgumentBuilder
@@ -42,7 +42,7 @@ public static partial class LaunchArgumentBuilder
             ["auth_access_token"] = session.AccessToken,
             ["auth_session"] = $"token:{session.AccessToken}:{session.Uuid}",
             ["auth_xuid"] = session.Xuid,
-            ["clientid"] = options.ClientId,
+            ["clientid"] = session.ClientId,
             ["user_type"] = session.UserType,
             ["user_properties"] = "{}",
             ["version_type"] = v.Type ?? "release",

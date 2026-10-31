@@ -148,7 +148,7 @@ public sealed class MicrosoftAuthenticator(HttpClient http, IUrlLauncher browser
         var xstsToken = xsts["Token"]!.GetValue<string>();
         var claims = xsts["DisplayClaims"]?["xui"]?[0];
         var uhs = claims?["uhs"]?.GetValue<string>() ?? throw new AuthenticationException("Xbox Live did not return a user hash.");
-        var xuid = claims?["xid"]?.GetValue<string>() ?? "0";
+        var xuid = claims?["xid"]?.GetValue<string>() ?? await XuidAsync(xblToken, ct);
 
         var mc = await PostJsonAsync("https://api.minecraftservices.com/authentication/login_with_xbox",
             new { identityToken = $"XBL3.0 x={uhs};{xstsToken}" }, null, ct);
@@ -164,7 +164,30 @@ public sealed class MicrosoftAuthenticator(HttpClient http, IUrlLauncher browser
         var profile = await profileResponse.Content.ReadFromJsonAsync<JsonNode>(ct) ?? throw new AuthenticationException("Empty Minecraft profile.");
 
         logger.LogInformation("Microsoft sign-in completed for profile {Name}", profile["name"]?.GetValue<string>());
-        return new MinecraftSignIn(profile["id"]!.GetValue<string>(), profile["name"]!.GetValue<string>(), xuid, mcToken, expires, msRefresh);
+        return new MinecraftSignIn(profile["id"]!.GetValue<string>(), profile["name"]!.GetValue<string>(), xuid, mcToken, expires, msRefresh,
+            ClientId: RequireClientId());
+    }
+
+    /// <summary>
+    /// The Minecraft relying party's XSTS reply has no Xbox user ID (seen live); the Xbox Live one does. Best effort:
+    /// the game runs without it, so a failure here never fails the sign-in.
+    /// </summary>
+    private async Task<string> XuidAsync(string xblToken, CancellationToken ct)
+    {
+        try
+        {
+            var xsts = await PostJsonAsync("https://xsts.auth.xboxlive.com/xsts/authorize", new
+            {
+                Properties = new { SandboxId = "RETAIL", UserTokens = new[] { xblToken } },
+                RelyingParty = "http://xboxlive.com", TokenType = "JWT",
+            }, null, ct);
+            return xsts["DisplayClaims"]?["xui"]?[0]?["xid"]?.GetValue<string>() ?? "0";
+        }
+        catch (Exception e) when (e is AuthenticationException or HttpRequestException or JsonException or InvalidOperationException)
+        {
+            logger.LogWarning("Could not read the Xbox user ID: {Message}", e.Message);
+            return "0";
+        }
     }
 
     private async Task<JsonNode> PostJsonAsync(string url, object payload, string? bearer, CancellationToken ct)

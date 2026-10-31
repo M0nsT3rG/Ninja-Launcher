@@ -8,7 +8,7 @@ namespace NinjaLauncher.UnitTests;
 public sealed class LaunchTests
 {
     private static readonly PlatformInfo Windows64 = new("windows", "x86_64", "windows-x64", ";");
-    private static readonly LaunchSession Session = new("Steve", "0123456789abcdef0123456789abcdef", "secret-token", "2535400000000000");
+    private static readonly LaunchSession Session = new("Steve", "0123456789abcdef0123456789abcdef", "secret-token", "2535400000000000", ClientId: "client-1");
 
     private static InstalledVersion Installed(VersionJson v) => new(v, ["C:/libs/a.jar", "C:/versions/x/x.jar"], "C:/versions/x/x.jar",
         "C:/natives", "C:/libs", "C:/assets", "17", "C:/assets", "-Dlog4j.configurationFile=C:/log.xml");
@@ -20,6 +20,7 @@ public sealed class LaunchTests
             {"id":"1.21.1","type":"release","mainClass":"net.minecraft.client.main.Main",
              "arguments":{
                "game":["--username","${auth_player_name}","--accessToken","${auth_access_token}","--gameDir","${game_directory}",
+                       "--clientId","${clientid}","--xuid","${auth_xuid}",
                        {"rules":[{"action":"allow","features":{"has_custom_resolution":true}}],"value":["--width","${resolution_width}"]}],
                "jvm":[{"rules":[{"action":"allow","os":{"name":"osx"}}],"value":["-XstartOnFirstThread"]},
                       {"rules":[{"action":"allow","os":{"name":"windows"}}],"value":"-XX:HeapDumpPath=heap"},
@@ -36,6 +37,8 @@ public sealed class LaunchTests
         Assert.Contains("-Dlog4j.configurationFile=C:/log.xml", args);
         Assert.Equal("C:/game dir", args[args.IndexOf("--gameDir") + 1]);
         Assert.Equal("secret-token", args[args.IndexOf("--accessToken") + 1]);
+        Assert.Equal("client-1", args[args.IndexOf("--clientId") + 1]);
+        Assert.Equal("2535400000000000", args[args.IndexOf("--xuid") + 1]);
         Assert.DoesNotContain("--width", args);
         Assert.True(args.IndexOf("net.minecraft.client.main.Main") < args.IndexOf("--username"));
     }

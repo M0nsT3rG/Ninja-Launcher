@@ -9,7 +9,7 @@ namespace NinjaLauncher.Application.Services;
 /// <summary>Result of a full Microsoft → Xbox → Minecraft sign-in. Tokens stay in memory except the refresh token.</summary>
 /// <param name="Offline">True for an offline profile: no Microsoft session, placeholder token.</param>
 public sealed record MinecraftSignIn(string ProfileId, string Username, string Xuid, string MinecraftAccessToken, DateTimeOffset ExpiresUtc,
-    string MicrosoftRefreshToken, bool Offline = false);
+    string MicrosoftRefreshToken, bool Offline = false, string ClientId = "");
 
 public interface IMinecraftAuthenticator
 {

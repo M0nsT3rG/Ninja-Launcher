@@ -25,12 +25,16 @@ public sealed class AuthChainTests
         {
             var url = request.RequestUri!.AbsoluteUri;
             var body = request.Content is null ? "" : await request.Content.ReadAsStringAsync(ct);
-            Bodies[request.RequestUri.Host + request.RequestUri.AbsolutePath] = body;
-            return url switch
+            // XSTS is called once per relying party, so those bodies are kept apart.
+            var party = url.Contains("xsts", StringComparison.Ordinal) ? "#" + (string?)JsonNode.Parse(body)!["RelyingParty"] : "";
+            Bodies[request.RequestUri.Host + request.RequestUri.AbsolutePath + party] = body;
+            return (url + party) switch
             {
                 "https://login.microsoftonline.com/consumers/oauth2/v2.0/token" => Json("""{"access_token":"ms-at","refresh_token":"ms-rt-2"}"""),
                 "https://user.auth.xboxlive.com/user/authenticate" => Json("""{"Token":"xbl-token","DisplayClaims":{"xui":[{"uhs":"uhs1"}]}}"""),
-                "https://xsts.auth.xboxlive.com/xsts/authorize" => Json("""{"Token":"xsts-token","DisplayClaims":{"xui":[{"uhs":"uhs1","xid":"2535"}]}}"""),
+                // As seen live: the Minecraft relying party returns no Xbox user ID, the Xbox Live one does.
+                "https://xsts.auth.xboxlive.com/xsts/authorize#rp://api.minecraftservices.com/" => Json("""{"Token":"xsts-token","DisplayClaims":{"xui":[{"uhs":"uhs1"}]}}"""),
+                "https://xsts.auth.xboxlive.com/xsts/authorize#http://xboxlive.com" => Json("""{"Token":"xsts-xbox","DisplayClaims":{"xui":[{"uhs":"uhs1","xid":"2535"}]}}"""),
                 "https://api.minecraftservices.com/authentication/login_with_xbox" => loginStatus == HttpStatusCode.OK
                     ? Json("""{"access_token":"mc-token","expires_in":86400}""")
                     : new HttpResponseMessage(loginStatus) { Content = new StringContent("""{"error":"Invalid app registration"}""") },
@@ -57,8 +61,8 @@ public sealed class AuthChainTests
         var server = new FakeServices();
         var result = await Create(server).RefreshAsync("ms-rt-1", TestContext.Current.CancellationToken);
 
-        Assert.Equal(("0123abcd", "Steve", "2535", "mc-token", "ms-rt-2"),
-            (result.ProfileId, result.Username, result.Xuid, result.MinecraftAccessToken, result.MicrosoftRefreshToken));
+        Assert.Equal(("0123abcd", "Steve", "2535", "mc-token", "ms-rt-2", "db657a7e-8a69-4faa-ae7f-a607b8f9a30a"),
+            (result.ProfileId, result.Username, result.Xuid, result.MinecraftAccessToken, result.MicrosoftRefreshToken, result.ClientId));
 
         var xbl = JsonNode.Parse(server.Bodies["user.auth.xboxlive.com/user/authenticate"])!;
         Assert.Equal("http://auth.xboxlive.com", (string?)xbl["RelyingParty"]);
@@ -67,10 +71,13 @@ public sealed class AuthChainTests
         Assert.Equal("user.auth.xboxlive.com", (string?)xbl["Properties"]!["SiteName"]);
         Assert.Equal("d=ms-at", (string?)xbl["Properties"]!["RpsTicket"]);
 
-        var xsts = JsonNode.Parse(server.Bodies["xsts.auth.xboxlive.com/xsts/authorize"])!;
-        Assert.Equal("rp://api.minecraftservices.com/", (string?)xsts["RelyingParty"]);
-        Assert.Equal("RETAIL", (string?)xsts["Properties"]!["SandboxId"]);
-        Assert.Equal("xbl-token", (string?)xsts["Properties"]!["UserTokens"]![0]);
+        foreach (var party in (string[])["rp://api.minecraftservices.com/", "http://xboxlive.com"])
+        {
+            var xsts = JsonNode.Parse(server.Bodies["xsts.auth.xboxlive.com/xsts/authorize#" + party])!;
+            Assert.Equal("RETAIL", (string?)xsts["Properties"]!["SandboxId"]);
+            Assert.Equal("xbl-token", (string?)xsts["Properties"]!["UserTokens"]![0]);
+            Assert.Equal("JWT", (string?)xsts["TokenType"]);
+        }
 
         var login = JsonNode.Parse(server.Bodies["api.minecraftservices.com/authentication/login_with_xbox"])!;
         Assert.Equal("XBL3.0 x=uhs1;xsts-token", (string?)login["identityToken"]);

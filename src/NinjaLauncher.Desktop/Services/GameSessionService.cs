@@ -50,7 +50,7 @@ public sealed class GameSessionService(
                 await activity.AddAsync($"Launched '{current.Name}' as {session.Username}", ct);
                 var started = DateTime.UtcNow.AddSeconds(-5);
                 var exit = await launcher.LaunchAsync(current, instances.GetGameDirectory(current),
-                    new LaunchSession(session.Username, session.ProfileId, session.MinecraftAccessToken, session.Xuid, session.Offline ? "legacy" : "msa"),
+                    new LaunchSession(session.Username, session.ProfileId, session.MinecraftAccessToken, session.Xuid, session.Offline ? "legacy" : "msa", session.ClientId),
                     progress, AppendLog, ct);
                 await activity.AddAsync($"'{current.Name}' exited with status {exit}", ct);
                 if (exit != 0) throw new InvalidOperationException(DescribeCrash(instances.GetGameDirectory(current), started, exit));
