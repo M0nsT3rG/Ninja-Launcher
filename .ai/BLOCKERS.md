@@ -1,7 +1,7 @@
 # Blockers
 
 ## B-01: Microsoft and Minecraft sign-in needs an approved Azure app ID (RESOLVED 2026-10-26)
-- **Resolution:** Mojang approved client ID `db657a7e-8a69-4faa-ae7f-a607b8f9a30a` on 2026-10-26. It is built in as the default (`BuiltInKeys.MicrosoftClientId`); `NINJA_MSA_CLIENT_ID` or an ID saved in Settings still wins. The owner signed in live the same day (profile resolved). The first authenticated game launch is still to be done.
+- **Resolution:** Mojang approved client ID `db657a7e-8a69-4faa-ae7f-a607b8f9a30a` on 2026-10-26. It is built in as the default (`BuiltInKeys.MicrosoftClientId`); `NINJA_MSA_CLIENT_ID` or an ID saved in Settings still wins. The owner signed in live the same day (profile resolved), and the first authenticated game launch passed on 2026-10-31.
 
 - **What's blocked:** `login_with_xbox` returns 403 "Invalid app registration" for any app ID that Mojang hasn't allow-listed.
 - **Why:** Mojang reviews third-party API integrations by hand. Source: https://help.minecraft.net/hc/en-us/articles/16254801392141 (verified 2026-10-25).

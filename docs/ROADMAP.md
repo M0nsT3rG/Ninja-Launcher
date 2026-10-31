@@ -20,7 +20,7 @@ All seven research documents are written in `docs/research/`, each with sources,
 - Install of client, libraries, assets, legacy assets, natives and logging config, with hash checks, retry and repair: COMPLETE (verified live)
 - Mojang Java runtime install, system Java fallback: COMPLETE (verified live)
 - Argument generation (modern, legacy, `default-user-jvm`), process launch, log capture, exit status, cancellation: implemented and unit-tested
-- **First playable acceptance test** (authenticated launch): ready to run, sign-in works since 2026-10-26
+- **First playable acceptance test** (authenticated launch): COMPLETE (passed 2026-10-31 on Windows with the owner's account)
 
 ## Phase 4: Instance management (v0.4.0). PARTIALLY COMPLETE
 - Create, rename, clone, delete (with confirmation), memory, JVM arguments, Java path, repair, world backup and restore, disk usage, open folder: COMPLETE
