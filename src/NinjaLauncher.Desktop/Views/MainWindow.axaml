@@ -17,6 +17,15 @@
     <DataTemplate DataType="vm:AccountsViewModel"><v:AccountsView /></DataTemplate>
     <DataTemplate DataType="vm:SettingsViewModel"><v:SettingsView /></DataTemplate>
   </Window.DataTemplates>
+  <Window.Styles>
+    <!-- The theme's spinner buttons only hold an icon, so screen readers would read the icon's class name. -->
+    <Style Selector="ButtonSpinner /template/ RepeatButton#PART_IncreaseButton">
+      <Setter Property="AutomationProperties.Name" Value="{l:T 'Increase'}" />
+    </Style>
+    <Style Selector="ButtonSpinner /template/ RepeatButton#PART_DecreaseButton">
+      <Setter Property="AutomationProperties.Name" Value="{l:T 'Decrease'}" />
+    </Style>
+  </Window.Styles>
 
   <Grid ColumnDefinitions="232,*">
     <!-- Sidebar -->

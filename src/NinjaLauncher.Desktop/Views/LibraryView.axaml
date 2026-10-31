@@ -27,6 +27,12 @@
       <DockPanel>
         <TextBox DockPanel.Dock="Top" Text="{Binding Search}" PlaceholderText="{l:T 'Search instances'}" Margin="0,0,0,10" />
         <ListBox ItemsSource="{Binding Instances}" SelectedItem="{Binding Selected}" Background="Transparent">
+          <ListBox.Styles>
+            <!-- Otherwise screen readers read the whole GameInstance record. -->
+            <Style Selector="ListBoxItem" x:DataType="d:GameInstance">
+              <Setter Property="AutomationProperties.Name" Value="{Binding Name}" />
+            </Style>
+          </ListBox.Styles>
           <ListBox.ItemTemplate>
             <DataTemplate DataType="d:GameInstance">
               <DockPanel Margin="2,4">
