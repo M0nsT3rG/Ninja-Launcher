@@ -54,15 +54,7 @@
         <!-- Character card -->
         <Border Height="330" CornerRadius="18" ClipToBounds="True" BorderBrush="{DynamicResource NinjaBorder}" BorderThickness="1">
           <Grid>
-            <Border>
-              <Border.Background>
-                <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
-                  <GradientStop Offset="0" Color="#2A1050" />
-                  <GradientStop Offset="0.55" Color="#4A1A6E" />
-                  <GradientStop Offset="1" Color="#8E1E62" />
-                </LinearGradientBrush>
-              </Border.Background>
-            </Border>
+            <c:PixelScene Seed="1312" Time="Sunset" />
             <Image Source="{Binding Background}" Stretch="UniformToFill" IsVisible="{Binding HasCustomBackground}" />
             <Border Height="110" VerticalAlignment="Bottom">
               <Border.Background>

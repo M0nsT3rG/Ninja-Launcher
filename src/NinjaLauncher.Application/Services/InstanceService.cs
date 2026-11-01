@@ -15,14 +15,14 @@ public sealed class InstanceService(IInstanceRepository repository, IAppPaths pa
     public Task<GameInstance?> GetAsync(Guid id, CancellationToken ct = default) => repository.GetAsync(id, ct);
 
     public async Task<GameInstance> CreateAsync(string name, string minecraftVersion, ModLoaderKind loader = ModLoaderKind.None,
-        string? loaderVersion = null, int maxMemoryMb = 4096, CancellationToken ct = default, bool fromModpack = false)
+        string? loaderVersion = null, int maxMemoryMb = 4096, CancellationToken ct = default, bool fromModpack = false, Guid? id = null)
     {
         ValidateName(name);
         if (string.IsNullOrWhiteSpace(minecraftVersion)) throw new ArgumentException("A Minecraft version is required.");
         if (loader != ModLoaderKind.None && string.IsNullOrWhiteSpace(loaderVersion)) throw new ArgumentException("A loader version is required.");
         var instance = new GameInstance
         {
-            Id = Guid.NewGuid(), Name = name.Trim(), MinecraftVersion = minecraftVersion,
+            Id = id ?? Guid.NewGuid(), Name = name.Trim(), MinecraftVersion = minecraftVersion,
             Loader = loader, LoaderVersion = loader == ModLoaderKind.None ? null : loaderVersion, MaxMemoryMb = maxMemoryMb,
             FromModpack = fromModpack,
         };
@@ -194,6 +194,44 @@ public sealed class InstanceService(IInstanceRepository repository, IAppPaths pa
         var current = await GetRequiredAsync(id, ct);
         if (GetIconPath(current) is { } path) File.Delete(path);
         var updated = current with { IconKey = null };
+        await repository.UpsertAsync(updated, ct);
+        return updated;
+    }
+
+    public const long MaxBackgroundBytes = 8 * 1024 * 1024;
+    private static readonly string[] BackgroundExtensions = [".png", ".jpg", ".jpeg", ".webp"];
+
+    /// <summary>Full path of the instance's custom card background, or null when it shows the generated scene.</summary>
+    public string? GetBackgroundPath(GameInstance instance)
+    {
+        if (instance.BackgroundKey is not { } key) return null;
+        var path = SafePath.Combine(GetGameDirectory(instance), key);
+        return File.Exists(path) ? path : null;
+    }
+
+    /// <summary>Copies an image (PNG/JPG/WebP, at most 8 MB) into the instance folder and uses it as the card background.</summary>
+    public async Task<GameInstance> SetBackgroundAsync(Guid id, string imagePath, CancellationToken ct = default)
+    {
+        var ext = Path.GetExtension(imagePath).ToLowerInvariant();
+        if (!BackgroundExtensions.Contains(ext)) throw new ArgumentException("Pick a PNG, JPG or WebP image.");
+        if (new FileInfo(imagePath).Length > MaxBackgroundBytes) throw new ArgumentException("Backgrounds must be 8 MB or smaller.");
+        var image = await File.ReadAllBytesAsync(imagePath, ct);
+        var current = await GetRequiredAsync(id, ct);
+        var dir = GetGameDirectory(current);
+        Directory.CreateDirectory(dir);
+        foreach (var old in BackgroundExtensions) File.Delete(Path.Combine(dir, "instance-background" + old));
+        var key = "instance-background" + ext;
+        await File.WriteAllBytesAsync(Path.Combine(dir, key), image, ct);
+        var updated = current with { BackgroundKey = key };
+        await repository.UpsertAsync(updated, ct);
+        return updated;
+    }
+
+    public async Task<GameInstance> ClearBackgroundAsync(Guid id, CancellationToken ct = default)
+    {
+        var current = await GetRequiredAsync(id, ct);
+        if (GetBackgroundPath(current) is { } path) File.Delete(path);
+        var updated = current with { BackgroundKey = null };
         await repository.UpsertAsync(updated, ct);
         return updated;
     }

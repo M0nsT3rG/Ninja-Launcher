@@ -37,6 +37,7 @@ public partial class App : Avalonia.Application
             _ = Task.Run(Controls.RemoteImage.PruneCache);
             var instanceService = _services.GetRequiredService<NinjaLauncher.Application.Services.InstanceService>();
             Views.Converters.InstanceIconResolver = instanceService.GetIconPath;
+            Views.Converters.InstanceBackgroundResolver = instanceService.GetBackgroundPath;
             ThemeManager.Apply(settings.Theme, settings.AccentColor);
             desktop.MainWindow = new MainWindow { DataContext = new MainViewModel(_services) };
             desktop.ShutdownRequested += (_, _) =>

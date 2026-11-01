@@ -106,6 +106,13 @@ public sealed partial class LibraryViewModel : ViewModelBase
     [ObservableProperty] public partial string? NewLoaderVersion { get; set; }
     [ObservableProperty] public partial int NewMemoryMb { get; set; }
     [ObservableProperty] public partial bool LoadingLoaderVersions { get; set; }
+    [ObservableProperty] public partial string? NewIconPath { get; set; }
+    [ObservableProperty] public partial string? NewBackgroundPath { get; set; }
+    [ObservableProperty] public partial Avalonia.Media.Imaging.Bitmap? NewIconPreview { get; set; }
+    [ObservableProperty] public partial Avalonia.Media.Imaging.Bitmap? NewBackgroundPreview { get; set; }
+    /// <summary>The id the new profile will get, chosen up front so the form previews the scene its card will show.</summary>
+    private Guid _newId;
+    [ObservableProperty] public partial int NewSceneSeed { get; set; }
 
     [ObservableProperty, NotifyPropertyChangedFor(nameof(HasSelection), nameof(IsGridMode), nameof(IsDetailsMode))]
     public partial GameInstance? Selected { get; set; }
@@ -244,7 +251,8 @@ public sealed partial class LibraryViewModel : ViewModelBase
     private void RefreshRunningState()
     {
         OnPropertyChanged(nameof(IsSelectedRunning));
-        foreach (var c in new IRelayCommand[] { PlayCommand, ExportModpackCommand, ExportCurseForgeCommand, ChangeIconCommand, ResetIconCommand, SaveCommand, LaunchCommand,
+        foreach (var c in new IRelayCommand[] { PlayCommand, ExportModpackCommand, ExportCurseForgeCommand, ChangeIconCommand, ResetIconCommand,
+                     ChangeBackgroundCommand, ResetBackgroundCommand, SaveCommand, LaunchCommand,
                      RepairCommand, DeleteCommand, ToggleModCommand, UpdateModsCommand, InstallMissingDependenciesCommand, BackupWorldCommand, RestoreBackupCommand })
             c.NotifyCanExecuteChanged();
     }
@@ -292,6 +300,9 @@ public sealed partial class LibraryViewModel : ViewModelBase
     {
         IsCreating = true;
         NewName = "";
+        _newId = Guid.NewGuid();
+        (NewIconPath, NewBackgroundPath, NewIconPreview, NewBackgroundPreview) = (null, null, null, null);
+        NewSceneSeed = Controls.PixelScene.SeedOf(_newId);
     }
 
     [RelayCommand]
@@ -338,11 +349,75 @@ public sealed partial class LibraryViewModel : ViewModelBase
     {
         if (Selected is not { } instance) return;
         _game.EnsureNotRunning(instance, "change its icon");
-        var file = await _ui.PickFileAsync("Instance icon", "*.png;*.jpg;*.jpeg;*.webp;*.gif");
-        if (file is null) return;
+        if (await PickIconAsync() is not { } file) return;
+        await _instances.SetIconAsync(instance.Id, file);
+        await OnShownAsync();
+        Selected = _all.FirstOrDefault(i => i.Id == instance.Id);
+    });
+
+    [RelayCommand]
+    private Task ChooseNewIcon() => _ui.RunAsync(async () =>
+    {
+        if (await PickIconAsync() is not { } file) return;
+        NewIconPreview = await PreviewAsync(file, 96);
+        NewIconPath = file;
+    });
+
+    [RelayCommand]
+    private Task ChooseNewBackground() => _ui.RunAsync(async () =>
+    {
+        if (await PickBackgroundAsync() is not { } file) return;
+        NewBackgroundPreview = await PreviewAsync(file, 500);
+        NewBackgroundPath = file;
+    });
+
+    private static Task<Avalonia.Media.Imaging.Bitmap> PreviewAsync(string file, int width) => Task.Run(() =>
+    {
+        using var stream = File.OpenRead(file);
+        return Avalonia.Media.Imaging.Bitmap.DecodeToWidth(stream, width, Avalonia.Media.Imaging.BitmapInterpolationMode.HighQuality);
+    });
+
+    [RelayCommand]
+    private void ClearNewIcon() => (NewIconPath, NewIconPreview) = (null, null);
+
+    [RelayCommand]
+    private void ClearNewBackground() => (NewBackgroundPath, NewBackgroundPreview) = (null, null);
+
+    private async Task<string?> PickIconAsync()
+    {
+        var file = await _ui.PickFileAsync(L.T("Profile logo"), "*.png;*.jpg;*.jpeg;*.webp;*.gif");
+        if (file is null) return null;
         if (new FileInfo(file).Length > InstanceService.MaxIconBytes || !Controls.RemoteImage.IsSafeImage(await File.ReadAllBytesAsync(file)))
             throw new ArgumentException(L.T("Pick a PNG, JPG, WebP or GIF image up to 4096×4096 pixels and 2 MB."));
-        await _instances.SetIconAsync(instance.Id, file);
+        return file;
+    }
+
+    private async Task<string?> PickBackgroundAsync()
+    {
+        var file = await _ui.PickFileAsync(L.T("Profile background"), "*.png;*.jpg;*.jpeg;*.webp");
+        if (file is null) return null;
+        if (new FileInfo(file).Length > InstanceService.MaxBackgroundBytes || !Controls.RemoteImage.IsSafeImage(await File.ReadAllBytesAsync(file)))
+            throw new ArgumentException(L.T("Pick a PNG, JPG or WebP image up to 4096×4096 pixels and 8 MB."));
+        return file;
+    }
+
+    [RelayCommand(CanExecute = nameof(CanEdit))]
+    private Task ChangeBackground() => _ui.RunAsync(async () =>
+    {
+        if (Selected is not { } instance) return;
+        _game.EnsureNotRunning(instance, "change its background");
+        if (await PickBackgroundAsync() is not { } file) return;
+        await _instances.SetBackgroundAsync(instance.Id, file);
+        await OnShownAsync();
+        Selected = _all.FirstOrDefault(i => i.Id == instance.Id);
+    });
+
+    [RelayCommand(CanExecute = nameof(CanEdit))]
+    private Task ResetBackground() => _ui.RunAsync(async () =>
+    {
+        if (Selected is not { } instance) return;
+        _game.EnsureNotRunning(instance, "change its background");
+        await _instances.ClearBackgroundAsync(instance.Id);
         await OnShownAsync();
         Selected = _all.FirstOrDefault(i => i.Id == instance.Id);
     });
@@ -411,7 +486,17 @@ public sealed partial class LibraryViewModel : ViewModelBase
         if (NewLoader == ModLoaderKind.Forge && !NewLoaderVersion!.StartsWith(NewVersion + "-", StringComparison.Ordinal))
             throw new ArgumentException(L.F("Forge {0} is not a build for Minecraft {1}.", NewLoaderVersion, NewVersion));
         var (name, mc, loader, loaderVersion, memory) = (NewName, NewVersion, NewLoader, NewLoaderVersion, NewMemoryMb);
-        var instance = await _instances.CreateAsync(name, mc, loader, loaderVersion, memory);
+        var instance = await _instances.CreateAsync(name, mc, loader, loaderVersion, memory, id: _newId);
+        try
+        {
+            if (NewIconPath is { } icon) instance = await _instances.SetIconAsync(instance.Id, icon);
+            if (NewBackgroundPath is { } background) instance = await _instances.SetBackgroundAsync(instance.Id, background);
+        }
+        catch
+        {
+            await _instances.DeleteAsync(instance.Id); // the image went missing since it was picked: undo, the form stays open to retry
+            throw;
+        }
         IsCreating = false;
         if (loader != ModLoaderKind.None)
         {

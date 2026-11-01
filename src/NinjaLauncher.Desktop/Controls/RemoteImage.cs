@@ -18,6 +18,14 @@ public static class RemoteImage
         AvaloniaProperty.RegisterAttached<Image, string?>("Url", typeof(RemoteImage));
 
     public static string? GetUrl(Image image) => image.GetValue(UrlProperty);
+
+    /// <summary>Local images only: decode wider than the 96-pixel logo size, for card backgrounds (up to 8 MB).</summary>
+    public static readonly AttachedProperty<int> DecodeWidthProperty =
+        AvaloniaProperty.RegisterAttached<Image, int>("DecodeWidth", typeof(RemoteImage), 96);
+
+    public static int GetDecodeWidth(Image image) => image.GetValue(DecodeWidthProperty);
+    public static void SetDecodeWidth(Image image, int value) => image.SetValue(DecodeWidthProperty, value);
+    private const long MaxBackgroundBytes = 8 * 1024 * 1024;
     public static void SetUrl(Image image, string? value) => image.SetValue(UrlProperty, value);
 
     /// <summary>Set at startup; null disables the disk cache.</summary>
@@ -77,7 +85,9 @@ public static class RemoteImage
             // Local instance icons only, from the instances folder; never UNC paths (that would contact a remote host).
             if (LocalRoot is null || url.StartsWith(@"\\", StringComparison.Ordinal) || url.StartsWith("//", StringComparison.Ordinal) ||
                 !NinjaLauncher.Application.Security.SafePath.IsUnder(LocalRoot, url)) return;
-            var local = await Task.Run(() => File.Exists(url) && new FileInfo(url).Length <= MaxBytes ? Decode(File.ReadAllBytes(url), 96) : null);
+            var width = GetDecodeWidth(image);
+            var limit = width > 96 ? MaxBackgroundBytes : MaxBytes;
+            var local = await Task.Run(() => File.Exists(url) && new FileInfo(url).Length <= limit ? Decode(File.ReadAllBytes(url), width) : null);
             if (GetUrl(image) == url) image.Source = local;
             return;
         }

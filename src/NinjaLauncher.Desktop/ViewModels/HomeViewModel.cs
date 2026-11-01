@@ -24,6 +24,9 @@ public sealed partial class BedrockEntry(BedrockChannel channel, string title) :
     [ObservableProperty] public partial bool IsInstalled { get; set; }
     [ObservableProperty] public partial bool CanInstall { get; set; }
     public BedrockStatus? Detected { get; set; }
+    /// <summary>Card scenes: Release by day, Preview at night.</summary>
+    public int SceneSeed => Channel == BedrockChannel.Preview ? 4021 : 1187;
+    public SceneTime SceneTime => Channel == BedrockChannel.Preview ? SceneTime.Night : SceneTime.Day;
 }
 
 public sealed partial class HomeViewModel : ViewModelBase

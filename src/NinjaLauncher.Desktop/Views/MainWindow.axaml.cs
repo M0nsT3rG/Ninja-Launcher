@@ -78,6 +78,17 @@ public static class Converters
     public static readonly IValueConverter InstanceIcon = new FuncValueConverter<NinjaLauncher.Domain.GameInstance?, string?>(i =>
         i is null ? null : InstanceIconResolver?.Invoke(i) ?? DefaultInstanceIcon);
 
+    /// <summary>Set at startup: instance → custom card background path (or null).</summary>
+    public static Func<NinjaLauncher.Domain.GameInstance, string?>? InstanceBackgroundResolver { get; set; }
+
+    /// <summary>The profile's own card background file (loaded off the UI thread by RemoteImage); null shows the pixel-art scene.</summary>
+    public static readonly IValueConverter InstanceBackgroundPath = new FuncValueConverter<NinjaLauncher.Domain.GameInstance?, string?>(i =>
+        i is null ? null : InstanceBackgroundResolver?.Invoke(i));
+
+    /// <summary>A stable pixel-art scene seed for a profile.</summary>
+    public static readonly IValueConverter SceneSeed = new FuncValueConverter<NinjaLauncher.Domain.GameInstance?, int>(i =>
+        i is null ? 0 : NinjaLauncher.Desktop.Controls.PixelScene.SeedOf(i.Id));
+
     public static readonly IValueConverter IsError = new FuncValueConverter<NinjaLauncher.Mods.Modrinth.IssueSeverity, bool>(s => s == NinjaLauncher.Mods.Modrinth.IssueSeverity.Error);
 
     public static readonly IValueConverter JoinLines = new FuncValueConverter<IReadOnlyList<string>, string>(l => l is null ? "" : string.Join(", ", l));

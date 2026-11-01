@@ -218,12 +218,15 @@
                     <Image c:RemoteImage.Url="{Binding IconUrl}" Stretch="UniformToFill" RenderOptions.BitmapInterpolationMode="HighQuality" />
                   </Border>
                   <StackPanel Spacing="2" VerticalAlignment="Center">
-                    <StackPanel Orientation="Horizontal" Spacing="8">
-                      <Button Content="{Binding Title}" FontWeight="Bold" FontSize="16" Padding="0" Background="Transparent"
+                    <DockPanel>
+                      <Button DockPanel.Dock="Left" FontWeight="Bold" FontSize="16" Padding="0" Background="Transparent" MaxWidth="460"
                               Command="{Binding $parent[UserControl].((vm:DiscoverViewModel)DataContext).OpenPageCommand}" CommandParameter="{Binding}"
-                              ToolTip.Tip="{l:T 'Open its page'}" />
-                      <TextBlock Classes="muted" FontSize="12" Text="{Binding Author, Converter={x:Static v:Converters.Localize}, ConverterParameter='by {0}'}" VerticalAlignment="Center" />
-                    </StackPanel>
+                              ToolTip.Tip="{Binding Title}" AutomationProperties.Name="{Binding Title}">
+                        <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
+                      </Button>
+                      <TextBlock Classes="muted" FontSize="12" Margin="8,0,0,0" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"
+                                 Text="{Binding Author, Converter={x:Static v:Converters.Localize}, ConverterParameter='by {0}'}" />
+                    </DockPanel>
                     <TextBlock Classes="muted" Text="{Binding Description}" TextTrimming="CharacterEllipsis" MaxLines="1" />
                   </StackPanel>
                 </DockPanel>

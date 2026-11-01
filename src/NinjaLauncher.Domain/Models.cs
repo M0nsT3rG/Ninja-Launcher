@@ -22,6 +22,8 @@ public sealed record GameInstance
     public int MaxMemoryMb { get; init; } = 4096;
     public string ExtraJvmArguments { get; init; } = "";
     public string? IconKey { get; init; }
+    /// <summary>Custom card background file in the instance folder; null shows the generated pixel-art scene.</summary>
+    public string? BackgroundKey { get; init; }
     public DateTimeOffset CreatedUtc { get; init; } = DateTimeOffset.UtcNow;
     public DateTimeOffset? LastPlayedUtc { get; init; }
     /// <summary>Shown in the Pinned tab and first on Home.</summary>

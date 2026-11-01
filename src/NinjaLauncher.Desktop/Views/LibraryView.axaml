@@ -73,7 +73,8 @@
                 <Border Classes="card" Width="290" Padding="0" Margin="0,0,16,16" ClipToBounds="True">
                   <StackPanel>
                     <Grid Height="104">
-                      <Border Background="{DynamicResource NinjaGradient}" Opacity="0.75" />
+                      <c:PixelScene Seed="{Binding Converter={x:Static v:Converters.SceneSeed}}" />
+                      <Image c:RemoteImage.Url="{Binding Converter={x:Static v:Converters.InstanceBackgroundPath}}" c:RemoteImage.DecodeWidth="640" Stretch="UniformToFill" />
                       <Border Width="64" Height="64" CornerRadius="12" ClipToBounds="True" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="16"
                               Background="#330E0A16">
                         <Image c:RemoteImage.Url="{Binding Converter={x:Static v:Converters.InstanceIcon}}" Stretch="UniformToFill" />
@@ -114,7 +115,7 @@
               <DataTemplate DataType="vm:BedrockEntry">
                 <Border Classes="card" Width="290" Padding="0" Margin="0,0,16,16" ClipToBounds="True">
                   <StackPanel>
-                    <Border Height="104" Background="{DynamicResource NinjaGradient}" Opacity="0.75" />
+                    <c:PixelScene Height="104" Seed="{Binding SceneSeed}" Time="{Binding SceneTime}" />
                     <StackPanel Margin="16,12,16,14" Spacing="4">
                       <TextBlock Text="{Binding Title}" FontSize="18" FontWeight="Bold" />
                       <TextBlock Classes="muted" Text="{Binding Status}" />
@@ -157,6 +158,32 @@
                       PlaceholderText="{l:T 'Loader version'}" IsVisible="{Binding LoaderVersions.Count}" />
             <ProgressBar IsIndeterminate="True" Width="80" IsVisible="{Binding LoadingLoaderVersions}" />
           </StackPanel>
+          <TextBlock Text="{l:T 'Logo'}" />
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <Border Width="56" Height="56" CornerRadius="10" ClipToBounds="True" Background="{DynamicResource NinjaSurfaceRaised}">
+              <Panel>
+                <Image Source="/Assets/ninja-launcher.png" IsVisible="{Binding NewIconPath, Converter={x:Static ObjectConverters.IsNull}}" />
+                <Image Source="{Binding NewIconPreview}" Stretch="UniformToFill" />
+              </Panel>
+            </Border>
+            <Button Content="{l:T 'Choose logo…'}" Command="{Binding ChooseNewIconCommand}" VerticalAlignment="Center" />
+            <Button Content="{l:T 'Use the default'}" Command="{Binding ClearNewIconCommand}" VerticalAlignment="Center"
+                    IsVisible="{Binding NewIconPath, Converter={x:Static ObjectConverters.IsNotNull}}" />
+          </StackPanel>
+          <TextBlock Text="{l:T 'Card background'}" />
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <Border Width="250" Height="90" CornerRadius="10" ClipToBounds="True">
+              <Panel>
+                <c:PixelScene Seed="{Binding NewSceneSeed}" />
+                <Image Source="{Binding NewBackgroundPreview}" Stretch="UniformToFill" />
+              </Panel>
+            </Border>
+            <StackPanel Spacing="8" VerticalAlignment="Center">
+              <Button Content="{l:T 'Choose background…'}" Command="{Binding ChooseNewBackgroundCommand}" />
+              <Button Content="{l:T 'Use the pixel-art scene'}" Command="{Binding ClearNewBackgroundCommand}"
+                      IsVisible="{Binding NewBackgroundPath, Converter={x:Static ObjectConverters.IsNotNull}}" />
+            </StackPanel>
+          </StackPanel>
           <TextBlock Text="{l:T 'Maximum memory (MB)'}" />
           <NumericUpDown Value="{Binding NewMemoryMb}" Minimum="512" Maximum="65536" Increment="512" FormatString="0" Width="180" HorizontalAlignment="Left" />
           <TextBlock Classes="muted" FontSize="12" Text="{l:T 'Forge and NeoForge are installed by running their official installers, which can take a few minutes.'}" />
@@ -195,6 +222,8 @@
               <Button Content="{l:T 'Export for CurseForge'}" Command="{Binding ExportCurseForgeCommand}" Margin="0,0,8,8" ToolTip.Tip="{l:T 'Share this profile as a CurseForge modpack (.zip). Worlds and personal settings are not included.'}" />
               <Button Content="{l:T 'Change icon'}" Command="{Binding ChangeIconCommand}" Margin="0,0,8,8" />
               <Button Content="{l:T 'Reset icon'}" Command="{Binding ResetIconCommand}" Margin="0,0,8,8" IsVisible="{Binding Selected.IconKey, Converter={x:Static ObjectConverters.IsNotNull}, FallbackValue=False}" />
+              <Button Content="{l:T 'Change background'}" Command="{Binding ChangeBackgroundCommand}" Margin="0,0,8,8" />
+              <Button Content="{l:T 'Reset background'}" Command="{Binding ResetBackgroundCommand}" Margin="0,0,8,8" IsVisible="{Binding Selected.BackgroundKey, Converter={x:Static ObjectConverters.IsNotNull}, FallbackValue=False}" />
               <Button Classes="danger" Content="{l:T 'Delete'}" Command="{Binding DeleteCommand}" Margin="0,0,8,8" />
             </WrapPanel>
 

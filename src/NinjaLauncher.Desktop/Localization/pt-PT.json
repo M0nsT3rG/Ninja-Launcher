@@ -558,5 +558,19 @@
  "Recently updated": "Atualizados recentemente",
  "Relevance": "Relevância",
  "Popular on CurseForge": "Populares no CurseForge",
- "On CurseForge, pick a game version to filter by mod loader.": "No CurseForge, escolhe uma versão do jogo para filtrares por carregador de mods."
+ "On CurseForge, pick a game version to filter by mod loader.": "No CurseForge, escolhe uma versão do jogo para filtrares por carregador de mods.",
+ "Logo": "Logótipo",
+ "Choose logo…": "Escolher logótipo…",
+ "Use the default": "Usar o predefinido",
+ "Card background": "Fundo do cartão",
+ "Choose background…": "Escolher fundo…",
+ "Use the pixel-art scene": "Usar a paisagem em pixel art",
+ "Change background": "Mudar fundo",
+ "Reset background": "Repor fundo",
+ "Pick a PNG, JPG or WebP image up to 4096×4096 pixels and 8 MB.": "Escolhe uma imagem PNG, JPG ou WebP até 4096×4096 píxeis e 8 MB.",
+ "Backgrounds must be 8 MB or smaller.": "Os fundos têm de ter 8 MB ou menos.",
+ "Pick a PNG, JPG or WebP image.": "Escolhe uma imagem PNG, JPG ou WebP.",
+ "change its background": "mudar o fundo",
+ "Profile logo": "Logótipo do perfil",
+ "Profile background": "Fundo do perfil"
 }
