@@ -48,7 +48,7 @@ All seven research documents are written in `docs/research/`, each with sources,
 
 ## Home and Wardrobe (2026-11-01). COMPLETE
 - Home: Java/Bedrock switch, the signed-in account drawn in 3D from its own skin (drag to turn, no rendering service), account picker, the three most recent instances with Play, custom card background (PNG/JPEG, 16 MB, 4096 px), and the official launcher news feed linking to minecraft.net articles: COMPLETE (verified live)
-- Wardrobe: upload a 64×64 skin (classic or slim arms), reset to the default skin, pick or hide any cape the account owns, live 3D preview with a turn-around button: COMPLETE (reading skin and capes, and switching the cape, verified live on 2026-11-01: the public profile showed the newly chosen cape; skin upload and reset not exercised on the owner's account)
+- Wardrobe: upload a 64×64 skin (classic or slim arms), reset to the default skin, pick or hide any cape the account owns, live 3D preview with a turn-around button: COMPLETE (reading skin and capes, and switching the cape, verified live on 2026-11-01: the public profile showed the newly chosen cape; the owner then saved the slim model, reset to the default skin and re-uploaded the original, which Mojang served byte-identical)
 
 ## Phase 7: Advanced (v0.8.0). PARTIALLY COMPLETE
 - Crash-report viewer (crash-reports and JVM hs_err logs, summary with suspected mods and hints; failed exits report the reason): COMPLETE (unit-tested with sample reports, checked in the UI)
