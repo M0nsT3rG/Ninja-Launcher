@@ -8,12 +8,20 @@ namespace NinjaLauncher.Mods.Modrinth;
 
 public enum ProjectKind { Mod, Modpack, Shader, ResourcePack, DataPack }
 
+/// <summary>Result order on the Mods page; both catalogues support each one.</summary>
+public enum SearchSort { Relevance, Downloads, Follows, Newest, Updated }
+
+/// <param name="Id">What the catalogue filters by: a Modrinth category name or a CurseForge category id.</param>
+public sealed record CategoryOption(string Id, string Name);
+
 public sealed record ModrinthHit(
     [property: JsonPropertyName("project_id")] string ProjectId,
     string Slug, string Title, string Description, string Author, long Downloads,
     [property: JsonPropertyName("icon_url")] string? IconUrl,
     [property: JsonPropertyName("project_type")] string ProjectType,
-    IReadOnlyList<string> Categories);
+    IReadOnlyList<string> Categories,
+    int Follows = 0,
+    [property: JsonPropertyName("date_modified")] DateTimeOffset? DateModified = null);
 
 public sealed record ModrinthSearchResult(IReadOnlyList<ModrinthHit> Hits, int Offset, int Limit, [property: JsonPropertyName("total_hits")] int TotalHits);
 
@@ -63,14 +71,33 @@ public sealed class ModrinthClient(IDownloadService downloads)
         ModLoaderKind.Fabric => "fabric", ModLoaderKind.Quilt => "quilt", ModLoaderKind.Forge => "forge", ModLoaderKind.NeoForge => "neoforge", _ => null,
     };
 
+    /// <param name="categories">Every one must match (each is its own facet).</param>
     public async Task<ModrinthSearchResult> SearchAsync(string query, ProjectKind kind, string? gameVersion, ModLoaderKind loader,
-        int offset, int limit, CancellationToken ct)
+        int offset, int limit, CancellationToken ct, SearchSort sort = SearchSort.Relevance, IReadOnlyList<string>? categories = null)
     {
         var facets = new List<string[]> { new[] { $"project_type:{ProjectTypeFacet(kind)}" } };
         if (!string.IsNullOrWhiteSpace(gameVersion)) facets.Add([$"versions:{gameVersion}"]);
-        if (kind == ProjectKind.Mod && LoaderName(loader) is { } l) facets.Add([$"categories:{l}"]);
-        var url = $"{ApiBase}/search?query={Uri.EscapeDataString(query)}&limit={limit}&offset={offset}&index=relevance&facets={Uri.EscapeDataString(JsonSerializer.Serialize(facets))}";
+        if (kind is ProjectKind.Mod or ProjectKind.Modpack && LoaderName(loader) is { } l) facets.Add([$"categories:{l}"]);
+        foreach (var c in categories ?? []) facets.Add([$"categories:{c}"]);
+        var index = sort switch
+        {
+            SearchSort.Downloads => "downloads", SearchSort.Follows => "follows", SearchSort.Newest => "newest", SearchSort.Updated => "updated", _ => "relevance",
+        };
+        var url = $"{ApiBase}/search?query={Uri.EscapeDataString(query)}&limit={limit}&offset={offset}&index={index}&facets={Uri.EscapeDataString(JsonSerializer.Serialize(facets))}";
         return JsonSerializer.Deserialize<ModrinthSearchResult>(await GetCachedAsync(url, ct), Json)!;
+    }
+
+    /// <summary>The categories Modrinth lists for this kind of project (loaders are filtered separately).</summary>
+    public async Task<IReadOnlyList<CategoryOption>> GetCategoriesAsync(ProjectKind kind, CancellationToken ct)
+    {
+        using var doc = JsonDocument.Parse(await GetCachedAsync($"{ApiBase}/tag/category", ct));
+        var type = kind == ProjectKind.DataPack ? "mod" : ProjectTypeFacet(kind); // data packs are tagged with the mod categories
+        return doc.RootElement.EnumerateArray()
+            .Where(c => c.GetProperty("project_type").GetString() == type)
+            .Select(c => c.GetProperty("name").GetString()!)
+            .Distinct().Order()
+            .Select(n => new CategoryOption(n, char.ToUpperInvariant(n[0]) + n[1..].Replace('-', ' ')))
+            .ToList();
     }
 
     /// <param name="loaderName">Overrides <paramref name="loader"/>, e.g. "datapack" for a project's data pack files.</param>
@@ -94,7 +121,7 @@ public sealed class ModrinthClient(IDownloadService downloads)
         var visited = new HashSet<string>();
         var loader = kind == ProjectKind.Mod ? instance.Loader : ModLoaderKind.None;
         if (kind == ProjectKind.Mod && loader == ModLoaderKind.None)
-            throw new InvalidOperationException("This instance has no mod loader. Create a Fabric, Quilt, Forge or NeoForge instance to install mods.");
+            throw new InvalidOperationException("This profile has no mod loader. Create a Fabric, Quilt, Forge or NeoForge profile to install mods.");
         var ledger = await LoadLedgerAsync(gameDirectory, ct);
         try
         {

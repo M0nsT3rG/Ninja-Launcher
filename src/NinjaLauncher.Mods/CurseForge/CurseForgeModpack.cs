@@ -62,7 +62,7 @@ public sealed partial class CurseForgeModpackInstaller(CurseForgeClient curseFor
         var manifest = await Task.Run(() => ReadManifest(zipPath), ct);
         var (kind, loaderVersion) = MapLoader(manifest);
         var name = $"{manifest.Name ?? Path.GetFileNameWithoutExtension(zipPath)} {manifest.Version}".Trim();
-        var instance = await instances.CreateAsync(name[..Math.Min(64, name.Length)], manifest.Minecraft.Version, kind, loaderVersion, ct: ct);
+        var instance = await instances.CreateAsync(name[..Math.Min(64, name.Length)], manifest.Minecraft.Version, kind, loaderVersion, ct: ct, fromModpack: true);
         try
         {
             if (kind != ModLoaderKind.None)
@@ -97,7 +97,7 @@ public sealed partial class CurseForgeModpackInstaller(CurseForgeClient curseFor
         var cache = Path.Combine(paths.CacheDirectory, "modpacks");
         var (path, blocked) = await curseForge.DownloadAsync(pack, file, cache, file.Id.ToString(), ct);
         if (blocked is not null)
-            throw new InvalidOperationException($"The author of '{pack.Name}' only allows downloading it on CurseForge: {blocked.PageUrl}. Download the zip there and use Library → Import modpack.");
+            throw new InvalidOperationException($"The author of '{pack.Name}' only allows downloading it on CurseForge: {blocked.PageUrl}. Download the zip there and use Profiles → Import modpack.");
         try { return await InstallFromFileAsync(path!, progress, ct); }
         finally { TryDelete(path!); } // the pack's files now live in the instance; nothing CurseForge stays in the cache
     }

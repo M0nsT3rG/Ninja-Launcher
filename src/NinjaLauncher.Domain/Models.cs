@@ -24,6 +24,10 @@ public sealed record GameInstance
     public string? IconKey { get; init; }
     public DateTimeOffset CreatedUtc { get; init; } = DateTimeOffset.UtcNow;
     public DateTimeOffset? LastPlayedUtc { get; init; }
+    /// <summary>Shown in the Pinned tab and first on Home.</summary>
+    public bool Pinned { get; init; }
+    /// <summary>Created by installing a modpack (Modpack tab) rather than by hand (Custom tab).</summary>
+    public bool FromModpack { get; init; }
 }
 
 public enum AccountKind { Microsoft, Offline }

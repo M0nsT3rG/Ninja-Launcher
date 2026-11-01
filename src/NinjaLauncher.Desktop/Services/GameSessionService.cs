@@ -93,7 +93,7 @@ public sealed class GameSessionService(
             if (crash is null) return fallback;
             var summary = CrashReports.Summarize(CrashReports.ReadText(crash), crash.IsJvmCrash);
             var cause = summary.RootCause ?? summary.Exception;
-            return $"{L.T(summary.Title)}{(cause is null ? "" : $" ({cause})")}. {L.T(summary.Hint ?? "See Library → Crash reports for details.")}";
+            return $"{L.T(summary.Title)}{(cause is null ? "" : $" ({cause})")}. {L.T(summary.Hint ?? "See Profiles → Crash reports for details.")}";
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
         {

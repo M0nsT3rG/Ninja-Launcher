@@ -16,7 +16,7 @@ public sealed class ModpackInstaller(InstanceService instances, IEnumerable<ILoa
         var index = await Task.Run(() => MrpackImporter.ReadIndex(mrpackPath), ct);
         var (kind, loaderVersion) = index.Loader;
         var name = $"{index.Name} {index.VersionId}".Trim();
-        var instance = await instances.CreateAsync(name[..Math.Min(64, name.Length)], index.MinecraftVersion, kind, loaderVersion, ct: ct);
+        var instance = await instances.CreateAsync(name[..Math.Min(64, name.Length)], index.MinecraftVersion, kind, loaderVersion, ct: ct, fromModpack: true);
         try
         {
             if (kind != ModLoaderKind.None)

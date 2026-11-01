@@ -37,7 +37,7 @@ public sealed class JavaRuntimeManager(IDownloadService downloads, IAppPaths pat
                 return system.ExecutablePath;
             }
             throw new JavaRuntimeUnavailableException(
-                $"No Java {major} runtime is available from Mojang for {platform.JavaRuntimeKey}, and none was found on this computer. Install Java {major} and select it in the instance settings.");
+                $"No Java {major} runtime is available from Mojang for {platform.JavaRuntimeKey}, and none was found on this computer. Install Java {major} and select it in the profile settings.");
         }
 
         // Incomplete runtimes are rebuilt from scratch so downloads never write through previously created links.

@@ -108,7 +108,7 @@ public sealed class HardeningTests
         try
         {
             NinjaLauncher.Desktop.Localization.L.Use("pt-PT");
-            Assert.Equal("Instância 'My Pack 2' criada (1.21.1 Fabric)", NinjaLauncher.Desktop.Localization.L.T("Created instance 'My Pack 2' (1.21.1 Fabric)"));
+            Assert.Equal("Perfil 'My Pack 2' criado (1.21.1 Fabric)", NinjaLauncher.Desktop.Localization.L.T("Created profile 'My Pack 2' (1.21.1 Fabric)"));
             Assert.Equal("Não foi possível carregar as versões do Minecraft: Tempo esgotado a transferir https://x/y.",
                 NinjaLauncher.Desktop.Localization.L.T("Could not load Minecraft versions: Timed out downloading https://x/y."));
             Assert.Equal("Sodium", NinjaLauncher.Desktop.Localization.L.T("Sodium")); // unknown text passes through

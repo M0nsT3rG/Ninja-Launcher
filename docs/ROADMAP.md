@@ -50,6 +50,11 @@ All seven research documents are written in `docs/research/`, each with sources,
 - Home: Java/Bedrock switch, the signed-in account drawn in 3D from its own skin (drag to turn, no rendering service), account picker, the three most recent instances with Play, custom card background (PNG/JPEG, 16 MB, 4096 px), and the official launcher news feed linking to minecraft.net articles: COMPLETE (verified live)
 - Wardrobe: upload a 64×64 skin (classic or slim arms), reset to the default skin, pick or hide any cape the account owns, live 3D preview with a turn-around button: COMPLETE (reading skin and capes, and switching the cape, verified live on 2026-11-01: the public profile showed the newly chosen cape; the owner then saved the slim model, reset to the default skin and re-uploaded the original, which Mojang served byte-identical)
 
+## Sidebar, Mods and Profiles redesign (2026-11-01). COMPLETE
+- Icon rail sidebar with tooltips and screen-reader names, Settings and a play-latest button at the bottom; the Minecraft disclaimer moved to a footer that stays in view: COMPLETE (verified live)
+- "Discover" renamed "Mods": large kind tabs, a filters panel (your profile and "only compatible", game version, mod loader, categories), sort order, results per page, first/previous/next/last page, a "Most followed" row, and result rows with downloads, followers and last update: COMPLETE (Modrinth verified live; CurseForge categories, sort and data unverified until a key is available)
+- "Library" renamed "Profiles" and "instance" renamed "profile" everywhere, in English and Portuguese. Profiles are a card grid with Java, Bedrock, Pinned, Custom and Modpack tabs and counts, pin/unpin, Play now, and the existing editor behind the settings button. Profiles installed from a modpack are recorded as such: COMPLETE (grid verified live)
+
 ## Phase 7: Advanced (v0.8.0). PARTIALLY COMPLETE
 - Crash-report viewer (crash-reports and JVM hs_err logs, summary with suspected mods and hints; failed exits report the reason): COMPLETE (unit-tested with sample reports, checked in the UI)
 - Localisation: Portuguese (Portugal), 430+ strings including engine messages (errors, progress, mod issues, crash hints, activity), checked by tests; the sign-in browser page stays English: COMPLETE

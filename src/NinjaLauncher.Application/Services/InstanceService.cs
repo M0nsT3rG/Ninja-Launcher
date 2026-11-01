@@ -15,7 +15,7 @@ public sealed class InstanceService(IInstanceRepository repository, IAppPaths pa
     public Task<GameInstance?> GetAsync(Guid id, CancellationToken ct = default) => repository.GetAsync(id, ct);
 
     public async Task<GameInstance> CreateAsync(string name, string minecraftVersion, ModLoaderKind loader = ModLoaderKind.None,
-        string? loaderVersion = null, int maxMemoryMb = 4096, CancellationToken ct = default)
+        string? loaderVersion = null, int maxMemoryMb = 4096, CancellationToken ct = default, bool fromModpack = false)
     {
         ValidateName(name);
         if (string.IsNullOrWhiteSpace(minecraftVersion)) throw new ArgumentException("A Minecraft version is required.");
@@ -24,10 +24,11 @@ public sealed class InstanceService(IInstanceRepository repository, IAppPaths pa
         {
             Id = Guid.NewGuid(), Name = name.Trim(), MinecraftVersion = minecraftVersion,
             Loader = loader, LoaderVersion = loader == ModLoaderKind.None ? null : loaderVersion, MaxMemoryMb = maxMemoryMb,
+            FromModpack = fromModpack,
         };
         Directory.CreateDirectory(GetGameDirectory(instance));
         await repository.UpsertAsync(instance, ct);
-        await activity.AddAsync($"Created instance '{instance.Name}' ({minecraftVersion})", ct);
+        await activity.AddAsync($"Created profile '{instance.Name}' ({minecraftVersion})", ct);
         return instance;
     }
 
@@ -53,7 +54,7 @@ public sealed class InstanceService(IInstanceRepository repository, IAppPaths pa
     {
         ValidateName(newName);
         var source = await GetRequiredAsync(id, ct);
-        var clone = source with { Id = Guid.NewGuid(), Name = newName.Trim(), CreatedUtc = DateTimeOffset.UtcNow, LastPlayedUtc = null };
+        var clone = source with { Id = Guid.NewGuid(), Name = newName.Trim(), CreatedUtc = DateTimeOffset.UtcNow, LastPlayedUtc = null, Pinned = false };
         await Task.Run(() => CopyDirectory(GetGameDirectory(source), GetGameDirectory(clone), ct), ct);
         await repository.UpsertAsync(clone, ct);
         await activity.AddAsync($"Cloned '{source.Name}' to '{clone.Name}'", ct);
@@ -67,7 +68,7 @@ public sealed class InstanceService(IInstanceRepository repository, IAppPaths pa
         var dir = GetGameDirectory(instance);
         if (Directory.Exists(dir)) await Task.Run(() => DeleteDirectory(dir), ct);
         await repository.DeleteAsync(id, ct);
-        await activity.AddAsync($"Deleted instance '{instance.Name}'", ct);
+        await activity.AddAsync($"Deleted profile '{instance.Name}'", ct);
     }
 
     /// <summary>
@@ -93,7 +94,7 @@ public sealed class InstanceService(IInstanceRepository repository, IAppPaths pa
             }
             catch (Exception e) when (e is IOException or UnauthorizedAccessException)
             {
-                throw new IOException($"Some files in the instance folder are in use and could not be deleted: {e.Message} Close programs using them and try again.", e);
+                throw new IOException($"Some files in the profile folder are in use and could not be deleted: {e.Message} Close programs using them and try again.", e);
             }
         }
     }
@@ -197,6 +198,13 @@ public sealed class InstanceService(IInstanceRepository repository, IAppPaths pa
         return updated;
     }
 
+    public async Task<GameInstance> SetPinnedAsync(Guid id, bool pinned, CancellationToken ct = default)
+    {
+        var updated = await GetRequiredAsync(id, ct) with { Pinned = pinned };
+        await repository.UpsertAsync(updated, ct);
+        return updated;
+    }
+
     /// <summary>Records the installed loader profile without overwriting other fields edited meanwhile.</summary>
     public async Task<GameInstance> SetLaunchVersionAsync(Guid id, string launchVersionId, string? loaderVersion = null, CancellationToken ct = default)
     {
@@ -245,10 +253,10 @@ public sealed class InstanceService(IInstanceRepository repository, IAppPaths pa
     /// <summary>Creates a new instance from an exported config. The caller installs the loader afterwards.</summary>
     public async Task<GameInstance> ImportConfigAsync(string path, CancellationToken ct = default)
     {
-        if (new FileInfo(path).Length > 64 * 1024) throw new InvalidDataException("Not an instance configuration file.");
+        if (new FileInfo(path).Length > 64 * 1024) throw new InvalidDataException("Not a profile configuration file.");
         var c = System.Text.Json.JsonSerializer.Deserialize<InstanceConfig>(await File.ReadAllTextAsync(path, ct), ConfigJson)
-            ?? throw new InvalidDataException("Empty instance configuration.");
-        if (c.Format != 1) throw new InvalidDataException($"Unsupported instance configuration format {c.Format}.");
+            ?? throw new InvalidDataException("Empty profile configuration.");
+        if (c.Format != 1) throw new InvalidDataException($"Unsupported profile configuration format {c.Format}.");
         var created = await CreateAsync(c.Name, c.MinecraftVersion, c.Loader, c.LoaderVersion, c.MaxMemoryMb, ct);
         return await UpdateAsync(created with { MinMemoryMb = c.MinMemoryMb, ExtraJvmArguments = c.ExtraJvmArguments }, ct);
     }
@@ -260,12 +268,12 @@ public sealed class InstanceService(IInstanceRepository repository, IAppPaths pa
     }
 
     private async Task<GameInstance> GetRequiredAsync(Guid id, CancellationToken ct) =>
-        await repository.GetAsync(id, ct) ?? throw new KeyNotFoundException($"Instance {id} not found.");
+        await repository.GetAsync(id, ct) ?? throw new KeyNotFoundException($"Profile {id} not found.");
 
     private static void ValidateName(string name)
     {
-        if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Instance name cannot be empty.");
-        if (name.Trim().Length > 64) throw new ArgumentException("Instance name must be 64 characters or fewer.");
+        if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Profile name cannot be empty.");
+        if (name.Trim().Length > 64) throw new ArgumentException("Profile name must be 64 characters or fewer.");
     }
 
     internal static void CopyDirectory(string source, string destination, CancellationToken ct)

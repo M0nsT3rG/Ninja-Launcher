@@ -1,20 +1,20 @@
-<UserControl xmlns="https://github.com/avaloniaui"
+﻿<UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:l="using:NinjaLauncher.Desktop.Localization"
+             xmlns:l="using:NinjaLauncher.Desktop.Localization"
              xmlns:vm="using:NinjaLauncher.Desktop.ViewModels"
              xmlns:d="using:NinjaLauncher.Domain"
-                          xmlns:c="using:NinjaLauncher.Desktop.Controls"
+             xmlns:c="using:NinjaLauncher.Desktop.Controls"
              xmlns:v="using:NinjaLauncher.Desktop.Views"
              xmlns:m="using:NinjaLauncher.Mods.Modrinth"
              x:Class="NinjaLauncher.Desktop.Views.DiscoverView"
              x:DataType="vm:DiscoverViewModel" Classes="page">
   <UserControl.Styles>
     <Style Selector="TabStrip.kinds TabStripItem" x:DataType="m:ProjectKind">
-      <!-- The content is a panel now, so give each tab its name for screen readers. -->
+      <!-- The content is a panel, so give each tab its name for screen readers. -->
       <Setter Property="AutomationProperties.Name" Value="{Binding Converter={x:Static v:Converters.KindName}}" />
-      <Setter Property="FontSize" Value="15" />
-      <Setter Property="FontWeight" Value="SemiBold" />
-      <Setter Property="Padding" Value="12,6,12,0" />
+      <Setter Property="FontSize" Value="20" />
+      <Setter Property="FontWeight" Value="Bold" />
+      <Setter Property="Padding" Value="0,4,28,0" />
       <Setter Property="MinHeight" Value="0" />
     </Style>
     <Style Selector="TabStrip.kinds Border.pipe">
@@ -27,92 +27,225 @@
     <Style Selector="TabStrip.kinds TabStripItem /template/ Border#PART_SelectedPipe">
       <Setter Property="IsVisible" Value="False" />
     </Style>
+    <Style Selector="TextBlock.filter">
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Margin" Value="0,14,0,6" />
+    </Style>
+    <Style Selector="ListBox.choices">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="MaxHeight" Value="190" />
+    </Style>
+    <Style Selector="ListBox.choices ListBoxItem">
+      <Setter Property="Padding" Value="8,4" />
+      <Setter Property="MinHeight" Value="0" />
+      <Setter Property="CornerRadius" Value="6" />
+    </Style>
+    <Style Selector="ListBox.choices ListBoxItem:selected /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource NinjaSurfaceRaised}" />
+    </Style>
+    <Style Selector="ListBox.choices ListBoxItem:selected TextBlock">
+      <Setter Property="Foreground" Value="{DynamicResource NinjaAccentBrush}" />
+    </Style>
+    <Style Selector="Button.pager">
+      <Setter Property="Padding" Value="10,6" />
+      <Setter Property="MinWidth" Value="36" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+    </Style>
   </UserControl.Styles>
-  <DockPanel>
-    <StackPanel DockPanel.Dock="Top" Margin="0,0,0,10">
-      <TextBlock Classes="h1" Text="{l:T 'Discover'}" />
-      <TextBlock Classes="muted" Text="{l:T 'Mods, modpacks, resource packs, data packs and shaders from Modrinth and CurseForge.'}" />
-    </StackPanel>
 
-    <TabStrip DockPanel.Dock="Top" Classes="kinds" ItemsSource="{Binding Kinds}" SelectedItem="{Binding Kind}" Margin="0,0,0,10">
+  <DockPanel>
+    <!-- Title and search -->
+    <DockPanel DockPanel.Dock="Top" Margin="0,0,0,6">
+      <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+        <ComboBox ItemsSource="{Binding Sources}" SelectedItem="{Binding Source}" MinWidth="130" AutomationProperties.Name="{l:T 'Source'}" />
+        <TextBox Text="{Binding Query}" PlaceholderText="{l:T 'Search…'}" Width="300" AutomationProperties.Name="{l:T 'Search'}">
+          <TextBox.KeyBindings>
+            <KeyBinding Gesture="Enter" Command="{Binding SearchCommand}" />
+          </TextBox.KeyBindings>
+        </TextBox>
+        <Button Classes="accent" Content="{l:T 'Search'}" Command="{Binding SearchCommand}" />
+      </StackPanel>
+      <TextBlock Classes="h1" Text="{l:T 'Mods'}" VerticalAlignment="Center" />
+    </DockPanel>
+    <TabStrip DockPanel.Dock="Top" Classes="kinds" ItemsSource="{Binding Kinds}" SelectedItem="{Binding Kind}" Margin="0,0,0,14">
       <TabStrip.ItemTemplate>
         <DataTemplate DataType="m:ProjectKind">
-          <StackPanel Spacing="8">
-            <TextBlock Text="{Binding Converter={x:Static v:Converters.KindName}}" HorizontalAlignment="Center" />
-            <Border Classes="pipe" Height="2" CornerRadius="1" Background="{DynamicResource NinjaAccentBrush}" />
+          <StackPanel Spacing="6">
+            <TextBlock Text="{Binding Converter={x:Static v:Converters.KindName}}" />
+            <Border Classes="pipe" Height="3" CornerRadius="2" Background="{DynamicResource NinjaAccentBrush}" />
           </StackPanel>
         </DataTemplate>
       </TabStrip.ItemTemplate>
     </TabStrip>
 
-    <Border DockPanel.Dock="Top" Classes="card" Padding="14" Margin="0,0,0,12">
-      <StackPanel Spacing="10">
-        <DockPanel>
-          <ComboBox DockPanel.Dock="Left" ItemsSource="{Binding Sources}" SelectedItem="{Binding Source}" MinWidth="140" Margin="0,0,10,0" VerticalAlignment="Stretch" />
-          <Button DockPanel.Dock="Right" Classes="accent" Content="{l:T 'Search'}" Command="{Binding SearchCommand}" Margin="10,0,0,0" IsDefault="True" />
-          <TextBox Text="{Binding Query}" PlaceholderText="{l:T 'Search…'}" />
-        </DockPanel>
-        <WrapPanel IsVisible="{Binding NeedsTarget}">
-          <TextBlock Text="{l:T 'Install into'}" VerticalAlignment="Center" Margin="0,0,8,0" />
-          <ComboBox ItemsSource="{Binding Instances}" SelectedItem="{Binding Target}" MinWidth="220" PlaceholderText="{l:T 'No instances'}" Margin="0,0,16,0">
-            <ComboBox.ItemTemplate>
-              <DataTemplate DataType="d:GameInstance">
-                <TextBlock Text="{Binding Name}" />
-              </DataTemplate>
-            </ComboBox.ItemTemplate>
-          </ComboBox>
-          <StackPanel Orientation="Horizontal" IsVisible="{Binding IsDataPack}" Margin="0,0,16,0">
-            <TextBlock Text="{l:T 'World'}" VerticalAlignment="Center" Margin="0,0,8,0" />
-            <ComboBox ItemsSource="{Binding Worlds}" SelectedItem="{Binding TargetWorld}" MinWidth="180" PlaceholderText="{l:T 'No worlds'}" />
-          </StackPanel>
-          <CheckBox Content="{l:T 'Only compatible with this instance'}" IsChecked="{Binding FilterByInstance}" Margin="0,0,16,0"
-                    ToolTip.Tip="{l:T 'Show only content for this instance’s Minecraft version (and mod loader, for mods)'}" />
+    <!-- Filters -->
+    <Border DockPanel.Dock="Left" Classes="card" Width="240" Margin="0,0,16,0" Padding="16,14">
+      <ScrollViewer>
+        <StackPanel>
+          <TextBlock Classes="h2" Text="{l:T 'Filters'}" />
 
-          <TextBlock Classes="muted" Text="{l:T 'Data packs are added to one world. This instance has no worlds yet: play it once and create a world.'}"
-                     VerticalAlignment="Center" TextWrapping="Wrap" IsVisible="{Binding HasNoWorlds}" />
-        </WrapPanel>
-        <TextBlock Classes="muted" Text="{l:T 'Installing a modpack creates a new instance.'}" IsVisible="{Binding !NeedsTarget}" />
-      </StackPanel>
+          <TextBlock Classes="filter" Text="{l:T 'Your profile'}" IsVisible="{Binding NeedsTarget}" />
+          <StackPanel Spacing="8" IsVisible="{Binding NeedsTarget}">
+            <ComboBox ItemsSource="{Binding Instances}" SelectedItem="{Binding Target}" HorizontalAlignment="Stretch" PlaceholderText="{l:T 'No profiles'}"
+                      AutomationProperties.Name="{l:T 'Install into'}" ToolTip.Tip="{l:T 'Install into'}">
+              <ComboBox.ItemTemplate>
+                <DataTemplate DataType="d:GameInstance">
+                  <TextBlock Text="{Binding Name}" />
+                </DataTemplate>
+              </ComboBox.ItemTemplate>
+            </ComboBox>
+            <ComboBox ItemsSource="{Binding Worlds}" SelectedItem="{Binding TargetWorld}" HorizontalAlignment="Stretch" PlaceholderText="{l:T 'No worlds'}"
+                      IsVisible="{Binding IsDataPack}" AutomationProperties.Name="{l:T 'World'}" ToolTip.Tip="{l:T 'World'}" />
+            <TextBlock Classes="muted" FontSize="12" IsVisible="{Binding HasNoWorlds}"
+                       Text="{l:T 'Data packs are added to one world. This profile has no worlds yet: play it once and create a world.'}" />
+            <CheckBox Content="{l:T 'Only compatible with this profile'}" IsChecked="{Binding FilterByInstance}"
+                      ToolTip.Tip="{l:T 'Show only content for this profile’s Minecraft version (and mod loader, for mods)'}" />
+          </StackPanel>
+          <TextBlock Classes="muted" FontSize="12" Margin="0,10,0,0" Text="{l:T 'Installing a modpack creates a new profile.'}" IsVisible="{Binding !NeedsTarget}" />
+
+          <TextBlock Classes="filter" Text="{l:T 'Game version'}" />
+          <ListBox Classes="choices" ItemsSource="{Binding GameVersions}" SelectedItem="{Binding GameVersion}" IsEnabled="{Binding ManualFilters}"
+                   AutomationProperties.Name="{l:T 'Game version'}">
+            <ListBox.ItemTemplate>
+              <DataTemplate DataType="vm:VersionChoice">
+                <TextBlock Text="{Binding Name}" FontSize="13" />
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+
+          <StackPanel IsVisible="{Binding HasLoaderFilter}">
+            <TextBlock Classes="filter" Text="{l:T 'Mod loader'}" />
+            <ListBox Classes="choices" ItemsSource="{Binding Loaders}" SelectedItem="{Binding Loader}" IsEnabled="{Binding CanPickLoader}"
+                     AutomationProperties.Name="{l:T 'Mod loader'}">
+              <ListBox.ItemTemplate>
+                <DataTemplate DataType="vm:LoaderChoice">
+                  <TextBlock Text="{Binding Name}" FontSize="13" />
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+          </StackPanel>
+          <TextBlock Classes="muted" FontSize="11" Margin="0,6,0,0"
+                     Text="{l:T 'On CurseForge, pick a game version to filter by mod loader.'}">
+            <TextBlock.IsVisible>
+              <MultiBinding Converter="{x:Static BoolConverters.And}">
+                <Binding Path="ManualFilters" />
+                <Binding Path="!CanPickLoader" />
+                <Binding Path="HasLoaderFilter" />
+              </MultiBinding>
+            </TextBlock.IsVisible>
+          </TextBlock>
+          <TextBlock Classes="muted" FontSize="11" Margin="0,6,0,0" IsVisible="{Binding !ManualFilters}"
+                     Text="{l:T 'Following your profile. Untick “Only compatible” to pick a version or loader.'}" />
+
+          <TextBlock Classes="filter" Text="{l:T 'Category'}" IsVisible="{Binding Categories.Count}" />
+          <ItemsControl ItemsSource="{Binding Categories}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate DataType="vm:CategoryFilter">
+                <CheckBox Content="{Binding Option.Name}" IsChecked="{Binding IsChecked}" FontSize="13" MinHeight="28" />
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </ScrollViewer>
     </Border>
 
-    <DockPanel DockPanel.Dock="Bottom" Margin="0,10,0,0">
-      <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8">
-        <Button Content="{l:T '‹ Previous'}" Command="{Binding PreviousPageCommand}" />
-        <Button Content="{l:T 'Next ›'}" Command="{Binding NextPageCommand}" />
+    <!-- Toolbar: the summary takes the room that is left and trims instead of running under the pager -->
+    <DockPanel DockPanel.Dock="Top" Margin="0,0,0,10">
+      <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+        <Button Classes="pager" Content="«" Command="{Binding FirstPageCommand}" ToolTip.Tip="{l:T 'First page'}" AutomationProperties.Name="{l:T 'First page'}" />
+        <Button Classes="pager" Content="‹" Command="{Binding PreviousPageCommand}" ToolTip.Tip="{l:T 'Previous page'}" AutomationProperties.Name="{l:T 'Previous page'}" />
+        <TextBlock Text="{Binding PageText}" VerticalAlignment="Center" MinWidth="70" TextAlignment="Center" />
+        <Button Classes="pager" Content="›" Command="{Binding NextPageCommand}" ToolTip.Tip="{l:T 'Next page'}" AutomationProperties.Name="{l:T 'Next page'}" />
+        <Button Classes="pager" Content="»" Command="{Binding LastPageCommand}" ToolTip.Tip="{l:T 'Last page'}" AutomationProperties.Name="{l:T 'Last page'}" />
       </StackPanel>
-      <StackPanel Orientation="Horizontal" Spacing="10">
-        <ProgressBar IsIndeterminate="True" Width="80" IsVisible="{Binding IsBusy}" />
-        <TextBlock Classes="muted" Text="{Binding Summary}" VerticalAlignment="Center" />
+      <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" Spacing="8" Margin="0,0,10,0">
+        <ComboBox ItemsSource="{Binding Sorts}" SelectedItem="{Binding Sort}" MinWidth="170" AutomationProperties.Name="{l:T 'Sort by'}">
+          <ComboBox.ItemTemplate>
+            <DataTemplate DataType="m:SearchSort">
+              <TextBlock Text="{Binding Converter={x:Static v:Converters.SortName}}" />
+            </DataTemplate>
+          </ComboBox.ItemTemplate>
+        </ComboBox>
+        <ComboBox ItemsSource="{Binding PageSizes}" SelectedItem="{Binding PageSize}" MinWidth="76" AutomationProperties.Name="{l:T 'Results per page'}"
+                  ToolTip.Tip="{l:T 'Results per page'}" />
+        <ProgressBar IsIndeterminate="True" Width="60" IsVisible="{Binding IsBusy}" VerticalAlignment="Center" />
       </StackPanel>
+      <TextBlock Classes="muted" Text="{Binding Summary}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"
+                 ToolTip.Tip="{Binding Summary}" />
     </DockPanel>
 
     <ScrollViewer>
-      <ItemsControl ItemsSource="{Binding Results}">
-        <ItemsControl.ItemTemplate>
-          <DataTemplate DataType="vm:ContentHit">
-            <Border Classes="card" Padding="12" Margin="0,0,0,8">
-              <DockPanel>
-                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                  <Button Content="{l:T 'Details'}" Command="{Binding $parent[UserControl].((vm:DiscoverViewModel)DataContext).OpenPageCommand}" CommandParameter="{Binding}" />
-                  <Button Classes="accent" Content="{l:T 'Install'}" Command="{Binding $parent[UserControl].((vm:DiscoverViewModel)DataContext).InstallCommand}" CommandParameter="{Binding}" />
-                </StackPanel>
-                <Border DockPanel.Dock="Left" Width="56" Height="56" CornerRadius="10" ClipToBounds="True" Margin="0,0,14,0"
-                        Background="{DynamicResource NinjaSurfaceRaised}" VerticalAlignment="Center">
-                  <Image c:RemoteImage.Url="{Binding IconUrl}" Stretch="UniformToFill" RenderOptions.BitmapInterpolationMode="HighQuality" />
-                </Border>
-                <StackPanel Spacing="2" Margin="0,0,12,0" VerticalAlignment="Center">
-                  <StackPanel Orientation="Horizontal" Spacing="8">
-                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="15" />
-                    <TextBlock Classes="muted" FontSize="12" Text="{Binding Author, Converter={x:Static v:Converters.Localize}, ConverterParameter='by {0}'}" VerticalAlignment="Bottom" />
+      <StackPanel Spacing="10">
+        <!-- Most followed -->
+        <StackPanel Spacing="8" IsVisible="{Binding ShowPopular}">
+          <TextBlock Text="{Binding PopularTitle}" FontWeight="Bold" />
+          <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+            <ItemsControl ItemsSource="{Binding Popular}">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="10" Margin="0,0,0,10" /></ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate DataType="vm:ContentHit">
+                  <Border Width="170" Height="196" CornerRadius="14" ClipToBounds="True" BorderBrush="{DynamicResource NinjaBorder}" BorderThickness="1">
+                    <Border.Background>
+                      <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
+                        <GradientStop Offset="0" Color="#3B1670" />
+                        <GradientStop Offset="1" Color="#7A1C5E" />
+                      </LinearGradientBrush>
+                    </Border.Background>
+                    <StackPanel Margin="12" Spacing="6" HorizontalAlignment="Center">
+                      <Border Width="64" Height="64" CornerRadius="12" ClipToBounds="True" Background="#330E0A16" HorizontalAlignment="Center">
+                        <Image c:RemoteImage.Url="{Binding IconUrl}" Stretch="UniformToFill" RenderOptions.BitmapInterpolationMode="HighQuality" />
+                      </Border>
+                      <TextBlock Text="{Binding Title}" FontWeight="Bold" Foreground="White" TextAlignment="Center" TextTrimming="CharacterEllipsis" MaxLines="1" />
+                      <TextBlock Foreground="#E9D5FF" FontSize="12" TextAlignment="Center" IsVisible="{Binding Follows, Converter={x:Static ObjectConverters.IsNotNull}}"
+                                 Text="{Binding Follows, Converter={x:Static v:Converters.Localize}, ConverterParameter='{}{0:N0} followers', FallbackValue=''}" />
+                      <Button Classes="accent" Content="{l:T 'Install'}" HorizontalAlignment="Center"
+                              Command="{Binding $parent[UserControl].((vm:DiscoverViewModel)DataContext).InstallCommand}" CommandParameter="{Binding}" />
+                    </StackPanel>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </ScrollViewer>
+        </StackPanel>
+
+        <!-- Results -->
+        <ItemsControl ItemsSource="{Binding Results}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate DataType="vm:ContentHit">
+              <Border Classes="card" Padding="12" Margin="0,0,0,8">
+                <DockPanel>
+                  <StackPanel DockPanel.Dock="Right" Spacing="8" VerticalAlignment="Center" Margin="12,0,0,0">
+                    <Button Classes="accent" Content="{l:T 'Install'}" HorizontalAlignment="Right" MinWidth="96" HorizontalContentAlignment="Center"
+                            Command="{Binding $parent[UserControl].((vm:DiscoverViewModel)DataContext).InstallCommand}" CommandParameter="{Binding}" />
+                    <StackPanel Orientation="Horizontal" Spacing="12" HorizontalAlignment="Right">
+                      <TextBlock Classes="muted" FontSize="12" Text="{Binding Downloads, Converter={x:Static v:Converters.Localize}, ConverterParameter='{}{0:N0} downloads'}" />
+                      <TextBlock Classes="muted" FontSize="12" IsVisible="{Binding Follows, Converter={x:Static ObjectConverters.IsNotNull}}"
+                                 Text="{Binding Follows, Converter={x:Static v:Converters.Localize}, ConverterParameter='{}{0:N0} followers', FallbackValue=''}" />
+                      <TextBlock Classes="muted" FontSize="12" IsVisible="{Binding Updated, Converter={x:Static ObjectConverters.IsNotNull}}"
+                                 Text="{Binding Updated, Converter={x:Static v:Converters.ShortDate}}" ToolTip.Tip="{l:T 'Last updated'}" />
+                    </StackPanel>
                   </StackPanel>
-                  <TextBlock Classes="muted" Text="{Binding Description}" TextTrimming="CharacterEllipsis" MaxLines="1" />
-                  <TextBlock FontSize="11" Foreground="{DynamicResource NinjaAccentBrush}" Text="{Binding Downloads, Converter={x:Static v:Converters.Localize}, ConverterParameter='{}{0:N0} downloads'}" />
-                </StackPanel>
-              </DockPanel>
-            </Border>
-          </DataTemplate>
-        </ItemsControl.ItemTemplate>
-      </ItemsControl>
+                  <Border DockPanel.Dock="Left" Width="56" Height="56" CornerRadius="10" ClipToBounds="True" Margin="0,0,14,0"
+                          Background="{DynamicResource NinjaSurfaceRaised}" VerticalAlignment="Center">
+                    <Image c:RemoteImage.Url="{Binding IconUrl}" Stretch="UniformToFill" RenderOptions.BitmapInterpolationMode="HighQuality" />
+                  </Border>
+                  <StackPanel Spacing="2" VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                      <Button Content="{Binding Title}" FontWeight="Bold" FontSize="16" Padding="0" Background="Transparent"
+                              Command="{Binding $parent[UserControl].((vm:DiscoverViewModel)DataContext).OpenPageCommand}" CommandParameter="{Binding}"
+                              ToolTip.Tip="{l:T 'Open its page'}" />
+                      <TextBlock Classes="muted" FontSize="12" Text="{Binding Author, Converter={x:Static v:Converters.Localize}, ConverterParameter='by {0}'}" VerticalAlignment="Center" />
+                    </StackPanel>
+                    <TextBlock Classes="muted" Text="{Binding Description}" TextTrimming="CharacterEllipsis" MaxLines="1" />
+                  </StackPanel>
+                </DockPanel>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
     </ScrollViewer>
   </DockPanel>
 </UserControl>

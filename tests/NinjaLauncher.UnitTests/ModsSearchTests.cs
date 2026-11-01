@@ -1,0 +1,59 @@
+using System.Globalization;
+using System.Text.Json;
+using NinjaLauncher.Application.Abstractions;
+using NinjaLauncher.Desktop.Views;
+using NinjaLauncher.Domain;
+using NinjaLauncher.Mods.Modrinth;
+
+namespace NinjaLauncher.UnitTests;
+
+public sealed class ModsSearchTests
+{
+    /// <summary>Records the URLs the client asks for and answers with canned JSON.</summary>
+    private sealed class RecordingDownloads(string body) : IDownloadService
+    {
+        public readonly List<Uri> Requests = [];
+        public Task DownloadAsync(IReadOnlyList<DownloadItem> items, IProgress<DownloadProgress>? progress, CancellationToken ct) => Task.CompletedTask;
+        public Task<string> GetStringAsync(Uri url, CancellationToken ct) { Requests.Add(url); return Task.FromResult(body); }
+        public Task<string> PostJsonAsync(Uri url, string json, CancellationToken ct) => throw new NotSupportedException();
+    }
+
+    private static Dictionary<string, string> Query(Uri uri) => uri.Query.TrimStart('?').Split('&')
+        .Select(p => p.Split('=', 2)).ToDictionary(p => p[0], p => Uri.UnescapeDataString(p[1]));
+
+    [Fact]
+    public async Task Modrinth_search_sends_the_sort_and_one_facet_per_filter()
+    {
+        var downloads = new RecordingDownloads("""{"hits":[],"offset":0,"limit":20,"total_hits":0}""");
+        await new ModrinthClient(downloads).SearchAsync("map", ProjectKind.Modpack, "1.21.1", ModLoaderKind.Fabric, 40, 20,
+            TestContext.Current.CancellationToken, SearchSort.Follows, ["adventure", "magic"]);
+
+        var q = Query(Assert.Single(downloads.Requests));
+        Assert.Equal("follows", q["index"]);
+        Assert.Equal("40", q["offset"]);
+        var facets = JsonSerializer.Deserialize<string[][]>(q["facets"])!;
+        Assert.Equal([["project_type:modpack"], ["versions:1.21.1"], ["categories:fabric"], ["categories:adventure"], ["categories:magic"]], facets);
+    }
+
+    [Fact]
+    public async Task Modrinth_categories_are_the_ones_for_the_tab_and_data_packs_use_the_mod_list()
+    {
+        var downloads = new RecordingDownloads("""
+            [{"name":"magic","project_type":"mod","header":"categories"},{"name":"kitchen-sink","project_type":"modpack","header":"categories"},
+             {"name":"16x","project_type":"resourcepack","header":"resolutions"}]
+            """);
+        var client = new ModrinthClient(downloads);
+
+        Assert.Equal([new CategoryOption("kitchen-sink", "Kitchen sink")], await client.GetCategoriesAsync(ProjectKind.Modpack, TestContext.Current.CancellationToken));
+        Assert.Equal("magic", Assert.Single(await client.GetCategoriesAsync(ProjectKind.DataPack, TestContext.Current.CancellationToken)).Id);
+    }
+
+    [Theory]
+    [InlineData(812L, "812")]
+    [InlineData(37_432L, "37K")]
+    [InlineData(1_500L, "1.5K")]
+    [InlineData(294_620_270L, "295M")]
+    [InlineData(2_400_000L, "2.4M")]
+    public void Counts_are_shortened_like_the_catalogues_do(long count, string expected) =>
+        Assert.Equal(expected, Converters.Compact.Convert(count, typeof(string), null, CultureInfo.InvariantCulture));
+}

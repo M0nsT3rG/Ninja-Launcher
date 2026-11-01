@@ -39,7 +39,7 @@ public sealed partial class LocalizationTests
         var leftovers = SourceFiles(".axaml").Where(f => !f.EndsWith("App.axaml"))
             .SelectMany(f => literal.Matches(File.ReadAllText(f)).Select(m => $"{Path.GetFileName(f)}: {m.Value}"))
             .Where(s => !s.Contains("\"✕\"") && !s.Contains("Text=\"Ninja\"") && !s.Contains("Text=\"LAUNCHER\"") // brand wordmark stays as is
-                && !s.Contains("Content=\"Java\"") && !s.Contains("Content=\"Bedrock\"")).ToList(); // edition names, like the game's own switch
+                && !s.Contains("Content=\"Java\"") && !s.Contains("Content=\"Bedrock\"") && !s.Contains("Tip=\"Ninja Launcher\"")).ToList(); // edition names, like the game's own switch
         Assert.Empty(leftovers);
 
         // StringFormat bypasses translation; only brand-neutral formats may use it.

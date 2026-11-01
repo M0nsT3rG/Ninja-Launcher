@@ -3,6 +3,7 @@
 ## [Unreleased] - v0.1.0 development
 
 ### Added
+- An icon sidebar, a "Mods" page (formerly Discover) with filters for game version, mod loader and category, sorting, page size and a "Most followed" row, and a "Profiles" page (formerly Library) with cards, pinning and Java, Bedrock, Pinned, Custom and Modpack tabs. "Instances" are now called "profiles" everywhere.
 - New Home: Java/Bedrock switch, your character in 3D drawn from your own skin, account picker, recent instances with Play, a custom card background, and the latest Minecraft news from minecraft.net.
 - Bedrock Release and Preview on Home: Play opens the officially installed game, Install opens its Microsoft Store page. The partner server is pre-listed in Bedrock's Servers tab too.
 - Wardrobe: change your Java Edition skin (classic or slim), reset it, and pick or hide any cape your account owns, with a live 3D preview.

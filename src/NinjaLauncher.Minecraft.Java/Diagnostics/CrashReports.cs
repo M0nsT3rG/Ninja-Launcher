@@ -83,13 +83,13 @@ public static partial class CrashReports
         if (GraphicsDriver().IsMatch(c) || text.Contains("Pixel format not accelerated") || text.Contains("GLFW error 65542"))
             return "This looks like a graphics driver problem. Update your GPU driver from AMD, NVIDIA or Intel, and turn off shader packs to test.";
         if (text.Contains("java.lang.OutOfMemoryError"))
-            return "Minecraft ran out of memory. Raise the instance's maximum memory in the Library, or remove heavy mods.";
+            return "Minecraft ran out of memory. Raise the profile's maximum memory in Profiles, or remove heavy mods.";
         if (text.Contains("UnsupportedClassVersionError"))
-            return "A mod or library needs a newer Java. Clear the instance's custom Java path so the launcher picks the right runtime.";
+            return "A mod or library needs a newer Java. Clear the profile's custom Java path so the launcher picks the right runtime.";
         if (text.Contains("Mixin apply") || text.Contains("MixinApplyError") || text.Contains("InvalidInjectionException"))
             return "A mod failed to apply its changes (mixin). Usually one of the suspected mods is outdated or incompatible: update or disable it.";
         if (text.Contains("ModResolutionException") || text.Contains("requires") && text.Contains("which is missing"))
-            return "A mod dependency is missing or the wrong version. Run Check compatibility in the Library.";
+            return "A mod dependency is missing or the wrong version. Run Check compatibility in Profiles.";
         return null;
     }
 

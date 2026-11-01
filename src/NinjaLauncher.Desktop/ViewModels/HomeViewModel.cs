@@ -174,6 +174,15 @@ public sealed partial class HomeViewModel : ViewModelBase
         await OnShownAsync();
     });
 
+    /// <summary>For the sidebar's play button: the most recently played (or created) profile.</summary>
+    internal async Task PlayLatestAsync()
+    {
+        var latest = (await _instances.ListAsync()).MaxBy(i => i.LastPlayedUtc ?? i.CreatedUtc)
+            ?? throw new InvalidOperationException(L.T("Create a profile in Profiles to start playing."));
+        if (_game.IsRunning(latest.Id)) throw new InvalidOperationException(L.F("'{0}' is already running.", latest.Name));
+        await Play(latest);
+    }
+
     [RelayCommand]
     private void OpenInstance(GameInstance instance)
     {
@@ -192,12 +201,12 @@ public sealed partial class HomeViewModel : ViewModelBase
         var errors = await game.CheckModsBeforeLaunchAsync(instance);
         if (errors.Count == 0) return true;
         var list = string.Join("\n", errors.Take(5).Select(e => "• " + L.T(e.Message))) + (errors.Count > 5 ? "\n• " + L.F("…and {0} more", errors.Count - 5) : "");
-        return await ui.ConfirmAsync(L.F("'{0}' has mod problems that will probably stop it from starting:", instance.Name) + "\n\n" + list + "\n\n" + L.T("You can fix them in Library → Check compatibility. Launch anyway?"));
+        return await ui.ConfirmAsync(L.F("'{0}' has mod problems that will probably stop it from starting:", instance.Name) + "\n\n" + list + "\n\n" + L.T("You can fix them in Profiles → Check compatibility. Launch anyway?"));
     }
 
     // ---- Bedrock: only the official builds, opened through Windows; their files are never touched.
 
-    private async Task RefreshBedrockAsync()
+    internal async Task RefreshBedrockAsync()
     {
         foreach (var entry in Bedrock)
         {

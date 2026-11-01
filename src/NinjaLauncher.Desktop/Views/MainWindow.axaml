@@ -19,6 +19,39 @@
     <DataTemplate DataType="vm:SettingsViewModel"><v:SettingsView /></DataTemplate>
   </Window.DataTemplates>
   <Window.Styles>
+    <Style Selector="ListBox.rail">
+      <Setter Property="Background" Value="Transparent" />
+    </Style>
+    <Style Selector="ListBox.rail ListBoxItem" x:DataType="vm:NavItem">
+      <Setter Property="Width" Value="48" />
+      <Setter Property="Height" Value="48" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="Margin" Value="0,4" />
+      <Setter Property="CornerRadius" Value="12" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+      <Setter Property="ToolTip.Tip" Value="{Binding Title}" />
+      <Setter Property="ToolTip.Placement" Value="Right" />
+    </Style>
+    <Style Selector="ListBox.rail ListBoxItem:selected /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource NinjaSurfaceRaised}" />
+    </Style>
+    <Style Selector="Button.rail.active">
+      <Setter Property="Background" Value="{DynamicResource NinjaSurfaceRaised}" />
+    </Style>
+    <Style Selector="ListBox.rail ListBoxItem:selected PathIcon, Button.rail.active PathIcon">
+      <Setter Property="Foreground" Value="{DynamicResource NinjaAccentBrush}" />
+    </Style>
+    <Style Selector="Button.rail">
+      <Setter Property="Width" Value="48" />
+      <Setter Property="Height" Value="48" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="CornerRadius" Value="12" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+      <Setter Property="ToolTip.Placement" Value="Right" />
+    </Style>
     <!-- The theme's spinner buttons only hold an icon, so screen readers would read the icon's class name. -->
     <Style Selector="ButtonSpinner /template/ RepeatButton#PART_IncreaseButton">
       <Setter Property="AutomationProperties.Name" Value="{l:T 'Increase'}" />
@@ -28,34 +61,36 @@
     </Style>
   </Window.Styles>
 
-  <Grid ColumnDefinitions="232,*">
-    <!-- Sidebar -->
+  <Grid ColumnDefinitions="76,*">
+    <!-- Icon rail: every icon has its name as a tooltip and for screen readers. -->
     <Border Background="{DynamicResource NinjaSidebar}" BorderBrush="{DynamicResource NinjaBorder}" BorderThickness="0,0,1,0">
-      <DockPanel Margin="14,18">
-        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="10" Margin="6,0,0,22">
-          <Image Source="/Assets/ninja-launcher.png" Width="44" Height="44" RenderOptions.BitmapInterpolationMode="HighQuality" />
-          <StackPanel VerticalAlignment="Center">
-            <TextBlock Text="Ninja" FontSize="20" FontWeight="Black" />
-            <TextBlock Text="LAUNCHER" FontSize="10" FontWeight="SemiBold" LetterSpacing="3" Foreground="{DynamicResource NinjaAccentBrush}" />
-          </StackPanel>
-        </StackPanel>
-        <TextBlock DockPanel.Dock="Bottom" Classes="muted" FontSize="9" Margin="6,12,6,0"
-                   Text="{l:T 'Not an official Minecraft product. Not approved by or associated with Mojang or Microsoft.'}" />
-        <ListBox Classes="nav" ItemsSource="{Binding Navigation}" SelectedItem="{Binding SelectedNav}">
+      <DockPanel Margin="0,16">
+        <Image DockPanel.Dock="Top" Source="/Assets/ninja-launcher.png" Width="44" Height="44" Margin="0,0,0,18"
+               RenderOptions.BitmapInterpolationMode="HighQuality" ToolTip.Tip="Ninja Launcher" />
+        <Button DockPanel.Dock="Bottom" Classes="rail" Margin="0,6,0,0" Command="{Binding PlayLatestCommand}" HorizontalAlignment="Center"
+                Background="{DynamicResource NinjaGradient}" ToolTip.Tip="{l:T 'Play your latest profile'}" AutomationProperties.Name="{l:T 'Play your latest profile'}">
+          <PathIcon Width="20" Height="20" Foreground="White" Data="M8,5.14V19.14L19,12.14L8,5.14Z" />
+        </Button>
+        <Button DockPanel.Dock="Bottom" Classes="rail" Classes.active="{Binding IsSettingsOpen}" Command="{Binding OpenSettingsCommand}" HorizontalAlignment="Center"
+                ToolTip.Tip="{l:T 'Settings'}" AutomationProperties.Name="{l:T 'Settings'}">
+          <PathIcon Width="22" Height="22" Foreground="{DynamicResource NinjaMuted}" Data="{Binding Navigation[6].Icon, Converter={x:Static v:Converters.Geometry}}" />
+        </Button>
+        <ListBox Classes="rail" ItemsSource="{Binding RailItems}" SelectedItem="{Binding RailSelection}" HorizontalAlignment="Center">
           <ListBox.ItemTemplate>
             <DataTemplate DataType="vm:NavItem">
-              <StackPanel Orientation="Horizontal" Spacing="12">
-                <PathIcon Data="{Binding Icon, Converter={x:Static v:Converters.Geometry}}" Width="18" Height="18" Foreground="{DynamicResource NinjaMuted}" />
-                <TextBlock Text="{Binding Title}" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center" />
-              </StackPanel>
+              <PathIcon Data="{Binding Icon, Converter={x:Static v:Converters.Geometry}}" Width="22" Height="22" Foreground="{DynamicResource NinjaMuted}" />
             </DataTemplate>
           </ListBox.ItemTemplate>
         </ListBox>
       </DockPanel>
     </Border>
 
-    <!-- Page -->
-    <ContentControl Grid.Column="1" Content="{Binding CurrentPage}" Margin="28,24,28,20" />
+    <!-- Page, with the disclaimer Minecraft's usage guidelines ask for always in view -->
+    <DockPanel Grid.Column="1" Margin="28,24,28,8">
+      <TextBlock DockPanel.Dock="Bottom" Classes="muted" FontSize="10" Margin="0,6,0,0" HorizontalAlignment="Right"
+                 Text="{l:T 'Not an official Minecraft product. Not approved by or associated with Mojang or Microsoft.'}" />
+      <ContentControl Content="{Binding CurrentPage}" />
+    </DockPanel>
 
     <!-- Toast -->
     <Border Grid.Column="1" IsVisible="{Binding Toast, Converter={x:Static ObjectConverters.IsNotNull}}"

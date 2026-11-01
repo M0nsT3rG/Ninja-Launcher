@@ -44,7 +44,7 @@
         <Border Classes="card">
           <StackPanel Spacing="10">
             <TextBlock Classes="h2" Text="{l:T 'Java'}" />
-            <TextBlock Classes="muted" Text="{l:T 'Ninja Launcher downloads the Java runtime Mojang publishes for each version. Installations found on this computer can be set per instance in the Library.'}" />
+            <TextBlock Classes="muted" Text="{l:T 'Ninja Launcher downloads the Java runtime Mojang publishes for each version. Installations found on this computer can be set per profile in Profiles.'}" />
             <ItemsControl ItemsSource="{Binding JavaInstallations}">
               <ItemsControl.ItemTemplate>
                 <DataTemplate DataType="a:JavaInstallation">
@@ -72,7 +72,7 @@
               <NumericUpDown Value="{Binding Concurrency}" Minimum="1" Maximum="32" FormatString="0" Width="160" />
             </StackPanel>
             <StackPanel Spacing="4">
-              <TextBlock Text="{l:T 'Instances folder (applies after restart)'}" />
+              <TextBlock Text="{l:T 'Profiles folder (applies after restart)'}" />
               <TextBox Text="{Binding InstancesDirectory}" />
             </StackPanel>
           </StackPanel>

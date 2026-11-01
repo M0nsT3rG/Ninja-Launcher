@@ -82,10 +82,37 @@ public static class Converters
 
     public static readonly IValueConverter JoinLines = new FuncValueConverter<IReadOnlyList<string>, string>(l => l is null ? "" : string.Join(", ", l));
 
-    /// <summary>"Fabric 26.3 · Never played" for the instance rows on Home.</summary>
+    /// <summary>"Fabric 26.3".</summary>
+    public static readonly IValueConverter ProfileVersion = new FuncValueConverter<NinjaLauncher.Domain.GameInstance?, string>(i => i is null ? "" :
+        $"{(i.Loader == NinjaLauncher.Domain.ModLoaderKind.None ? NinjaLauncher.Desktop.Localization.L.T("Vanilla") : i.Loader.ToString())} {i.MinecraftVersion}");
+
+    /// <summary>"last played 31/10/2026" or "Never played".</summary>
+    public static readonly IValueConverter LastPlayed = new FuncValueConverter<NinjaLauncher.Domain.GameInstance?, string>(i =>
+        i?.LastPlayedUtc is { } t ? NinjaLauncher.Desktop.Localization.L.F("last played {0:d}", t.LocalDateTime) : NinjaLauncher.Desktop.Localization.L.T("Never played"));
+
+    /// <summary>"Fabric 26.3 · Never played" for the profile rows on Home.</summary>
     public static readonly IValueConverter InstanceSummary = new FuncValueConverter<NinjaLauncher.Domain.GameInstance?, string>(i => i is null ? "" :
-        $"{(i.Loader == NinjaLauncher.Domain.ModLoaderKind.None ? NinjaLauncher.Desktop.Localization.L.T("Vanilla") : i.Loader.ToString())} {i.MinecraftVersion} · " +
-        (i.LastPlayedUtc is { } t ? NinjaLauncher.Desktop.Localization.L.F("last played {0:d}", t.LocalDateTime) : NinjaLauncher.Desktop.Localization.L.T("Never played")));
+        $"{ProfileVersion.Convert(i, typeof(string), null, CultureInfo.CurrentCulture)} · {LastPlayed.Convert(i, typeof(string), null, CultureInfo.CurrentCulture)}");
 
     public static readonly IValueConverter LongDate = new FuncValueConverter<DateOnly, string>(d => d.ToString("D", CultureInfo.CurrentCulture));
+
+    public static readonly IValueConverter ShortDate = new FuncValueConverter<DateTimeOffset?, string>(d => d?.LocalDateTime.ToString("d", CultureInfo.CurrentCulture) ?? "");
+
+    /// <summary>294M, 37K, 812 — download and follower counts on the Mods page.</summary>
+    public static readonly IValueConverter Compact = new FuncValueConverter<long?, string>(n => n switch
+    {
+        null => "",
+        >= 1_000_000 => (n.Value / 1_000_000d).ToString(n.Value >= 10_000_000 ? "0" : "0.#", CultureInfo.CurrentCulture) + "M",
+        >= 1_000 => (n.Value / 1_000d).ToString(n.Value >= 10_000 ? "0" : "0.#", CultureInfo.CurrentCulture) + "K",
+        _ => n.Value.ToString(CultureInfo.CurrentCulture),
+    });
+
+    public static readonly IValueConverter SortName = new FuncValueConverter<NinjaLauncher.Mods.Modrinth.SearchSort, string>(s => NinjaLauncher.Desktop.Localization.L.T(s switch
+    {
+        NinjaLauncher.Mods.Modrinth.SearchSort.Downloads => "Most downloaded",
+        NinjaLauncher.Mods.Modrinth.SearchSort.Follows => "Most followed",
+        NinjaLauncher.Mods.Modrinth.SearchSort.Newest => "Newest",
+        NinjaLauncher.Mods.Modrinth.SearchSort.Updated => "Recently updated",
+        _ => "Relevance",
+    }));
 }

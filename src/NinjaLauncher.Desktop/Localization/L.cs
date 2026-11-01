@@ -30,7 +30,7 @@ public static partial class L
 
     private static List<(Regex Pattern, string Translation, HashSet<string> Nested)>? _templates;
 
-    // Keys with placeholders ("Created instance '{0}' ({1})") as anchored patterns, so already-formatted messages
+    // Keys with placeholders ("Created profile '{0}' ({1})") as anchored patterns, so already-formatted messages
     // from the engine layers (exceptions, progress stages, activity entries) can be translated too.
     private static List<(Regex Pattern, string Translation, HashSet<string> Nested)> Templates() => _templates ??= _table
         .Where(kv => kv.Value.Length > 0 && Placeholder().IsMatch(kv.Key) && Placeholder().Replace(kv.Key, "").Trim().Length >= 4)

@@ -27,6 +27,17 @@ public sealed partial class ModEntry(string fileName, bool enabled, ModUpdate? u
     public string UpdateText => Update is null ? "" : L.F("Update: {0} → {1}", Update.CurrentVersion ?? "?", Update.Latest.VersionNumber);
 }
 
+public enum ProfileTab { Java, Bedrock, Pinned, Custom, Modpack }
+
+/// <summary>One tab of the Profiles page with the number of profiles in it.</summary>
+public sealed partial class ProfileTabItem(ProfileTab tab, string title) : ObservableObject
+{
+    public ProfileTab Tab { get; } = tab;
+    public string Title { get; } = title;
+    [ObservableProperty] public partial int Count { get; set; }
+    public override string ToString() => $"{Title} ({Count})"; // what screen readers announce
+}
+
 public sealed partial class LibraryViewModel : ViewModelBase
 {
     private readonly UiContext _ui;
@@ -57,6 +68,7 @@ public sealed partial class LibraryViewModel : ViewModelBase
         _curseForgePacks = curseForgePacks;
         _loaders = loaders.ToDictionary(l => l.Kind);
         NewMemoryMb = settings.Current.DefaultMaxMemoryMb;
+        Tab = Tabs[0];
     }
 
     public ObservableCollection<GameInstance> Instances { get; } = [];
@@ -70,8 +82,24 @@ public sealed partial class LibraryViewModel : ViewModelBase
     public IReadOnlyList<ModLoaderKind> LoaderKinds { get; } = Enum.GetValues<ModLoaderKind>();
 
     [ObservableProperty] public partial string Search { get; set; } = "";
+
+    public ProfileTabItem[] Tabs { get; } =
+    [
+        new(ProfileTab.Java, "Java"), new(ProfileTab.Bedrock, "Bedrock"), new(ProfileTab.Pinned, L.T("Pinned")),
+        new(ProfileTab.Custom, L.T("Custom")), new(ProfileTab.Modpack, L.T("Modpack")),
+    ];
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(IsBedrockTab))] public partial ProfileTabItem? Tab { get; set; }
+    public bool IsBedrockTab => Tab?.Tab == ProfileTab.Bedrock;
+    [ObservableProperty] public partial bool HasNoProfiles { get; set; }
+
+    /// <summary>The Bedrock tab shows Home's Release and Preview entries and uses its commands.</summary>
+    public HomeViewModel Home => _ui.Shell.Home;
+
+    /// <summary>Grid of profiles; opening one (or creating one) replaces it with the editor.</summary>
+    public bool IsGridMode => !IsCreating && !HasSelection;
+    public bool IsDetailsMode => !IsCreating && HasSelection;
     [ObservableProperty] public partial bool ShowSnapshots { get; set; }
-    [ObservableProperty] public partial bool IsCreating { get; set; }
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(IsGridMode), nameof(IsDetailsMode))] public partial bool IsCreating { get; set; }
     [ObservableProperty] public partial string NewName { get; set; } = "";
     [ObservableProperty] public partial string? NewVersion { get; set; }
     [ObservableProperty] public partial ModLoaderKind NewLoader { get; set; }
@@ -79,7 +107,7 @@ public sealed partial class LibraryViewModel : ViewModelBase
     [ObservableProperty] public partial int NewMemoryMb { get; set; }
     [ObservableProperty] public partial bool LoadingLoaderVersions { get; set; }
 
-    [ObservableProperty, NotifyPropertyChangedFor(nameof(HasSelection))]
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(HasSelection), nameof(IsGridMode), nameof(IsDetailsMode))]
     public partial GameInstance? Selected { get; set; }
     public bool HasSelection => Selected is not null;
 
@@ -113,17 +141,56 @@ public sealed partial class LibraryViewModel : ViewModelBase
     }
 
     partial void OnSearchChanged(string value) => ApplyFilter();
+    partial void OnTabChanged(ProfileTabItem? value)
+    {
+        ApplyFilter();
+        if (value?.Tab == ProfileTab.Bedrock) _ = _ui.RunAsync(Home.RefreshBedrockAsync);
+    }
     partial void OnShowSnapshotsChanged(bool value) => FillVersions();
 
     private void ApplyFilter()
     {
         var keep = Selected?.Id;
+        foreach (var t in Tabs) t.Count = t.Tab == ProfileTab.Bedrock ? Home.Bedrock.Length : _all.Count(i => InTab(i, t.Tab));
         Instances.Clear();
-        foreach (var i in _all.Where(i => string.IsNullOrWhiteSpace(Search) || i.Name.Contains(Search, StringComparison.OrdinalIgnoreCase)
+        foreach (var i in _all.Where(i => Tab is { } t && InTab(i, t.Tab) && (string.IsNullOrWhiteSpace(Search) || i.Name.Contains(Search, StringComparison.OrdinalIgnoreCase)
                      || i.MinecraftVersion.Contains(Search, StringComparison.OrdinalIgnoreCase) || i.Loader.ToString().Contains(Search, StringComparison.OrdinalIgnoreCase)))
+                     .OrderByDescending(i => i.Pinned).ThenByDescending(i => i.LastPlayedUtc ?? i.CreatedUtc))
             Instances.Add(i);
-        Selected = Instances.FirstOrDefault(i => i.Id == keep);
+        HasNoProfiles = !IsBedrockTab && Instances.Count == 0;
+        Selected = _all.FirstOrDefault(i => i.Id == keep);
     }
+
+    private static bool InTab(GameInstance i, ProfileTab tab) => tab switch
+    {
+        ProfileTab.Pinned => i.Pinned,
+        ProfileTab.Custom => !i.FromModpack,
+        ProfileTab.Modpack => i.FromModpack,
+        ProfileTab.Bedrock => false,
+        _ => true,
+    };
+
+    [RelayCommand]
+    private void OpenProfile(GameInstance instance) => Selected = instance;
+
+    [RelayCommand]
+    private void BackToProfiles()
+    {
+        IsCreating = false;
+        Selected = null;
+    }
+
+    [RelayCommand]
+    private Task TogglePin(GameInstance instance) => _ui.RunAsync(async () =>
+    {
+        await _instances.SetPinnedAsync(instance.Id, !instance.Pinned);
+        await OnShownAsync();
+    });
+
+    private bool CanPlay(GameInstance? instance) => instance is not null && !_game.IsRunning(instance.Id);
+
+    [RelayCommand(CanExecute = nameof(CanPlay))]
+    private Task Play(GameInstance? instance) => _ui.RunAsync(() => instance is null ? Task.CompletedTask : LaunchAsync(instance));
 
     private async Task LoadVersionsAsync()
     {
@@ -177,7 +244,7 @@ public sealed partial class LibraryViewModel : ViewModelBase
     private void RefreshRunningState()
     {
         OnPropertyChanged(nameof(IsSelectedRunning));
-        foreach (var c in new IRelayCommand[] { ExportModpackCommand, ExportCurseForgeCommand, ChangeIconCommand, ResetIconCommand, SaveCommand, LaunchCommand,
+        foreach (var c in new IRelayCommand[] { PlayCommand, ExportModpackCommand, ExportCurseForgeCommand, ChangeIconCommand, ResetIconCommand, SaveCommand, LaunchCommand,
                      RepairCommand, DeleteCommand, ToggleModCommand, UpdateModsCommand, InstallMissingDependenciesCommand, BackupWorldCommand, RestoreBackupCommand })
             c.NotifyCanExecuteChanged();
     }
@@ -277,7 +344,7 @@ public sealed partial class LibraryViewModel : ViewModelBase
             throw new ArgumentException(L.T("Pick a PNG, JPG, WebP or GIF image up to 4096×4096 pixels and 2 MB."));
         await _instances.SetIconAsync(instance.Id, file);
         await OnShownAsync();
-        Selected = Instances.FirstOrDefault(i => i.Id == instance.Id);
+        Selected = _all.FirstOrDefault(i => i.Id == instance.Id);
     });
 
     [RelayCommand(CanExecute = nameof(CanEdit))]
@@ -287,7 +354,7 @@ public sealed partial class LibraryViewModel : ViewModelBase
         _game.EnsureNotRunning(instance, "change its icon");
         await _instances.ClearIconAsync(instance.Id);
         await OnShownAsync();
-        Selected = Instances.FirstOrDefault(i => i.Id == instance.Id);
+        Selected = _all.FirstOrDefault(i => i.Id == instance.Id);
     });
 
     [RelayCommand]
@@ -313,7 +380,7 @@ public sealed partial class LibraryViewModel : ViewModelBase
                 await _instances.SetLaunchVersionAsync(instance.Id, id, ct: ct);
             });
         await OnShownAsync();
-        Selected = Instances.FirstOrDefault(i => i.Id == instance.Id);
+        Selected = _all.FirstOrDefault(i => i.Id == instance.Id);
         _ui.Info(L.F("Imported '{0}'.", instance.Name));
     });
 
@@ -330,7 +397,7 @@ public sealed partial class LibraryViewModel : ViewModelBase
             else created = await _modpacks.InstallFromFileAsync(file, progress, ct);
         });
         await OnShownAsync();
-        Selected = Instances.FirstOrDefault(i => i.Id == created!.Id);
+        Selected = _all.FirstOrDefault(i => i.Id == created!.Id);
         _ui.Info(L.F("Imported '{0}'.", created!.Name));
         await DiscoverViewModel.OfferManualDownloadsAsync(_ui, _shell, blocked, _instances.GetGameDirectory(created));
     });
@@ -338,7 +405,7 @@ public sealed partial class LibraryViewModel : ViewModelBase
     [RelayCommand]
     private Task Create() => _ui.RunAsync(async () =>
     {
-        if (string.IsNullOrWhiteSpace(NewName)) throw new ArgumentException(L.T("Give the instance a name."));
+        if (string.IsNullOrWhiteSpace(NewName)) throw new ArgumentException(L.T("Give the profile a name."));
         if (NewVersion is null) throw new ArgumentException(L.T("Pick a Minecraft version."));
         if (NewLoader != ModLoaderKind.None && NewLoaderVersion is null) throw new ArgumentException(L.F("Pick a {0} version.", NewLoader));
         if (NewLoader == ModLoaderKind.Forge && !NewLoaderVersion!.StartsWith(NewVersion + "-", StringComparison.Ordinal))
@@ -356,7 +423,7 @@ public sealed partial class LibraryViewModel : ViewModelBase
             });
         }
         await OnShownAsync();
-        Selected = Instances.FirstOrDefault(i => i.Id == instance.Id);
+        Selected = _all.FirstOrDefault(i => i.Id == instance.Id);
         _ui.Info(L.F("Created '{0}'.", name));
     });
 
@@ -372,20 +439,22 @@ public sealed partial class LibraryViewModel : ViewModelBase
             ExtraJvmArguments = EditJvmArgs.Trim(), JavaPath = string.IsNullOrWhiteSpace(EditJavaPath) ? null : EditJavaPath.Trim(),
         });
         await OnShownAsync();
-        Selected = Instances.FirstOrDefault(i => i.Id == updated.Id);
-        _ui.Info(L.T("Instance saved."));
+        Selected = _all.FirstOrDefault(i => i.Id == updated.Id);
+        _ui.Info(L.T("Profile saved."));
     });
 
     [RelayCommand(CanExecute = nameof(CanEdit))]
-    private Task Launch() => _ui.RunAsync(async () =>
+    private Task Launch() => _ui.RunAsync(() => Selected is { } instance ? LaunchAsync(instance) : Task.CompletedTask); // captured: the selection may change
+
+    private async Task LaunchAsync(GameInstance instance)
     {
-        if (Selected is not { } instance) return; // captured: the selection may change while checking
         if (instance.Loader != ModLoaderKind.None && instance.LaunchVersionId is null)
-            throw new InvalidOperationException(L.F("{0} is not installed for this instance yet. Use Repair to install it.", instance.Loader));
+            throw new InvalidOperationException(L.F("{0} is not installed for this profile yet. Use Repair to install it.", instance.Loader));
         if (!await HomeViewModel.ConfirmModIssuesAsync(_ui, _game, instance)) return;
         _ui.Info(L.F("Preparing {0}… progress is on the Downloads page.", instance.Name));
         await _game.PlayAsync(instance);
-    });
+        await OnShownAsync(); // last played changed
+    }
 
     [RelayCommand(CanExecute = nameof(CanEdit))]
     private Task Repair() => _ui.RunAsync(async () =>
@@ -411,7 +480,7 @@ public sealed partial class LibraryViewModel : ViewModelBase
         if (Selected is null) return;
         var clone = await _instances.CloneAsync(Selected.Id, $"{Selected.Name} (copy)"[..Math.Min(64, Selected.Name.Length + 7)]);
         await OnShownAsync();
-        Selected = Instances.FirstOrDefault(i => i.Id == clone.Id);
+        Selected = _all.FirstOrDefault(i => i.Id == clone.Id);
     });
 
     [RelayCommand(CanExecute = nameof(CanEdit))]
@@ -419,7 +488,7 @@ public sealed partial class LibraryViewModel : ViewModelBase
     {
         if (Selected is not { } instance) return;
         _game.EnsureNotRunning(instance, "delete it");
-        if (!await _ui.ConfirmAsync(L.F("Delete '{0}'? Its worlds, mods and settings in the instance folder will be permanently removed. Backups are kept.", instance.Name))) return;
+        if (!await _ui.ConfirmAsync(L.F("Delete '{0}'? Its worlds, mods and settings in the profile folder will be permanently removed. Backups are kept.", instance.Name))) return;
         _game.EnsureNotRunning(instance, "delete it"); // it may have been started while the question was open
         await _instances.DeleteAsync(instance.Id);
         Selected = null;

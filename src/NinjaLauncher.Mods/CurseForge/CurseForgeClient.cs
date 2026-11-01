@@ -28,7 +28,7 @@ public sealed record CurseForgeLogo(string? ThumbnailUrl, string? Url);
 
 public sealed record CurseForgeMod(
     long Id, string Name, string Slug, string Summary, long DownloadCount, int ClassId, bool? AllowModDistribution,
-    CurseForgeLinks? Links, IReadOnlyList<CurseForgeAuthor> Authors, CurseForgeLogo? Logo = null)
+    CurseForgeLinks? Links, IReadOnlyList<CurseForgeAuthor> Authors, CurseForgeLogo? Logo = null, DateTimeOffset? DateModified = null)
 {
     public string PageUrl => Links?.WebsiteUrl ?? $"https://www.curseforge.com/minecraft/mc-mods/{Slug}";
 }
@@ -65,13 +65,21 @@ public sealed class CurseForgeClient(HttpClient http, Func<CancellationToken, Ta
     public static string ContentFolder(int classId, int shadersClassId) =>
         classId == ClassResourcePacks ? "resourcepacks" : classId == shadersClassId && shadersClassId != 0 ? "shaderpacks" : "mods";
 
-    public async Task<CurseForgeSearchResult> SearchAsync(string query, ProjectKind kind, string? gameVersion, ModLoaderKind loader, int index, int pageSize, CancellationToken ct)
+    /// <param name="categoryIds">Category ids from <see cref="GetCategoriesAsync"/>; the API takes up to 10.</param>
+    public async Task<CurseForgeSearchResult> SearchAsync(string query, ProjectKind kind, string? gameVersion, ModLoaderKind loader, int index, int pageSize, CancellationToken ct,
+        SearchSort sort = SearchSort.Relevance, IReadOnlyList<string>? categoryIds = null)
     {
         var classId = await ClassIdAsync(kind, ct);
+        // CurseForge sort fields: 2 popularity, 3 last updated, 6 total downloads, 11 release date.
+        var sortField = sort switch { SearchSort.Downloads => 6, SearchSort.Updated => 3, SearchSort.Newest => 11, _ => 2 };
         var url = $"{ApiBase}/v1/mods/search?gameId={MinecraftGameId}&classId={classId}&searchFilter={Uri.EscapeDataString(query)}" +
-                  $"&sortField=2&sortOrder=desc&index={index}&pageSize={Math.Clamp(pageSize, 1, 50)}";
+                  $"&sortField={sortField}&sortOrder=desc&index={index}&pageSize={Math.Clamp(pageSize, 1, 50)}";
         if (!string.IsNullOrWhiteSpace(gameVersion)) url += $"&gameVersion={Uri.EscapeDataString(gameVersion)}";
-        if (kind == ProjectKind.Mod && LoaderType(loader) is > 0 and var type && !string.IsNullOrWhiteSpace(gameVersion)) url += $"&modLoaderType={type}";
+        // The API only applies a loader filter together with a game version.
+        if (kind is ProjectKind.Mod or ProjectKind.Modpack && LoaderType(loader) is > 0 and var type && !string.IsNullOrWhiteSpace(gameVersion)) url += $"&modLoaderType={type}";
+        if (categoryIds is { Count: > 0 })
+            url += "&categoryIds=" + Uri.EscapeDataString(JsonSerializer.Serialize(
+                categoryIds.Select(id => long.TryParse(id, System.Globalization.CultureInfo.InvariantCulture, out var n) ? n : -1).Where(n => n > 0).Take(10)));
         using var doc = await GetAsync(url, ct);
         var mods = doc.RootElement.GetProperty("data").Deserialize<List<CurseForgeMod>>(Json)!;
         var total = doc.RootElement.TryGetProperty("pagination", out var p) ? p.GetProperty("totalCount").GetInt32() : mods.Count;
@@ -118,6 +126,17 @@ public sealed class CurseForgeClient(HttpClient http, Func<CancellationToken, Ta
         return result;
     }
 
+    /// <summary>The categories CurseForge lists under this kind of project.</summary>
+    public async Task<IReadOnlyList<CategoryOption>> GetCategoriesAsync(ProjectKind kind, CancellationToken ct)
+    {
+        var classId = await ClassIdAsync(kind, ct);
+        using var doc = await GetAsync($"{ApiBase}/v1/categories?gameId={MinecraftGameId}&classId={classId}", ct);
+        return doc.RootElement.GetProperty("data").EnumerateArray()
+            .Where(c => !(c.TryGetProperty("isClass", out var isClass) && isClass.GetBoolean()))
+            .Select(c => new CategoryOption(c.GetProperty("id").GetInt64().ToString(System.Globalization.CultureInfo.InvariantCulture), c.GetProperty("name").GetString() ?? ""))
+            .Where(c => c.Name.Length > 0).OrderBy(c => c.Name, StringComparer.CurrentCultureIgnoreCase).ToList();
+    }
+
     /// <summary>The shaders class has no confirmed fixed id, so it is looked up by slug (0 if absent).</summary>
     public Task<int> ShadersClassIdAsync(CancellationToken ct) => ClassIdBySlugAsync("shaders", ct);
 
@@ -147,7 +166,7 @@ public sealed class CurseForgeClient(HttpClient http, Func<CancellationToken, Ta
         string? world = null)
     {
         if (kind == ProjectKind.Mod && instance.Loader == ModLoaderKind.None)
-            throw new InvalidOperationException("This instance has no mod loader. Create a Fabric, Quilt, Forge or NeoForge instance to install mods.");
+            throw new InvalidOperationException("This profile has no mod loader. Create a Fabric, Quilt, Forge or NeoForge profile to install mods.");
         if (kind == ProjectKind.DataPack && string.IsNullOrWhiteSpace(world)) throw new ArgumentException("Pick the world to add the data pack to.");
         var shaders = kind == ProjectKind.Shader ? await ShadersClassIdAsync(ct) : 0;
         var dataPacks = kind == ProjectKind.DataPack ? await DataPacksClassIdAsync(ct) : 0;
