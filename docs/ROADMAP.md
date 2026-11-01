@@ -52,7 +52,7 @@ All seven research documents are written in `docs/research/`, each with sources,
 
 ## Sidebar, Mods and Profiles redesign (2026-11-01). COMPLETE
 - Icon rail sidebar with tooltips and screen-reader names, Settings and a play-latest button at the bottom; the Minecraft disclaimer moved to a footer that stays in view: COMPLETE (verified live)
-- "Discover" renamed "Mods": large kind tabs, a filters panel (your profile and "only compatible", game version, mod loader, categories), sort order, results per page, first/previous/next/last page, a "Most followed" row, and result rows with downloads, followers and last update: COMPLETE (Modrinth verified live; CurseForge categories, sort and data unverified until a key is available)
+- "Discover" renamed "Mods": large kind tabs, a filters panel (your profile and "only compatible", game version, mod loader, categories), sort order, results per page, first/previous/next/last page, a "Most followed" row, and result rows with downloads, followers and last update: COMPLETE (verified live on both sources on 2026-11-01 with the owner's approved CurseForge key: results, logos, the Popular row and category filtering; installing from CurseForge not yet exercised)
 - "Library" renamed "Profiles" and "instance" renamed "profile" everywhere, in English and Portuguese. Profiles are a card grid with Java, Bedrock, Pinned, Custom and Modpack tabs and counts, pin/unpin, Play now, and the existing editor behind the settings button. Profiles installed from a modpack are recorded as such: COMPLETE (grid verified live)
 
 ## Phase 7: Advanced (v0.8.0). PARTIALLY COMPLETE

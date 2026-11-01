@@ -12,8 +12,6 @@
   <UserControl.Styles>
     <Style Selector="TabStrip.profiles TabStripItem" x:DataType="vm:ProfileTabItem">
       <Setter Property="AutomationProperties.Name" Value="{Binding}" />
-      <Setter Property="Padding" Value="14,6" />
-      <Setter Property="MinHeight" Value="0" />
     </Style>
     <Style Selector="Button.pin">
       <Setter Property="Background" Value="#660E0A16" />
@@ -45,14 +43,17 @@
         </StackPanel>
       </DockPanel>
 
-      <TabStrip DockPanel.Dock="Top" Classes="profiles" ItemsSource="{Binding Tabs}" SelectedItem="{Binding Tab}" Margin="0,0,0,12">
+      <TabStrip DockPanel.Dock="Top" Classes="profiles big" ItemsSource="{Binding Tabs}" SelectedItem="{Binding Tab}" Margin="0,0,0,14">
         <TabStrip.ItemTemplate>
           <DataTemplate DataType="vm:ProfileTabItem">
-            <StackPanel Orientation="Horizontal" Spacing="8">
-              <TextBlock Text="{Binding Title}" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center" />
-              <Border Background="{DynamicResource NinjaSurfaceRaised}" CornerRadius="6" Padding="7,1" VerticalAlignment="Center">
-                <TextBlock Text="{Binding Count}" FontSize="12" FontWeight="SemiBold" />
-              </Border>
+            <StackPanel Spacing="6">
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <TextBlock Text="{Binding Title}" VerticalAlignment="Center" />
+                <Border Background="{DynamicResource NinjaSurfaceRaised}" CornerRadius="6" Padding="7,1" VerticalAlignment="Center">
+                  <TextBlock Text="{Binding Count}" FontSize="13" FontWeight="SemiBold" />
+                </Border>
+              </StackPanel>
+              <Border Classes="pipe" Height="3" CornerRadius="2" Background="{DynamicResource NinjaAccentBrush}" />
             </StackPanel>
           </DataTemplate>
         </TabStrip.ItemTemplate>

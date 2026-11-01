@@ -23,7 +23,7 @@ Self-update stays disabled until the owner does three things (see docs/releases/
 - **What's blocked:** CurseForge search, installs and modpacks only work with a personal API key. The CurseForge 3rd Party API Terms §2.2 make keys "non-transferable and may not be shared with any third party", so Ninja Launcher can't bundle one for everyone.
 - **Owner action:** apply at https://console.curseforge.com (third-party application form). Overwolf reviews applications by hand. Once you have a key, paste it into Settings → CurseForge; it is stored in the OS secret store. Don't use the API through a VPN (§3.1).
 - **To offer CurseForge to every user (owner's choice, 2026-10-26):** the built-in key is implemented but off. Release builds embed the repository secret `CURSEFORGE_API_KEY` when it exists; a key a user saves in Settings still wins. **Set that secret only after Overwolf confirms in writing that the key may ship inside this open-source build** (Prism Launcher has such an agreement), because §2.2 forbids sharing a key otherwise and anyone can extract a key from a distributed app.
-- **Status 2026-10-26:** the owner submitted the CurseForge API application. Waiting for Overwolf's review.
+- **Status 2026-10-29:** Overwolf approved the "Ninja Launcher" application and issued a personal key (never in the repository; the owner keeps it in Settings → CurseForge). The approval email grants a personal key only. Shipping it to every user still needs Overwolf's written permission, so `CURSEFORGE_API_KEY` stays unset.
 - **Still possible meanwhile:** everything is implemented and unit-tested. The live test runs with `NINJA_CURSEFORGE_API_KEY`.
 
 ## B-04: Repository visibility (RESOLVED 2026-10-25)

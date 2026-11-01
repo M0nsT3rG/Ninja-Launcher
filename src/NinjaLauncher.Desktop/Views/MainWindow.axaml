@@ -36,12 +36,6 @@
     <Style Selector="ListBox.rail ListBoxItem:selected /template/ ContentPresenter">
       <Setter Property="Background" Value="{DynamicResource NinjaSurfaceRaised}" />
     </Style>
-    <Style Selector="Button.rail.active">
-      <Setter Property="Background" Value="{DynamicResource NinjaSurfaceRaised}" />
-    </Style>
-    <Style Selector="ListBox.rail ListBoxItem:selected PathIcon, Button.rail.active PathIcon">
-      <Setter Property="Foreground" Value="{DynamicResource NinjaAccentBrush}" />
-    </Style>
     <Style Selector="Button.rail">
       <Setter Property="Width" Value="48" />
       <Setter Property="Height" Value="48" />
@@ -51,6 +45,31 @@
       <Setter Property="HorizontalContentAlignment" Value="Center" />
       <Setter Property="VerticalContentAlignment" Value="Center" />
       <Setter Property="ToolTip.Placement" Value="Right" />
+    </Style>
+    <!-- Icon colours come from styles (a colour set on the icon itself would win over them); later styles override earlier ones. -->
+    <Style Selector="ListBox.rail PathIcon, Button.rail.settings PathIcon">
+      <Setter Property="Foreground" Value="{DynamicResource NinjaMuted}" />
+    </Style>
+    <Style Selector="Button.rail.active /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource NinjaSurfaceRaised}" />
+    </Style>
+    <Style Selector="ListBox.rail ListBoxItem:selected PathIcon, Button.rail.active PathIcon">
+      <Setter Property="Foreground" Value="{DynamicResource NinjaAccentBrush}" />
+    </Style>
+    <Style Selector="TabStrip.big TabStripItem">
+      <Setter Property="FontSize" Value="20" />
+      <Setter Property="FontWeight" Value="Bold" />
+      <Setter Property="Padding" Value="0,4,28,0" />
+      <Setter Property="MinHeight" Value="0" />
+    </Style>
+    <Style Selector="TabStrip.big Border.pipe">
+      <Setter Property="Opacity" Value="0" />
+    </Style>
+    <Style Selector="TabStrip.big TabStripItem:selected Border.pipe">
+      <Setter Property="Opacity" Value="1" />
+    </Style>
+    <Style Selector="TabStrip.big TabStripItem /template/ Border#PART_SelectedPipe">
+      <Setter Property="IsVisible" Value="False" />
     </Style>
     <!-- The theme's spinner buttons only hold an icon, so screen readers would read the icon's class name. -->
     <Style Selector="ButtonSpinner /template/ RepeatButton#PART_IncreaseButton">
@@ -71,14 +90,14 @@
                 Background="{DynamicResource NinjaGradient}" ToolTip.Tip="{l:T 'Play your latest profile'}" AutomationProperties.Name="{l:T 'Play your latest profile'}">
           <PathIcon Width="20" Height="20" Foreground="White" Data="M8,5.14V19.14L19,12.14L8,5.14Z" />
         </Button>
-        <Button DockPanel.Dock="Bottom" Classes="rail" Classes.active="{Binding IsSettingsOpen}" Command="{Binding OpenSettingsCommand}" HorizontalAlignment="Center"
+        <Button DockPanel.Dock="Bottom" Classes="rail settings" Classes.active="{Binding IsSettingsOpen}" Command="{Binding OpenSettingsCommand}" HorizontalAlignment="Center"
                 ToolTip.Tip="{l:T 'Settings'}" AutomationProperties.Name="{l:T 'Settings'}">
-          <PathIcon Width="22" Height="22" Foreground="{DynamicResource NinjaMuted}" Data="{Binding Navigation[6].Icon, Converter={x:Static v:Converters.Geometry}}" />
+          <PathIcon Width="22" Height="22" Data="{Binding Navigation[6].Icon, Converter={x:Static v:Converters.Geometry}}" />
         </Button>
         <ListBox Classes="rail" ItemsSource="{Binding RailItems}" SelectedItem="{Binding RailSelection}" HorizontalAlignment="Center">
           <ListBox.ItemTemplate>
             <DataTemplate DataType="vm:NavItem">
-              <PathIcon Data="{Binding Icon, Converter={x:Static v:Converters.Geometry}}" Width="22" Height="22" Foreground="{DynamicResource NinjaMuted}" />
+              <PathIcon Data="{Binding Icon, Converter={x:Static v:Converters.Geometry}}" Width="22" Height="22" />
             </DataTemplate>
           </ListBox.ItemTemplate>
         </ListBox>

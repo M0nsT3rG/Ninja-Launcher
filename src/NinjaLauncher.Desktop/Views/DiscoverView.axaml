@@ -12,20 +12,6 @@
     <Style Selector="TabStrip.kinds TabStripItem" x:DataType="m:ProjectKind">
       <!-- The content is a panel, so give each tab its name for screen readers. -->
       <Setter Property="AutomationProperties.Name" Value="{Binding Converter={x:Static v:Converters.KindName}}" />
-      <Setter Property="FontSize" Value="20" />
-      <Setter Property="FontWeight" Value="Bold" />
-      <Setter Property="Padding" Value="0,4,28,0" />
-      <Setter Property="MinHeight" Value="0" />
-    </Style>
-    <Style Selector="TabStrip.kinds Border.pipe">
-      <Setter Property="Opacity" Value="0" />
-    </Style>
-    <Style Selector="TabStrip.kinds TabStripItem:selected Border.pipe">
-      <Setter Property="Opacity" Value="1" />
-    </Style>
-    <!-- Own underline, a little below the text (the theme's pipe hugs it). -->
-    <Style Selector="TabStrip.kinds TabStripItem /template/ Border#PART_SelectedPipe">
-      <Setter Property="IsVisible" Value="False" />
     </Style>
     <Style Selector="TextBlock.filter">
       <Setter Property="FontWeight" Value="SemiBold" />
@@ -67,7 +53,7 @@
       </StackPanel>
       <TextBlock Classes="h1" Text="{l:T 'Mods'}" VerticalAlignment="Center" />
     </DockPanel>
-    <TabStrip DockPanel.Dock="Top" Classes="kinds" ItemsSource="{Binding Kinds}" SelectedItem="{Binding Kind}" Margin="0,0,0,14">
+    <TabStrip DockPanel.Dock="Top" Classes="kinds big" ItemsSource="{Binding Kinds}" SelectedItem="{Binding Kind}" Margin="0,0,0,14">
       <TabStrip.ItemTemplate>
         <DataTemplate DataType="m:ProjectKind">
           <StackPanel Spacing="6">
