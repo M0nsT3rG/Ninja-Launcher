@@ -1,0 +1,102 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:loc="using:NinjaLauncher.Desktop.Localization"
+             xmlns:vm="using:NinjaLauncher.Desktop.ViewModels"
+             xmlns:c="using:NinjaLauncher.Desktop.Controls"
+             xmlns:v="using:NinjaLauncher.Desktop.Views"
+             x:Class="NinjaLauncher.Desktop.Views.WardrobeView"
+             x:DataType="vm:WardrobeViewModel" Classes="page">
+  <UserControl.Styles>
+    <Style Selector="ListBox.capes ListBoxItem">
+      <Setter Property="Padding" Value="8" />
+      <Setter Property="Margin" Value="0,0,10,10" />
+      <Setter Property="CornerRadius" Value="12" />
+      <Setter Property="AutomationProperties.Name" Value="{Binding Name}" x:DataType="vm:CapeChoice" />
+    </Style>
+    <Style Selector="ListBox.capes ListBoxItem:selected /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource NinjaSurfaceRaised}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource NinjaAccentBrush}" />
+      <Setter Property="BorderThickness" Value="2" />
+    </Style>
+  </UserControl.Styles>
+
+  <Grid RowDefinitions="Auto,*" ColumnDefinitions="380,*">
+    <StackPanel Grid.ColumnSpan="2" Margin="0,0,0,18">
+      <TextBlock Classes="h1" Text="{loc:T 'Wardrobe'}" />
+      <TextBlock Classes="muted" Text="{loc:T 'Your Java Edition skin and cape. Changes apply to your Minecraft account, so other launchers and servers see them too.'}" />
+    </StackPanel>
+
+    <!-- Preview -->
+    <Border Grid.Row="1" CornerRadius="18" Margin="0,0,18,0" ClipToBounds="True" BorderBrush="{DynamicResource NinjaBorder}" BorderThickness="1">
+      <Border.Background>
+        <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
+          <GradientStop Offset="0" Color="#2A1050" />
+          <GradientStop Offset="0.55" Color="#4A1A6E" />
+          <GradientStop Offset="1" Color="#8E1E62" />
+        </LinearGradientBrush>
+      </Border.Background>
+      <Grid>
+        <c:SkinView Skin="{Binding Skin}" Cape="{Binding Cape}" Slim="{Binding Slim}" Yaw="{Binding PreviewYaw, Mode=TwoWay}" Margin="20,50,20,70"
+                    AutomationProperties.Name="{loc:T 'Skin preview. Drag or use the arrow keys to turn it.'}" />
+        <TextBlock Text="{Binding AccountName}" FontSize="20" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center" Margin="0,16,0,0" />
+        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,14" Spacing="4">
+          <Button Content="{loc:T 'Turn around'}" Command="{Binding TurnAroundCommand}" HorizontalAlignment="Center" Background="#B30E0A16" Foreground="White" />
+          <TextBlock Text="{loc:T 'Drag to turn'}" Foreground="#E9D5FF" FontSize="12" HorizontalAlignment="Center" />
+        </StackPanel>
+        <ProgressBar IsIndeterminate="True" IsVisible="{Binding IsBusy}" VerticalAlignment="Top" Margin="0" />
+      </Grid>
+    </Border>
+
+    <ScrollViewer Grid.Row="1" Grid.Column="1">
+      <StackPanel Spacing="16">
+        <Border Classes="card" IsVisible="{Binding !CanEdit}">
+          <TextBlock Text="{Binding Message}" TextWrapping="Wrap" />
+        </Border>
+
+        <Border Classes="card" IsEnabled="{Binding CanInteract}">
+          <StackPanel Spacing="12">
+            <TextBlock Classes="h2" Text="{loc:T 'Skin'}" />
+            <TextBlock Classes="muted" Text="{loc:T 'A 64×64 PNG made for Java Edition. The preview updates before you save.'}" />
+            <StackPanel Orientation="Horizontal" Spacing="18">
+              <TextBlock Text="{loc:T 'Arms'}" VerticalAlignment="Center" />
+              <RadioButton GroupName="model" Content="{loc:T 'Classic (4 px)'}" IsChecked="{Binding Classic}" />
+              <RadioButton GroupName="model" Content="{loc:T 'Slim (3 px)'}" IsChecked="{Binding Slim}" />
+            </StackPanel>
+            <TextBlock Classes="muted" Text="{Binding PendingName, Converter={x:Static v:Converters.Localize}, ConverterParameter='New skin: {0}'}"
+                       IsVisible="{Binding PendingName, Converter={x:Static ObjectConverters.IsNotNull}}" />
+            <WrapPanel>
+              <Button Content="{loc:T 'Choose skin file…'}" Command="{Binding ChooseSkinCommand}" Margin="0,0,10,8" />
+              <Button Classes="accent" Content="{loc:T 'Save skin'}" Command="{Binding ApplySkinCommand}" Margin="0,0,10,8" />
+              <Button Content="{loc:T 'Discard changes'}" Command="{Binding DiscardSkinCommand}" Margin="0,0,10,8" />
+              <Button Classes="danger" Content="{loc:T 'Reset to default skin'}" Command="{Binding ResetSkinCommand}" Margin="0,0,10,8" />
+            </WrapPanel>
+          </StackPanel>
+        </Border>
+
+        <Border Classes="card" IsEnabled="{Binding CanInteract}">
+          <StackPanel Spacing="12">
+            <TextBlock Classes="h2" Text="{loc:T 'Cape'}" />
+            <TextBlock Classes="muted" Text="{loc:T 'Capes you own through Minecraft events, purchases or Minecraft Live. Picking one applies it straight away.'}" />
+            <ListBox Classes="capes" ItemsSource="{Binding Capes}" SelectedItem="{Binding SelectedCape}" Background="Transparent" AutoScrollToSelectedItem="False">
+              <ListBox.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <WrapPanel />
+                </ItemsPanelTemplate>
+              </ListBox.ItemsPanel>
+              <ListBox.ItemTemplate>
+                <DataTemplate DataType="vm:CapeChoice">
+                  <StackPanel Width="84" Spacing="6">
+                    <Border Width="50" Height="80" CornerRadius="6" Background="{DynamicResource NinjaSurfaceRaised}" HorizontalAlignment="Center">
+                      <Image Source="{Binding Preview}" Stretch="Fill" RenderOptions.BitmapInterpolationMode="None" />
+                    </Border>
+                    <TextBlock Text="{Binding Name}" FontSize="12" TextAlignment="Center" TextWrapping="Wrap" />
+                  </StackPanel>
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+          </StackPanel>
+        </Border>
+      </StackPanel>
+    </ScrollViewer>
+  </Grid>
+</UserControl>

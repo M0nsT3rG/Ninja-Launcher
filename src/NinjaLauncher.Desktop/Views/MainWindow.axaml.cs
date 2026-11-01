@@ -81,4 +81,11 @@ public static class Converters
     public static readonly IValueConverter IsError = new FuncValueConverter<NinjaLauncher.Mods.Modrinth.IssueSeverity, bool>(s => s == NinjaLauncher.Mods.Modrinth.IssueSeverity.Error);
 
     public static readonly IValueConverter JoinLines = new FuncValueConverter<IReadOnlyList<string>, string>(l => l is null ? "" : string.Join(", ", l));
+
+    /// <summary>"Fabric 26.3 · Never played" for the instance rows on Home.</summary>
+    public static readonly IValueConverter InstanceSummary = new FuncValueConverter<NinjaLauncher.Domain.GameInstance?, string>(i => i is null ? "" :
+        $"{(i.Loader == NinjaLauncher.Domain.ModLoaderKind.None ? NinjaLauncher.Desktop.Localization.L.T("Vanilla") : i.Loader.ToString())} {i.MinecraftVersion} · " +
+        (i.LastPlayedUtc is { } t ? NinjaLauncher.Desktop.Localization.L.F("last played {0:d}", t.LocalDateTime) : NinjaLauncher.Desktop.Localization.L.T("Never played")));
+
+    public static readonly IValueConverter LongDate = new FuncValueConverter<DateOnly, string>(d => d.ToString("D", CultureInfo.CurrentCulture));
 }

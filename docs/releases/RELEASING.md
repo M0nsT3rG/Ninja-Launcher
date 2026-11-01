@@ -42,8 +42,10 @@ If you lose the private key, users can't receive updates until they reinstall a 
 
 ## Pre-listed server (private)
 
-Release builds can pre-list one server in every Java instance's Multiplayer list. Its details stay out of the
-repository: set the repository secret `LISTED_SERVER_JSON` to `{"name": "<display name>", "javaAddress": "<host[:port]>"}`.
+Release builds can pre-list one server in every Java instance's Multiplayer list and in Bedrock's Servers tab. Its
+details stay out of the repository: set the repository secret `LISTED_SERVER_JSON` to
+`{"name": "<display name>", "javaAddress": "<host[:port]>", "bedrockHost": "<host>", "bedrockPort": 19132}` (either
+address may be left out).
 For local builds, put the same JSON in `src/NinjaLauncher.Desktop/listed-server.json` (git-ignored). Without either,
 nothing is listed. Players can still see the address in-game, as with any server in their list.
 

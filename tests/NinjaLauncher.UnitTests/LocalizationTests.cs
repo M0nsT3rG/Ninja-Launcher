@@ -38,7 +38,8 @@ public sealed partial class LocalizationTests
         var literal = new Regex("\\b(Text|Content|PlaceholderText|ToolTip\\.Tip)=\"([^\"{}]*[A-Za-z][^\"{}]*)\"");
         var leftovers = SourceFiles(".axaml").Where(f => !f.EndsWith("App.axaml"))
             .SelectMany(f => literal.Matches(File.ReadAllText(f)).Select(m => $"{Path.GetFileName(f)}: {m.Value}"))
-            .Where(s => !s.Contains("\"✕\"") && !s.Contains("Text=\"Ninja\"") && !s.Contains("Text=\"LAUNCHER\"")).ToList(); // brand wordmark stays as is
+            .Where(s => !s.Contains("\"✕\"") && !s.Contains("Text=\"Ninja\"") && !s.Contains("Text=\"LAUNCHER\"") // brand wordmark stays as is
+                && !s.Contains("Content=\"Java\"") && !s.Contains("Content=\"Bedrock\"")).ToList(); // edition names, like the game's own switch
         Assert.Empty(leftovers);
 
         // StringFormat bypasses translation; only brand-neutral formats may use it.
@@ -60,6 +61,8 @@ public sealed partial class LocalizationTests
         "Unknown NBT tag {0}.", "Ninja Launcher added its listed server to servers.dat once; delete this file to offer it again.\n",
         "Ninja Launcher added its listed server to external_servers.txt once; delete this file to offer it again.\n",
         "The listed server's name and host must be non-empty without ':' or line breaks.", // build config check, only logged
+        "Minecraft Bedrock", "Minecraft Bedrock Preview", // data folder names
+        "Minecraft for Windows", "Minecraft Preview", // product names, kept in English inside translated messages
     ];
 
     /// <summary>

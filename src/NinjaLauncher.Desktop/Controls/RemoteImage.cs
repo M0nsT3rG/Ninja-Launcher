@@ -9,7 +9,7 @@ namespace NinjaLauncher.Desktop.Controls;
 
 /// <summary>
 /// <c>&lt;Image controls:RemoteImage.Url="{Binding IconUrl}" /&gt;</c> — loads a project logo asynchronously.
-/// HTTPS from known catalogue CDNs only, 2 MB cap, decoded small. Modrinth icons are cached on disk; CurseForge
+/// HTTPS from known catalogue CDNs and Mojang's launcher news only, 2 MB cap, decoded small. Modrinth icons are cached on disk; CurseForge
 /// ones stay in memory only (its API terms forbid caching data obtained through the API).
 /// </summary>
 public static class RemoteImage
@@ -47,10 +47,15 @@ public static class RemoteImage
         return client;
     }
 
-    internal static bool IsAllowed(Uri uri) => uri.Scheme == Uri.UriSchemeHttps &&
-        (uri.Host == "cdn.modrinth.com" || uri.Host.EndsWith(".forgecdn.net", StringComparison.OrdinalIgnoreCase));
+    private const string NewsHost = "launchercontent.mojang.com";
 
-    private static bool DiskCacheable(Uri uri) => uri.Host == "cdn.modrinth.com";
+    internal static bool IsAllowed(Uri uri) => uri.Scheme == Uri.UriSchemeHttps &&
+        (uri.Host == "cdn.modrinth.com" || uri.Host == NewsHost || uri.Host.EndsWith(".forgecdn.net", StringComparison.OrdinalIgnoreCase));
+
+    private static bool DiskCacheable(Uri uri) => uri.Host is "cdn.modrinth.com" or NewsHost;
+
+    /// <summary>Logos are shown small; news pictures fill a 360-pixel-wide card.</summary>
+    private static int DecodeWidth(Uri? uri) => uri?.Host == NewsHost ? 480 : 96;
 
     private static async Task LoadAsync(Image image, string? url)
     {
@@ -72,7 +77,7 @@ public static class RemoteImage
             // Local instance icons only, from the instances folder; never UNC paths (that would contact a remote host).
             if (LocalRoot is null || url.StartsWith(@"\\", StringComparison.Ordinal) || url.StartsWith("//", StringComparison.Ordinal) ||
                 !NinjaLauncher.Application.Security.SafePath.IsUnder(LocalRoot, url)) return;
-            var local = await Task.Run(() => File.Exists(url) && new FileInfo(url).Length <= MaxBytes ? Decode(File.ReadAllBytes(url)) : null);
+            var local = await Task.Run(() => File.Exists(url) && new FileInfo(url).Length <= MaxBytes ? Decode(File.ReadAllBytes(url), 96) : null);
             if (GetUrl(image) == url) image.Source = local;
             return;
         }
@@ -101,7 +106,7 @@ public static class RemoteImage
         {
             if (diskPath is not null && File.Exists(diskPath))
             {
-                if (Decode(await File.ReadAllBytesAsync(diskPath)) is { } cached) return cached;
+                if (Decode(await File.ReadAllBytesAsync(diskPath), DecodeWidth(uri)) is { } cached) return cached;
                 File.Delete(diskPath); // truncated or corrupt cache entry: fetch it again
             }
             await Gate.WaitAsync();
@@ -119,7 +124,7 @@ public static class RemoteImage
                     buffer.Write(chunk, 0, read);
                 }
                 var bytes = buffer.ToArray();
-                var bitmap = Decode(bytes);
+                var bitmap = Decode(bytes, DecodeWidth(uri));
                 if (bitmap is not null && diskPath is not null)
                 {
                     Directory.CreateDirectory(Path.GetDirectoryName(diskPath)!);
@@ -158,13 +163,13 @@ public static class RemoteImage
             try { if (f.LastWriteTimeUtc < DateTime.UtcNow.AddDays(-30) || f.Name.EndsWith(".tmp")) f.Delete(); } catch (IOException) { }
     }
 
-    private static Bitmap? Decode(byte[] bytes)
+    private static Bitmap? Decode(byte[] bytes, int width)
     {
         if (!IsSafeImage(bytes)) return null;
         try
         {
             using var ms = new MemoryStream(bytes);
-            return Bitmap.DecodeToWidth(ms, 96, BitmapInterpolationMode.MediumQuality);
+            return Bitmap.DecodeToWidth(ms, width, BitmapInterpolationMode.MediumQuality);
         }
         catch (Exception) // corrupt, unsupported (e.g. SVG) or truncated images just show no logo
         {

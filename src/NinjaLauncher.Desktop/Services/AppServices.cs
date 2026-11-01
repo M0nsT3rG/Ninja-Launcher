@@ -55,6 +55,10 @@ public static class AppServices
         s.AddSingleton<GameInstaller>();
         s.AddSingleton<JavaRuntimeManager>();
         s.AddSingleton<JavaLaunchService>();
+        s.AddSingleton<NinjaLauncher.Minecraft.Bedrock.BedrockProvider>();
+        s.AddSingleton<MinecraftProfileClient>();
+        s.AddSingleton<SkinService>();
+        s.AddSingleton<NinjaLauncher.Infrastructure.News.MinecraftNews>();
         s.AddSingleton<ModrinthClient>();
         s.AddSingleton<MrpackImporter>();
         s.AddSingleton<ModpackInstaller>();

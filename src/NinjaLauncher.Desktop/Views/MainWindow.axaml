@@ -13,6 +13,7 @@
     <DataTemplate DataType="vm:HomeViewModel"><v:HomeView /></DataTemplate>
     <DataTemplate DataType="vm:LibraryViewModel"><v:LibraryView /></DataTemplate>
     <DataTemplate DataType="vm:DiscoverViewModel"><v:DiscoverView /></DataTemplate>
+    <DataTemplate DataType="vm:WardrobeViewModel"><v:WardrobeView /></DataTemplate>
     <DataTemplate DataType="vm:DownloadsViewModel"><v:DownloadsView /></DataTemplate>
     <DataTemplate DataType="vm:AccountsViewModel"><v:AccountsView /></DataTemplate>
     <DataTemplate DataType="vm:SettingsViewModel"><v:SettingsView /></DataTemplate>

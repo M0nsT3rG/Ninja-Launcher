@@ -41,8 +41,14 @@ All seven research documents are written in `docs/research/`, each with sources,
 - Project logos in Discover and on installed mods: COMPLETE
 - Discover tabs for mods, modpacks, resource packs, data packs and shaders on both sources; data packs install into a chosen world's `datapacks` folder: COMPLETE (Modrinth verified live; CurseForge data packs use the `data-packs` class looked up by slug, unverified until a key is available)
 
-## Phase 6: Bedrock (v0.7.0). REMOVED
-- Dropped on 2026-10-26 at the owner's request (D-16). Ninja Launcher is Java Edition only.
+## Phase 6: Bedrock (v0.7.0). COMPLETE (detect and launch)
+- Removed on 2026-10-26 (D-16), brought back on 2026-11-01 at the owner's request (D-17)
+- Home's Bedrock tab lists Release and Preview: Play opens the officially installed game through Windows, Install opens its Microsoft Store page and notices when the install finishes. The protected package is never read or changed: COMPLETE (Release detected and opened live; Preview detection by package name, not installed here)
+- Pre-listing the partner server in Bedrock's Servers tab (Release and Preview profiles): COMPLETE (unit-tested; inactive until the private config has a Bedrock host)
+
+## Home and Wardrobe (2026-11-01). COMPLETE
+- Home: Java/Bedrock switch, the signed-in account drawn in 3D from its own skin (drag to turn, no rendering service), account picker, the three most recent instances with Play, custom card background (PNG/JPEG, 16 MB, 4096 px), and the official launcher news feed linking to minecraft.net articles: COMPLETE (verified live)
+- Wardrobe: upload a 64×64 skin (classic or slim arms), reset to the default skin, pick or hide any cape the account owns, live 3D preview with a turn-around button: COMPLETE (reading skin and capes verified live; uploading and switching use the documented Minecraft Services endpoints, not exercised on the owner's account)
 
 ## Phase 7: Advanced (v0.8.0). PARTIALLY COMPLETE
 - Crash-report viewer (crash-reports and JVM hs_err logs, summary with suspected mods and hints; failed exits report the reason): COMPLETE (unit-tested with sample reports, checked in the UI)

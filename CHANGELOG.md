@@ -2,10 +2,10 @@
 
 ## [Unreleased] - v0.1.0 development
 
-### Removed
-- Bedrock Edition support: detection, launch, the Microsoft Store link and the Servers tab pre-listing. Ninja Launcher is Java Edition only.
-
 ### Added
+- New Home: Java/Bedrock switch, your character in 3D drawn from your own skin, account picker, recent instances with Play, a custom card background, and the latest Minecraft news from minecraft.net.
+- Bedrock Release and Preview on Home: Play opens the officially installed game, Install opens its Microsoft Store page. The partner server is pre-listed in Bedrock's Servers tab too.
+- Wardrobe: change your Java Edition skin (classic or slim), reset it, and pick or hide any cape your account owns, with a live 3D preview.
 - .NET 10 / Avalonia 12 solution with a layered architecture, DI, SQLite and redacted Serilog logs.
 - Dark and light purple-and-pink UI with custom accent colours and the owner-supplied logo. Pages: Home, Library, Discover, Downloads, Accounts, Settings.
 - Java Edition engine: version manifest, inheritance, rule evaluation (including 26.x `versionRange`), hash-verified installation of client, libraries, assets and natives, Mojang Java runtimes, argument building (including `default-user-jvm`), process launch with log capture.
