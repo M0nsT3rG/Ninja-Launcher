@@ -72,3 +72,9 @@ vpk pack --packId NinjaLauncher --packVersion 0.1.0 --packDir publish --mainExe 
 ```
 
 This was verified on 2026-10-25: it produced Setup.exe, the portable zip, the nupkg and the feed, and the portable build launched.
+
+## Release dry run (before each release)
+
+Build the installer as above with a pre-release version (for example `-p:Version=0.1.0-dryrun.1` and `--packVersion 0.1.0-dryrun.1`) into the git-ignored `artifacts/dryrun`, then install it **from Explorer** as a player would (an installer started from a sandboxed tool may have its files redirected). Check: the unsigned-app warning ("More info" → "Run anyway"), the first launch with no data, Microsoft sign-in, creating a profile with a custom logo or background, playing and closing the game, installing a mod, the Wardrobe, and reopening from the Start menu. Remove the test install afterwards from Windows' installed apps.
+
+Last run: 2026-11-03, `0.1.0-dryrun.1` (59 MB Setup.exe, built from e610a15). Every step passed on Windows 11; the install went to `%LOCALAPPDATA%\NinjaLauncher` with a Start menu shortcut and an uninstall entry.
