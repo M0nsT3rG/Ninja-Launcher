@@ -2,6 +2,9 @@ namespace NinjaLauncher.Domain;
 
 public enum GameEdition { Java, Bedrock }
 
+/// <summary>What the launcher window does while a Java game runs.</summary>
+public enum GameStartBehavior { KeepOpen, Minimize, Close }
+
 public enum ModLoaderKind { None, Fabric, Quilt, Forge, NeoForge }
 
 public enum ThemeMode { Dark, Light, System }
@@ -60,6 +63,13 @@ public sealed record LauncherSettings
     /// <summary>Notify through the operating system when a download or the game finishes while the launcher is in the background.</summary>
     public bool DesktopNotifications { get; init; } = true;
     public bool VerboseLogging { get; init; }
+    public GameStartBehavior OnGameStart { get; init; } = GameStartBehavior.KeepOpen;
+    /// <summary>Game window size for every launch; null leaves it to Minecraft.</summary>
+    public int? GameWindowWidth { get; init; }
+    public int? GameWindowHeight { get; init; }
+    public bool GameFullscreen { get; init; }
+    /// <summary>Extra JVM arguments given to profiles created from now on.</summary>
+    public string DefaultJvmArguments { get; init; } = "";
     /// <summary>The edition Home showed last.</summary>
     public GameEdition LastEdition { get; init; } = GameEdition.Java;
     /// <summary>Azure application (client) ID approved by Mojang for Minecraft Services. Empty disables sign-in.</summary>

@@ -50,6 +50,12 @@ All seven research documents are written in `docs/research/`, each with sources,
 - Home: Java/Bedrock switch, the signed-in account drawn in 3D from its own skin (drag to turn, no rendering service), account picker, the three most recent instances with Play, custom card background (PNG/JPEG, 16 MB, 4096 px), and the official launcher news feed linking to minecraft.net articles: COMPLETE (verified live)
 - Wardrobe: upload a 64×64 skin (classic or slim arms), reset to the default skin, pick or hide any cape the account owns, live 3D preview with a turn-around button: COMPLETE (reading skin and capes, and switching the cape, verified live on 2026-11-01: the public profile showed the newly chosen cape; the owner then saved the slim model, reset to the default skin and re-uploaded the original, which Mojang served byte-identical)
 
+## Settings redesign (2026-11-03). COMPLETE
+- Sections (General, Game, Appearance, Storage, Accounts and services, Advanced, About) with changes saved as they are made; invalid input is reported instead of saved: COMPLETE (auto-save verified live)
+- When the game starts: keep the launcher open, minimise it until the game closes, or close it: COMPLETE (unit-tested arguments; not yet seen with a running game)
+- Game defaults: memory slider bounded by this computer's RAM, game window size and fullscreen for every launch, Java arguments for new profiles: COMPLETE (unit-tested)
+- Storage: disk use of game files, profiles, backups, cache and logs with Open buttons, Clear cache, Reset to defaults: COMPLETE (verified live)
+
 ## Sidebar, Mods and Profiles redesign (2026-11-01). COMPLETE
 - Profile cards show a pixel-art Minecraft landscape drawn from the profile itself (day, sunset or night; no game art shipped), or a background of the owner's choosing; a logo and background can be picked when creating a profile and changed later: COMPLETE (verified live)
 - Icon rail sidebar with tooltips and screen-reader names, Settings and a play-latest button at the bottom; the Minecraft disclaimer moved to a footer that stays in view: COMPLETE (verified live)

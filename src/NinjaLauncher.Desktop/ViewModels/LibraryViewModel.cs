@@ -489,6 +489,7 @@ public sealed partial class LibraryViewModel : ViewModelBase
         var instance = await _instances.CreateAsync(name, mc, loader, loaderVersion, memory, id: _newId);
         try
         {
+            if (_settings.Current.DefaultJvmArguments is { Length: > 0 } jvm) instance = await _instances.UpdateAsync(instance with { ExtraJvmArguments = jvm });
             if (NewIconPath is { } icon) instance = await _instances.SetIconAsync(instance.Id, icon);
             if (NewBackgroundPath is { } background) instance = await _instances.SetBackgroundAsync(instance.Id, background);
         }

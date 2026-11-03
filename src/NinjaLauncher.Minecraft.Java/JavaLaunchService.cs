@@ -33,16 +33,22 @@ public sealed class JavaLaunchService(VersionCatalog catalog, GameInstaller inst
         return (installed, java);
     }
 
+    /// <param name="onStarted">Called once the game process exists (after downloads and installs).</param>
     public async Task<int> LaunchAsync(GameInstance instance, string gameDirectory, LaunchSession session,
-        IProgress<InstallProgress>? progress, Action<GameLogLine> onLog, CancellationToken ct)
+        IProgress<InstallProgress>? progress, Action<GameLogLine> onLog, CancellationToken ct, GameWindow? window = null, Action? onStarted = null)
     {
         var (installed, java) = await PrepareAsync(instance, gameDirectory, progress, ct);
         Directory.CreateDirectory(gameDirectory);
         var args = LaunchArgumentBuilder.Build(installed, session,
-            new LaunchOptions(gameDirectory, instance.MinMemoryMb, instance.MaxMemoryMb, instance.ExtraJvmArguments));
+            new LaunchOptions(gameDirectory, instance.MinMemoryMb, instance.MaxMemoryMb, instance.ExtraJvmArguments,
+                window?.Width, window?.Height, window?.Fullscreen ?? false));
         logger.LogInformation("Launching {Version}: {Command}", installed.Version.Id, GameProcess.DescribeCommand(java, args));
         progress?.Report(new InstallProgress("Game running", 100, 0));
-        var exit = await GameProcess.RunAsync(java, args, gameDirectory, onLog, pid => logger.LogInformation("Game process {Pid} started", pid), ct);
+        var exit = await GameProcess.RunAsync(java, args, gameDirectory, onLog, pid =>
+        {
+            logger.LogInformation("Game process {Pid} started", pid);
+            onStarted?.Invoke();
+        }, ct);
         logger.LogInformation("Game exited with status {Exit}", exit);
         return exit;
     }

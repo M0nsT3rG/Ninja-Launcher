@@ -59,6 +59,26 @@ public sealed class LaunchTests
     }
 
     [Fact]
+    public void Window_size_and_fullscreen_reach_modern_and_legacy_versions()
+    {
+        var modern = MetadataJson.Parse<VersionJson>("""
+            {"id":"26.3","mainClass":"M","arguments":{"jvm":["-cp","${classpath}"],"game":[
+              {"rules":[{"action":"allow","features":{"has_custom_resolution":true}}],"value":["--width","${resolution_width}","--height","${resolution_height}"]}]}}
+            """);
+        var legacy = MetadataJson.Parse<VersionJson>("""{"id":"1.8.9","mainClass":"M","minecraftArguments":"--username ${auth_player_name}"}""");
+        var options = new LaunchOptions("g", 512, 2048, "", 1600, 900, Fullscreen: true);
+
+        foreach (var v in new[] { modern, legacy })
+        {
+            var args = LaunchArgumentBuilder.Build(Installed(v), Session, options, Windows64, "10.0").ToList();
+            Assert.Equal("1600", args[args.IndexOf("--width") + 1]);
+            Assert.Equal("900", args[args.IndexOf("--height") + 1]);
+            Assert.Equal("--fullscreen", args[^1]);
+        }
+        Assert.DoesNotContain("--fullscreen", LaunchArgumentBuilder.Build(Installed(modern), Session, new LaunchOptions("g", 512, 2048, ""), Windows64, "10.0"));
+    }
+
+    [Fact]
     public void Default_user_jvm_is_used_only_without_user_arguments_and_never_overrides_heap()
     {
         var v = MetadataJson.Parse<VersionJson>("""

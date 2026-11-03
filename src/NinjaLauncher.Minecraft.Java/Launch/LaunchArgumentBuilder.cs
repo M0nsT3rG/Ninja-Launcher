@@ -16,7 +16,11 @@ public sealed record LaunchOptions(
     int MaxMemoryMb,
     string UserJvmArguments,
     int? WindowWidth = null,
-    int? WindowHeight = null);
+    int? WindowHeight = null,
+    bool Fullscreen = false);
+
+/// <summary>Window settings applied to every launch.</summary>
+public sealed record GameWindow(int? Width, int? Height, bool Fullscreen);
 
 /// <summary>Builds the JVM + game argument list from version metadata. The result is passed as an argv array, never through a shell.</summary>
 public static partial class LaunchArgumentBuilder
@@ -71,8 +75,14 @@ public static partial class LaunchArgumentBuilder
 
         args.Add(v.MainClass ?? throw new InvalidDataException($"Version {v.Id} has no mainClass."));
 
-        if (v.MinecraftArguments is { } legacy) args.AddRange(legacy.Split(' ', StringSplitOptions.RemoveEmptyEntries));
+        if (v.MinecraftArguments is { } legacy)
+        {
+            args.AddRange(legacy.Split(' ', StringSplitOptions.RemoveEmptyEntries));
+            // Old versions have no resolution rules, but accept the same flags.
+            if (options.WindowWidth is { } w && options.WindowHeight is { } h) args.AddRange(["--width", w.ToString(), "--height", h.ToString()]);
+        }
         if (v.Arguments?.Game is { Count: > 0 } game) args.AddRange(Expand(game, rules));
+        if (options.Fullscreen) args.Add("--fullscreen");
 
         return args.Select(a => Substitute(a, vars)).ToList();
     }

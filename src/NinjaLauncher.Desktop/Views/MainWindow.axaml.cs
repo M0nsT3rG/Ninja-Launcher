@@ -12,6 +12,21 @@ public partial class MainWindow : Window
 {
     public MainWindow() => AvaloniaXamlLoader.Load(this);
 
+    private bool _settingsFlushed;
+
+    protected override async void OnClosing(WindowClosingEventArgs e)
+    {
+        base.OnClosing(e);
+        if (_settingsFlushed || e.Cancel || DataContext is not MainViewModel { Settings.HasPendingSave: true } vm) return;
+        e.Cancel = true; // close again once the last change is on disk
+        try { await vm.Settings.FlushAsync(); }
+        finally
+        {
+            _settingsFlushed = true;
+            Close();
+        }
+    }
+
     protected override void OnDataContextChanged(EventArgs e)
     {
         base.OnDataContextChanged(e);
@@ -104,6 +119,17 @@ public static class Converters
     /// <summary>"Fabric 26.3 · Never played" for the profile rows on Home.</summary>
     public static readonly IValueConverter InstanceSummary = new FuncValueConverter<NinjaLauncher.Domain.GameInstance?, string>(i => i is null ? "" :
         $"{ProfileVersion.Convert(i, typeof(string), null, CultureInfo.CurrentCulture)} · {LastPlayed.Convert(i, typeof(string), null, CultureInfo.CurrentCulture)}");
+
+    /// <summary>Settings: is this section (its index as the parameter) the one shown?</summary>
+    public static readonly IValueConverter IsSection = new FuncValueConverter<int, string, bool>((index, wanted) =>
+        index.ToString(CultureInfo.InvariantCulture) == wanted);
+
+    public static readonly IValueConverter GameStartName = new FuncValueConverter<NinjaLauncher.Domain.GameStartBehavior, string>(b => NinjaLauncher.Desktop.Localization.L.T(b switch
+    {
+        NinjaLauncher.Domain.GameStartBehavior.Minimize => "Minimise it, and bring it back when the game closes",
+        NinjaLauncher.Domain.GameStartBehavior.Close => "Close it (the game keeps running, but there's no crash report)",
+        _ => "Keep it open",
+    }));
 
     public static readonly IValueConverter LongDate = new FuncValueConverter<DateOnly, string>(d => d.ToString("D", CultureInfo.CurrentCulture));
 

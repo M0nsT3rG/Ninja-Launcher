@@ -17,13 +17,43 @@ namespace NinjaLauncher.Desktop.Services;
 public sealed class GameSessionService(
     JavaLaunchService launcher, InstanceService instances, AccountService accounts, JobQueue jobs,
     HttpDownloadService downloader, IActivityLog activity, ModCompatibilityChecker checker, NotificationService notifications,
-    ListedServer listedServer)
+    ListedServer listedServer, SettingsHolder settings)
 {
     private const int MaxLogLines = 3000;
     private readonly HashSet<Guid> _running = [];
 
     public ObservableCollection<GameLogLine> Log { get; } = [];
     public event Action? RunningChanged;
+
+    private bool _hiddenForGame;
+
+    private static Avalonia.Controls.Window? MainWindow =>
+        (Avalonia.Application.Current?.ApplicationLifetime as Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime)?.MainWindow;
+
+    /// <summary>Settings → When the game starts. Closing leaves the game running; it only loses the launcher's log and crash report.</summary>
+    private void OnGameStarted(GameStartBehavior behavior)
+    {
+        // This game's own job is running too; anything beyond it would be killed by closing, so just step aside.
+        if (behavior == GameStartBehavior.Close && jobs.Jobs.Count(j => j.IsRunning) > 1) behavior = GameStartBehavior.Minimize;
+        if (behavior == GameStartBehavior.Close)
+            (Avalonia.Application.Current?.ApplicationLifetime as Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime)?.Shutdown();
+        else if (behavior == GameStartBehavior.Minimize && MainWindow is { } window)
+        {
+            window.WindowState = Avalonia.Controls.WindowState.Minimized;
+            _hiddenForGame = true;
+        }
+    }
+
+    /// <summary>Restores the window the launcher minimised for the game, once no game is left running.</summary>
+    private void BringBackIfHidden()
+    {
+        lock (_running)
+            if (!_hiddenForGame || _running.Count > 0) return;
+        _hiddenForGame = false;
+        if (MainWindow is not { } window) return;
+        window.WindowState = Avalonia.Controls.WindowState.Normal;
+        window.Activate();
+    }
 
     public bool IsRunning(Guid instanceId)
     {
@@ -49,9 +79,11 @@ public sealed class GameSessionService(
                 listedServer.EnsureJava(instances.GetGameDirectory(current));
                 await activity.AddAsync($"Launched '{current.Name}' as {session.Username}", ct);
                 var started = DateTime.UtcNow.AddSeconds(-5);
+                var prefs = settings.Current;
                 var exit = await launcher.LaunchAsync(current, instances.GetGameDirectory(current),
                     new LaunchSession(session.Username, session.ProfileId, session.MinecraftAccessToken, session.Xuid, session.Offline ? "legacy" : "msa", session.ClientId),
-                    progress, AppendLog, ct);
+                    progress, AppendLog, ct, new GameWindow(prefs.GameWindowWidth, prefs.GameWindowHeight, prefs.GameFullscreen),
+                    () => Dispatcher.UIThread.Post(() => OnGameStarted(prefs.OnGameStart)));
                 await activity.AddAsync($"'{current.Name}' exited with status {exit}", ct);
                 if (exit != 0) throw new InvalidOperationException(DescribeCrash(instances.GetGameDirectory(current), started, exit));
                 notifications.Notify(L.T("Minecraft closed"), L.F("'{0}' closed normally.", current.Name));
@@ -60,6 +92,7 @@ public sealed class GameSessionService(
             {
                 lock (_running) _running.Remove(instance.Id);
                 RunningChanged?.Invoke();
+                Dispatcher.UIThread.Post(BringBackIfHidden);
             }
         }, notifySuccess: false); // a clean exit is reported above; failures and crashes notify through the job
     }
