@@ -52,7 +52,7 @@ All seven research documents are written in `docs/research/`, each with sources,
 
 ## Settings redesign (2026-11-03). COMPLETE
 - Sections (General, Game, Appearance, Storage, Accounts and services, Advanced, About) with changes saved as they are made; invalid input is reported instead of saved: COMPLETE (auto-save verified live)
-- When the game starts: keep the launcher open, minimise it until the game closes, or close it: COMPLETE (unit-tested arguments; not yet seen with a running game)
+- When the game starts: keep the launcher open, minimise it until the game closes, or close it: COMPLETE (minimise and restore verified live with a running game; close keeps the launcher open while anything else runs)
 - Game defaults: memory slider bounded by this computer's RAM, game window size and fullscreen for every launch, Java arguments for new profiles: COMPLETE (unit-tested)
 - Storage: disk use of game files, profiles, backups, cache and logs with Open buttons, Clear cache, Reset to defaults: COMPLETE (verified live)
 

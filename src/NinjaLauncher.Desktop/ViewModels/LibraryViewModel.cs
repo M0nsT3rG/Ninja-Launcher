@@ -62,7 +62,11 @@ public sealed partial class LibraryViewModel : ViewModelBase
         NinjaLauncher.Mods.CurseForge.CurseForgeModpackInstaller curseForgePacks, MrpackExporter exporter,
         NinjaLauncher.Mods.CurseForge.CurseForgeExporter curseForgeExporter)
     {
-        game.RunningChanged += () => Avalonia.Threading.Dispatcher.UIThread.Post(RefreshRunningState);
+        game.RunningChanged += () => Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+        {
+            RefreshRunningState();
+            if (IsGridMode) _ = ui.RunAsync(OnShownAsync); // cards show "last played", which a launch just changed
+        });
         (_exporter, _curseForgeExporter) = (exporter, curseForgeExporter);
         (_ui, _instances, _catalog, _game, _jobs, _shell, _settings, _modpacks, _modrinth, _checker) = (ui, instances, catalog, game, jobs, shell, settings, modpacks, modrinth, checker);
         _curseForgePacks = curseForgePacks;
