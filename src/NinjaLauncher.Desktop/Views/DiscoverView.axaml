@@ -186,8 +186,11 @@
                       <TextBlock Text="{Binding Title}" FontWeight="Bold" Foreground="White" TextAlignment="Center" TextTrimming="CharacterEllipsis" MaxLines="1" />
                       <TextBlock Foreground="#E9D5FF" FontSize="12" TextAlignment="Center" IsVisible="{Binding Follows, Converter={x:Static ObjectConverters.IsNotNull}}"
                                  Text="{Binding Follows, Converter={x:Static v:Converters.Localize}, ConverterParameter='{}{0:N0} followers', FallbackValue=''}" />
-                      <Button Classes="accent" Content="{l:T 'Install'}" HorizontalAlignment="Center"
-                              Command="{Binding $parent[UserControl].((vm:DiscoverViewModel)DataContext).InstallCommand}" CommandParameter="{Binding}" />
+                      <Panel HorizontalAlignment="Center">
+                        <Button Classes="accent" Content="{l:T 'Install'}" IsVisible="{Binding !Installed}"
+                                Command="{Binding $parent[UserControl].((vm:DiscoverViewModel)DataContext).InstallCommand}" CommandParameter="{Binding}" />
+                        <Button Content="{l:T '✓ Installed'}" IsVisible="{Binding Installed}" IsEnabled="False" />
+                      </Panel>
                     </StackPanel>
                   </Border>
                 </DataTemplate>
@@ -196,15 +199,19 @@
           </ScrollViewer>
         </StackPanel>
 
-        <!-- Results -->
-        <ItemsControl ItemsSource="{Binding Results}">
+        <!-- Results (right margin keeps the dates clear of the scrollbar) -->
+        <ItemsControl ItemsSource="{Binding Results}" Margin="0,0,14,0">
           <ItemsControl.ItemTemplate>
             <DataTemplate DataType="vm:ContentHit">
               <Border Classes="card" Padding="12" Margin="0,0,0,8">
                 <DockPanel>
                   <StackPanel DockPanel.Dock="Right" Spacing="8" VerticalAlignment="Center" Margin="12,0,0,0">
-                    <Button Classes="accent" Content="{l:T 'Install'}" HorizontalAlignment="Right" MinWidth="96" HorizontalContentAlignment="Center"
-                            Command="{Binding $parent[UserControl].((vm:DiscoverViewModel)DataContext).InstallCommand}" CommandParameter="{Binding}" />
+                    <Panel HorizontalAlignment="Right">
+                      <Button Classes="accent" Content="{l:T 'Install'}" MinWidth="96" HorizontalContentAlignment="Center" IsVisible="{Binding !Installed}"
+                              Command="{Binding $parent[UserControl].((vm:DiscoverViewModel)DataContext).InstallCommand}" CommandParameter="{Binding}" />
+                      <Button Content="{l:T '✓ Installed'}" MinWidth="96" HorizontalContentAlignment="Center" IsVisible="{Binding Installed}" IsEnabled="False"
+                              ToolTip.Tip="{l:T 'Already in this profile'}" />
+                    </Panel>
                     <StackPanel Orientation="Horizontal" Spacing="12" HorizontalAlignment="Right">
                       <TextBlock Classes="muted" FontSize="12" Text="{Binding Downloads, Converter={x:Static v:Converters.Localize}, ConverterParameter='{}{0:N0} downloads'}" />
                       <TextBlock Classes="muted" FontSize="12" IsVisible="{Binding Follows, Converter={x:Static ObjectConverters.IsNotNull}}"

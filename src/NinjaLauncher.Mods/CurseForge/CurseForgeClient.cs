@@ -109,6 +109,23 @@ public sealed class CurseForgeClient(HttpClient http, Func<CancellationToken, Ta
         return doc.RootElement.GetProperty("data").Deserialize<List<CurseForgeFile>>(Json)!;
     }
 
+    /// <summary>
+    /// CurseForge projects already in a profile's content folder, by fingerprint (exact matches only). The result
+    /// is only used for the page being shown and is never stored (API terms §3.1).
+    /// </summary>
+    public async Task<IReadOnlySet<long>> InstalledModIdsAsync(string folder, CancellationToken ct)
+    {
+        var files = ModrinthClient.ContentFiles(folder);
+        if (files.Count == 0) return new HashSet<long>();
+        var fingerprints = new List<uint>();
+        foreach (var f in files)
+        {
+            ct.ThrowIfCancellationRequested(); // between files: one file is read whole once started
+            fingerprints.Add(await Task.Run(() => CurseForgeFingerprint.CachedOfFile(f), ct));
+        }
+        return (await MatchFingerprintsAsync(fingerprints.Distinct().ToList(), ct)).Values.Select(f => f.ModId).ToHashSet();
+    }
+
     /// <summary>Fingerprint → matching CurseForge file (exact matches only).</summary>
     public async Task<Dictionary<uint, CurseForgeFile>> MatchFingerprintsAsync(IReadOnlyCollection<uint> fingerprints, CancellationToken ct)
     {

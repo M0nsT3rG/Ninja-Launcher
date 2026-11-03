@@ -620,5 +620,7 @@
  "Freed {0}.": "Libertados {0}.",
  "Put every setting back to its default? Your profiles, accounts, profiles folder and CurseForge key are kept.": "Repor todas as definições nos valores predefinidos? Os teus perfis, contas, a pasta dos perfis e a chave do CurseForge são mantidos.",
  "Settings are back to their defaults.": "As definições voltaram aos valores predefinidos.",
- "The profiles folder isn’t a valid path.": "A pasta dos perfis não é um caminho válido."
+ "The profiles folder isn’t a valid path.": "A pasta dos perfis não é um caminho válido.",
+ "✓ Installed": "✓ Instalado",
+ "Already in this profile": "Já está neste perfil"
 }

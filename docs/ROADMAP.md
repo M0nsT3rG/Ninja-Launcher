@@ -50,6 +50,9 @@ All seven research documents are written in `docs/research/`, each with sources,
 - Home: Java/Bedrock switch, the signed-in account drawn in 3D from its own skin (drag to turn, no rendering service), account picker, the three most recent instances with Play, custom card background (PNG/JPEG, 16 MB, 4096 px), and the official launcher news feed linking to minecraft.net articles: COMPLETE (verified live)
 - Wardrobe: upload a 64×64 skin (classic or slim arms), reset to the default skin, pick or hide any cape the account owns, live 3D preview with a turn-around button: COMPLETE (reading skin and capes, and switching the cape, verified live on 2026-11-01: the public profile showed the newly chosen cape; the owner then saved the slim model, reset to the default skin and re-uploaded the original, which Mojang served byte-identical)
 
+## Installed detection on Mods (2026-11-03). COMPLETE
+- Results the chosen profile (or world, for data packs) already has show "Installed" instead of Install. Files are recognised by content (Modrinth by SHA-1, CurseForge by fingerprint), so hand-added files and identical files from the other site count too: COMPLETE (verified live: Fabric API from CurseForge shown as installed on Modrinth, AppleSkin on CurseForge)
+
 ## Settings redesign (2026-11-03). COMPLETE
 - Sections (General, Game, Appearance, Storage, Accounts and services, Advanced, About) with changes saved as they are made; invalid input is reported instead of saved: COMPLETE (auto-save verified live)
 - When the game starts: keep the launcher open, minimise it until the game closes, or close it: COMPLETE (minimise and restore verified live with a running game; close keeps the launcher open while anything else runs)

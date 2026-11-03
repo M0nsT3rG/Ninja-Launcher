@@ -202,6 +202,42 @@ public sealed class ModrinthClient(IDownloadService downloads)
         ProjectKind.Shader => "shaderpacks", ProjectKind.ResourcePack => "resourcepacks", _ => "mods",
     };
 
+    /// <summary>The files in a content folder that a catalogue could know: jars and zips, enabled or disabled.</summary>
+    public static IReadOnlyList<string> ContentFiles(string folder) => !Directory.Exists(folder) ? [] :
+        Directory.GetFiles(folder).Where(f => (f.EndsWith(".disabled", StringComparison.OrdinalIgnoreCase) ? f[..^".disabled".Length] : f) is var n &&
+            (n.EndsWith(".jar", StringComparison.OrdinalIgnoreCase) || n.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))).ToList();
+
+    private static readonly Dictionary<(string Path, long Size, DateTime Modified), string> Sha1Cache = new();
+
+    /// <summary>A file's SHA-1, worked out again only when its size or modified time changes (big packs are hashed once).</summary>
+    public static async Task<string> CachedSha1Async(string path, CancellationToken ct)
+    {
+        var info = new FileInfo(path);
+        var key = (info.FullName, info.Length, info.LastWriteTimeUtc);
+        lock (Sha1Cache) if (Sha1Cache.TryGetValue(key, out var hit)) return hit;
+        var sha1 = await Sha1OfAsync(path, ct);
+        lock (Sha1Cache)
+        {
+            if (Sha1Cache.Count > 20_000) Sha1Cache.Clear(); // shortcut: drop all at once; files are just hashed again
+            Sha1Cache[key] = sha1;
+        }
+        return sha1;
+    }
+
+    /// <summary>
+    /// Modrinth projects already in a profile's content folder, recognised by file hash, so files added by hand
+    /// (or from another site, if the file is identical) count too.
+    /// </summary>
+    public async Task<IReadOnlySet<string>> InstalledProjectIdsAsync(string folder, CancellationToken ct)
+    {
+        var files = ContentFiles(folder);
+        if (files.Count == 0) return new HashSet<string>();
+        var hashes = new List<string>();
+        foreach (var f in files) hashes.Add(await CachedSha1Async(f, ct));
+        var versions = await PostAsync<Dictionary<string, ModrinthVersion>>("/version_files", new { hashes, algorithm = "sha1" }, ct);
+        return versions.Values.Select(v => v.ProjectId).ToHashSet();
+    }
+
     /// <summary>Lists mods in the instance; disabled ones carry a <c>.disabled</c> suffix (the de-facto convention).</summary>
     public static IReadOnlyList<(string FileName, bool Enabled)> ListMods(string gameDirectory)
     {

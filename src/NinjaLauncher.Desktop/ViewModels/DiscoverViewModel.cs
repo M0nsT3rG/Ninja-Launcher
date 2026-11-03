@@ -18,6 +18,9 @@ public enum ContentSource { Modrinth, CurseForge }
 public sealed record ContentHit(string Title, string Description, string Author, long Downloads, string PageUrl, string? IconUrl,
     ModrinthHit? Modrinth, CurseForgeMod? CurseForge, long? Follows = null, DateTimeOffset? Updated = null)
 {
+    /// <summary>Already in the chosen profile (or world, for data packs).</summary>
+    public bool Installed { get; init; }
+
     public static ContentHit From(ModrinthHit h) =>
         new(h.Title, h.Description, h.Author, h.Downloads, $"https://modrinth.com/{h.ProjectType}/{Uri.EscapeDataString(h.Slug)}", h.IconUrl, h, null, h.Follows, h.DateModified);
     public static ContentHit From(CurseForgeMod m) =>
@@ -180,16 +183,26 @@ public sealed partial class DiscoverViewModel(UiContext ui, ModrinthClient modri
     partial void OnTargetChanged(GameInstance? value)
     {
         RefreshWorlds();
-        if (FilterByInstance) Restart();
+        Restart(); // the Installed marks belong to the chosen profile
     }
+    partial void OnTargetWorldChanged(string? value)
+    {
+        if (IsDataPack && !_refreshingWorlds) Restart();
+    }
+    private bool _refreshingWorlds;
 
     /// <summary>Data packs belong to a world, so their install target is a world of the selected instance.</summary>
     private void RefreshWorlds()
     {
         var keep = TargetWorld;
-        Worlds.Clear();
-        if (Target is { } t) foreach (var w in instances.ListWorlds(t)) Worlds.Add(w);
-        TargetWorld = Worlds.Contains(keep ?? "") ? keep : Worlds.FirstOrDefault();
+        _refreshingWorlds = true;
+        try
+        {
+            Worlds.Clear();
+            if (Target is { } t) foreach (var w in instances.ListWorlds(t)) Worlds.Add(w);
+            TargetWorld = Worlds.Contains(keep ?? "") ? keep : Worlds.FirstOrDefault();
+        }
+        finally { _refreshingWorlds = false; }
         OnPropertyChanged(nameof(HasNoWorlds));
     }
     partial void OnFilterByInstanceChanged(bool value)
@@ -282,6 +295,51 @@ public sealed partial class DiscoverViewModel(UiContext ui, ModrinthClient modri
                     profile.Loader == ModLoaderKind.None ? L.T("Vanilla") : profile.Loader.ToString());
         }
         finally { IsBusy = false; }
+        await MarkInstalledAsync(source, kind, ct);
+    }
+
+    /// <summary>Marks the shown results the profile already has, unless a newer search has replaced them meanwhile.</summary>
+    private async Task MarkInstalledAsync(ContentSource source, ProjectKind kind, CancellationToken ct)
+    {
+        var installed = await InstalledAsync(source, kind, ct);
+        if (ct.IsCancellationRequested) return;
+        foreach (var list in new[] { Results, Popular })
+            for (var i = 0; i < list.Count; i++)
+                if (installed(list[i]) is var yes && yes != list[i].Installed) list[i] = list[i] with { Installed = yes };
+    }
+
+    /// <summary>
+    /// Which results the install target already has, recognised by file content so hand-added files count too.
+    /// Best effort: if the check fails, nothing is marked and Install still works as before.
+    /// </summary>
+    private async Task<Func<ContentHit, bool>> InstalledAsync(ContentSource source, ProjectKind kind, CancellationToken ct)
+    {
+        if (!NeedsTarget || Target is not { } target) return _ => false;
+        string folder;
+        try
+        {
+            var relative = kind == ProjectKind.DataPack
+                ? TargetWorld is { } world ? ModrinthClient.DataPackFolder(world) : null
+                : ModrinthClient.ContentFolder(kind);
+            if (relative is null) return _ => false;
+            folder = NinjaLauncher.Application.Security.SafePath.Combine(instances.GetGameDirectory(target), relative);
+        }
+        catch (ArgumentException) { return _ => false; }
+        try
+        {
+            if (source == ContentSource.CurseForge)
+            {
+                var ids = await curseForge.InstalledModIdsAsync(folder, ct);
+                return h => h.CurseForge is { } m && ids.Contains(m.Id);
+            }
+            var projects = await modrinth.InstalledProjectIdsAsync(folder, ct);
+            return h => h.Modrinth is { } m && projects.Contains(m.ProjectId);
+        }
+        catch (Exception e) when (e is HttpRequestException or IOException or UnauthorizedAccessException or System.Text.Json.JsonException
+                                       or InvalidOperationException or TimeoutException || e is OperationCanceledException && !ct.IsCancellationRequested)
+        {
+            return _ => false;
+        }
     }
 
     [RelayCommand]
@@ -320,6 +378,7 @@ public sealed partial class DiscoverViewModel(UiContext ui, ModrinthClient modri
             else installed = await modrinth.InstallAsync(hit.Modrinth!, kind, target, gameDir, ct, world);
         });
         if (installed.Count > 0) ui.Info(L.F("Installed {0}", string.Join(", ", installed.Select(i => i.FileName))));
+        await MarkInstalledAsync(Source, kind, CancellationToken.None);
         await OfferManualDownloadsAsync(ui, shell, manual, instances.GetGameDirectory(target));
     });
 

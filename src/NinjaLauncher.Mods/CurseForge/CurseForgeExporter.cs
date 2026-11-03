@@ -97,6 +97,26 @@ public sealed class CurseForgeExporter(CurseForgeClient curseForge)
 /// </summary>
 public static class CurseForgeFingerprint
 {
+    private static readonly Dictionary<(string Path, long Size, DateTime Modified), uint> Cache = new();
+
+    /// <summary>
+    /// The fingerprint, worked out again only when the file's size or modified time changes. It is computed here from
+    /// the file itself; nothing obtained from CurseForge's API is kept.
+    /// </summary>
+    public static uint CachedOfFile(string path)
+    {
+        var info = new FileInfo(path);
+        var key = (info.FullName, info.Length, info.LastWriteTimeUtc);
+        lock (Cache) if (Cache.TryGetValue(key, out var hit)) return hit;
+        var value = OfFile(path);
+        lock (Cache)
+        {
+            if (Cache.Count > 20_000) Cache.Clear(); // shortcut: drop all at once; files are just read again
+            Cache[key] = value;
+        }
+        return value;
+    }
+
     /// <summary>Streams the file twice (length of the filtered data first, as MurmurHash2 needs it up front).</summary>
     public static uint OfFile(string path)
     {
